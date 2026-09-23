@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Code Ordering System - Project Proposal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; max-width: 800px; margin: 0 auto; }
+
+    .header { text-align: center; border-bottom: 3px solid #008080; padding-bottom: 24px; margin-bottom: 32px; }
+    .header h1 { font-size: 22px; color: #008080; margin-bottom: 4px; }
+    .header p { font-size: 13px; color: #666; }
+    .header .date { margin-top: 8px; font-size: 12px; color: #999; }
+
+    .phase { margin-bottom: 28px; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; }
+    .phase-header { padding: 14px 20px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    .phase-header h2 { font-size: 16px; font-weight: 700; }
+    .phase-header .amount { font-size: 18px; font-weight: 800; }
+    .phase-header .status { font-size: 11px; background: rgba(255,255,255,0.25); padding: 3px 10px; border-radius: 20px; margin-left: 10px; }
+
+    .phase1 .phase-header { background: #008080; }
+    .phase2 .phase-header { background: #3b82f6; }
+    .phase3 .phase-header { background: #8b5cf6; }
+
+    .phase-body { padding: 16px 20px; }
+    .phase-body p.timeline { font-size: 12px; color: #888; margin-bottom: 12px; font-style: italic; }
+    .phase-body ul { list-style: none; padding: 0; }
+    .phase-body ul li { font-size: 13px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; display: flex; align-items: flex-start; gap: 8px; }
+    .phase-body ul li:last-child { border-bottom: none; }
+    .phase-body ul li::before { content: "\2713"; color: #008080; font-weight: bold; flex-shrink: 0; margin-top: 1px; }
+
+    .payment-table { width: 100%; border-collapse: collapse; margin-top: 24px; margin-bottom: 24px; }
+    .payment-table th { background: #f8f9fa; text-align: left; padding: 10px 16px; font-size: 13px; color: #555; border-bottom: 2px solid #e0e0e0; }
+    .payment-table td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #eee; }
+    .payment-table tr:last-child td { border-bottom: 2px solid #008080; font-weight: 700; font-size: 14px; }
+    .payment-table .status-due { color: #dc2626; font-weight: 600; }
+    .payment-table .status-upcoming { color: #3b82f6; font-weight: 600; }
+
+    .terms { margin-top: 28px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+    .terms h3 { font-size: 14px; color: #333; margin-bottom: 10px; }
+    .terms ul { padding-left: 18px; }
+    .terms ul li { font-size: 12px; color: #555; padding: 3px 0; }
+
+    .footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; }
+
+    @media print {
+      body { padding: 20px; }
+      .phase { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>QR Code Restaurant Ordering System</h1>
+    <p>Project Delivery Plan & Payment Schedule</p>
+    <div class="date">Date: February 2025 &nbsp;|&nbsp; Total Project Value: &#8377;30,000</div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase phase1">
+    <div class="phase-header">
+      <h2>Phase 1 — Core System <span class="status">COMPLETED</span></h2>
+      <div class="amount">&#8377;12,000</div>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li>Admin Panel — Login, Dashboard with stats & charts</li>
+        <li>Restaurant management (create, edit, delete restaurants)</li>
+        <li>Menu management — Categories & Menu Items (veg/non-veg, pricing, prep time)</li>
+        <li>Table management with QR Code generation & download</li>
+        <li>Order management — View, filter by status, update status in real-time</li>
+        <li>User & Staff management with 4 roles (Super Admin, Owner, Manager, Staff)</li>
+        <li>Customer App — Scan QR code, browse menu, search dishes</li>
+        <li>Cart system — Add/remove items, quantity control, bill summary</li>
+        <li>Place order & real-time order status tracking (auto-refresh)</li>
+        <li>Order history lookup by phone number</li>
+        <li>Deployment setup — Frontend (Netlify) + Backend (Render)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase phase2">
+    <div class="phase-header">
+      <h2>Phase 2 — Payments & Subscriptions</h2>
+      <div class="amount">&#8377;10,000</div>
+    </div>
+    <div class="phase-body">
+      <p class="timeline">Timeline: 2-3 weeks after Phase 1 payment</p>
+      <ul>
+        <li>Razorpay payment gateway integration in Customer App</li>
+        <li>Online payment flow — Pay from phone after placing order</li>
+        <li>Payment status tracking in Admin Panel (pending, paid, failed)</li>
+        <li>Subscription plan system — Create plans with limits (tables, menu items)</li>
+        <li>Assign subscription plans to restaurants</li>
+        <li>Admin revenue reports & payment history page</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase phase3">
+    <div class="phase-header">
+      <h2>Phase 3 — Kitchen Display & Final Polish</h2>
+      <div class="amount">&#8377;8,000</div>
+    </div>
+    <div class="phase-body">
+      <p class="timeline">Timeline: 2-3 weeks after Phase 2 payment</p>
+      <ul>
+        <li>Kitchen Display Screen — Live order queue for kitchen staff</li>
+        <li>Menu item image upload support</li>
+        <li>Admin panel UI improvements & bug fixes</li>
+        <li>Customer app UI polish & performance optimization</li>
+        <li>Final testing, security review & production deployment</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Payment Table -->
+  <table class="payment-table">
+    <thead>
+      <tr>
+        <th>Phase</th>
+        <th>Deliverables</th>
+        <th>Amount</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Phase 1</td>
+        <td>Core System (Admin + Customer App + Backend)</td>
+        <td>&#8377;12,000</td>
+        <td class="status-due">Payment Due</td>
+      </tr>
+      <tr>
+        <td>Phase 2</td>
+        <td>Razorpay Payments + Subscription System</td>
+        <td>&#8377;10,000</td>
+        <td class="status-upcoming">After Phase 1 Payment</td>
+      </tr>
+      <tr>
+        <td>Phase 3</td>
+        <td>Kitchen Display + Images + Final Polish</td>
+        <td>&#8377;8,000</td>
+        <td class="status-upcoming">After Phase 2 Payment</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><strong>Total Project Cost</strong></td>
+        <td><strong>&#8377;30,000</strong></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Terms -->
+  <div class="terms">
+    <h3>Terms & Conditions</h3>
+    <ul>
+      <li>Phase 1 is fully completed and deployed — payment is due immediately.</li>
+      <li>Work on the next phase begins only after the previous phase payment is received.</li>
+      <li>Hosting costs (Render, Netlify, domain) are separate and borne by the client.</li>
+      <li>Razorpay account setup & KYC is the client's responsibility.</li>
+      <li>Source code will be handed over after final payment.</li>
+      <li>Any features outside the listed scope will be quoted separately.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    This is a project proposal document. &copy; 2025
+  </div>
+
+</body>
+</html>

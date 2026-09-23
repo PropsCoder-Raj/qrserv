@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App base */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  /* Multi-color background (brand-tinted) */
+  @apply bg-slate-50 text-slate-900;
+  font-family: 'Poppins';
+}
+
+/* Utility: readable card surface */
+.qr-card {
+  @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+}
+
+/* Simple animations (no extra libs) */
+@keyframes qr-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qr-animate-fade-up {
+  animation: qr-fade-up 600ms ease-out both;
+}
+
+.qr-plan-card {
+  @apply relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition;
+}
+
+.qr-plan-card:hover {
+  transform: translateY(-4px);
+}
+
+.qr-plan-glow {
+  @apply pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full blur-3xl opacity-40;
+}
+
+
+.font-rubik{
+  font-family: 'Rubik' !important;
+}
+
+.bg_section{
+  background: linear-gradient(135deg, #187932, #0B3D1F, #187932);
+}
+
+.bg_main{
+  background: url('/img/BG_ADMIN_DASH_NEW_1.png');
+  width: 100%;
+  height: 100vh;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* Mobile: show full image without awkward crop */
+@media (max-width: 640px) {
+  .bg_main {
+    height: 260px;
+    min-height: 260px;
+    background-size: contain;
+    background-color: #187932; /* brand fallback behind transparent areas */
+  }
+}
