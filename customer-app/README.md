@@ -44,7 +44,7 @@ Default local URL:
 http://localhost:5174
 ```
 
-If `VITE_API_URL` is not set, the app falls back to `/api` and Vite proxies API requests to `https://srv1563916.hstgr.cloud` in development.
+If `VITE_API_URL` is not set, the app falls back to `/api` and Vite proxies API requests to `https://backend.qrserv.in` in development.
 
 ## Build
 

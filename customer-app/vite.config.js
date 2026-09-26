@@ -8,11 +8,11 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'https://srv1563916.hstgr.cloud',
+        target: 'https://backend.qrserv.in',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'https://srv1563916.hstgr.cloud',
+        target: 'https://backend.qrserv.in',
         changeOrigin: true,
       },
     },
