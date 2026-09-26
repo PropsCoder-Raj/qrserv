@@ -65,7 +65,7 @@ export default function MenuItemCard({ item }) {
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-text">
-              Rs {item.price}
+             {item.price}
               {isLiquor && vatEnabled && vatType === 'inclusive' && (
                 <span className="ml-1 text-[10px] font-normal text-text-light">
                   (incl. VAT)

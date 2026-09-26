@@ -322,7 +322,7 @@ export default function OrganizationDetails() {
         <div className="rounded-xl border border-stroke bg-card p-5">
           <p className="text-sm text-slate-500">Total Payments by Orders</p>
           <p className="mt-1 text-2xl font-bold text-slate-800">
-            Rs {Number(summary.totalRazorpayAmount || 0).toLocaleString('en-IN')}
+           {Number(summary.totalRazorpayAmount || 0).toLocaleString('en-IN')}
           </p>
         </div>
       </div>
@@ -358,7 +358,7 @@ export default function OrganizationDetails() {
               key: 'totalAmount',
               label: 'Amount',
               render: (o) =>
-                `Rs ${Number(o.totalAmount || 0).toLocaleString('en-IN')}`,
+                `${Number(o.totalAmount || 0).toLocaleString('en-IN')}`,
             },
             {
               key: 'razorpayPaymentId',

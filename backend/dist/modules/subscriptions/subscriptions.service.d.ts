@@ -103,7 +103,7 @@ export declare class SubscriptionsService {
             duration: number;
             months: number;
             offerPercent: number;
-            discountType: "flat" | "none" | "percentage";
+            discountType: "none" | "flat" | "percentage";
             discountValue: number;
         };
     }>;

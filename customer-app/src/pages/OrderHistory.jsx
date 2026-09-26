@@ -176,7 +176,7 @@ export default function OrderHistory() {
                       </button>
                     )}
                     <span className="text-sm font-bold text-primary">
-                    ₹{order.totalAmount}
+                    {order.totalAmount}
                     </span>
                   </div>
                 </div>

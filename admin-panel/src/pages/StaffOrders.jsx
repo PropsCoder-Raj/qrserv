@@ -214,7 +214,7 @@ export default function StaffOrders() {
                                 </span>
                               )}
                             </span>
-                            <span className="text-slate-500">₹{item.price * remainingQty}</span>
+                            <span className="text-slate-500">{item.price * remainingQty}</span>
                           </>
                         );
                       })()}
@@ -295,7 +295,7 @@ export default function StaffOrders() {
 
                 {/* Total & Payment */}
                 <div className="mb-3 flex items-center justify-between border-t border-stroke pt-2">
-                  <span className="text-base font-bold text-slate-800">₹{order.totalAmount}</span>
+                  <span className="text-base font-bold text-slate-800">{order.totalAmount}</span>
                   <button
                     onClick={() => updatePaymentStatus(order._id, order.paymentStatus === 'paid' ? 'pending' : 'paid')}
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition ${paymentColor(order.paymentStatus)}`}

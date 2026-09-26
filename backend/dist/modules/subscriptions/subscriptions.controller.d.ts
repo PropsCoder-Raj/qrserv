@@ -61,7 +61,7 @@ export declare class SubscriptionsController {
             duration: number;
             months: number;
             offerPercent: number;
-            discountType: "flat" | "none" | "percentage";
+            discountType: "none" | "flat" | "percentage";
             discountValue: number;
         };
     }>;

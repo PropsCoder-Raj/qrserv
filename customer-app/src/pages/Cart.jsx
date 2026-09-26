@@ -328,7 +328,7 @@ export default function Cart() {
                         {item.name}
                       </h3>
                       <p className="mt-0.5 text-sm font-medium text-primary">
-                        ₹{item.price * item.quantity}
+                        {item.price * item.quantity}
                       </p>
                     </div>
 
@@ -364,7 +364,7 @@ export default function Cart() {
 
             {/* Customer Info */}
             {grandTotal < 0 && (
-                    <span className="text-base font-bold text-primary">₹{grandTotal}</span>
+                    <span className="text-base font-bold text-primary">{grandTotal}</span>
             )}
             <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
               <h3 className="mb-3 text-sm font-semibold text-text">
@@ -473,19 +473,19 @@ export default function Cart() {
                     <div key={item.menuItemId}>
                       <div className="flex justify-between text-text-secondary">
                         <span>{item.name}{isLiquor ? ' [L]' : ''} x {item.quantity}</span>
-                        <span>₹{lineTotal}</span>
+                        <span>{lineTotal}</span>
                       </div>
                       {hasGst && (
                         <div className="text-[11px] text-text-light ml-1 mt-0.5 space-x-2">
-                          <span>Base: ₹{base.toFixed(2)}</span>
-                          <span>CGST: ₹{itemCgst.toFixed(2)}</span>
-                          <span>SGST: ₹{itemSgst.toFixed(2)}</span>
+                          <span>Base: {base.toFixed(2)}</span>
+                          <span>CGST: {itemCgst.toFixed(2)}</span>
+                          <span>SGST: {itemSgst.toFixed(2)}</span>
                         </div>
                       )}
                       {hasItemVat && (
                         <div className="text-[11px] text-text-light ml-1 mt-0.5 space-x-2">
-                          <span>Base: ₹{base.toFixed(2)}</span>
-                          <span>VAT: ₹{itemVat.toFixed(2)}</span>
+                          <span>Base: {base.toFixed(2)}</span>
+                          <span>VAT: {itemVat.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
@@ -496,15 +496,15 @@ export default function Cart() {
                     <>
                       <div className="flex justify-between text-text-secondary">
                         <span>Food Subtotal</span>
-                        <span>₹{foodSubtotal.toFixed(2)}</span>
+                        <span>{foodSubtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>CGST ({cgstRate}%)</span>
-                        <span>₹{cgstAmount}</span>
+                        <span>{cgstAmount}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>SGST ({sgstRate}%)</span>
-                        <span>₹{sgstAmount}</span>
+                        <span>{sgstAmount}</span>
                       </div>
                     </>
                   )}
@@ -512,17 +512,17 @@ export default function Cart() {
                     <>
                       <div className="flex justify-between text-text-secondary">
                         <span>Liquor Subtotal</span>
-                        <span>₹{liquorSubtotal.toFixed(2)}</span>
+                        <span>{liquorSubtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>VAT ({vatRate}%)</span>
-                        <span>₹{vatAmount}</span>
+                        <span>{vatAmount}</span>
                       </div>
                     </>
                   )}
                   <div className="flex justify-between font-bold text-text">
                     <span>Total</span>
-                    <span className="text-primary">₹{grandTotal}</span>
+                    <span className="text-primary">{grandTotal}</span>
                   </div>
                 </div>
               </div>
@@ -542,7 +542,7 @@ export default function Cart() {
                     Placing Order...
                   </span>
                 ) : (
-                  `${paymentMethod === 'online' ? 'Pay Online' : 'Place Order'}  •  ₹${grandTotal}`
+                  `${paymentMethod === 'online' ? 'Pay Online' : 'Place Order'}  •  ${grandTotal}`
                 )}
               </motion.button>
             </div>

@@ -51,7 +51,7 @@ export class CreateSubscriptionDto {
   @ApiPropertyOptional({
     example: 10,
     description:
-      'Discount value. When discountType=flat => ₹ amount. When percentage => 0-100.',
+      'Discount value. When discountType=flat =>  amount. When percentage => 0-100.',
   })
   @IsOptional()
   @IsNumber()

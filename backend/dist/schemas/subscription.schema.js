@@ -50,7 +50,7 @@ __decorate([
 ], Subscription.prototype, "discountType", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Flat amount (₹) or percentage (%) based on discountType',
+        description: 'Flat amount or percentage (%) based on discountType',
         default: 0,
     }),
     (0, mongoose_1.Prop)({ default: 0 }),

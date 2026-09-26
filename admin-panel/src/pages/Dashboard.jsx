@@ -585,7 +585,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Subscription Revenue"
-                value={`Rs ${Number(
+                value={`${Number(
                   subSummary.totalRevenue || 0,
                 ).toLocaleString('en-IN')}`}
                 icon={HiOutlineCurrencyRupee}
@@ -763,7 +763,7 @@ export default function Dashboard() {
                           {plan.name}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-600">
-                          Rs {plan.price.toLocaleString('en-IN')}
+                         {plan.price.toLocaleString('en-IN')}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-600">
                           {plan.duration} days
@@ -814,7 +814,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Total Sales"
-                value={`Rs ${stats.totalSales.toLocaleString()}`}
+                value={`${stats.totalSales.toLocaleString()}`}
                 icon={HiOutlineCurrencyRupee}
                 color="green"
               />
@@ -876,7 +876,7 @@ export default function Dashboard() {
                     fontSize={11}
                     tick={{ fill: '#64748b' }}
                     tickFormatter={(value) =>
-                      `Rs ${
+                      `${
                         value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value
                       }`
                     }
@@ -884,7 +884,7 @@ export default function Dashboard() {
                   <Tooltip
                     formatter={(value, name) => [
                       name === 'revenue'
-                        ? `Rs ${Number(value).toLocaleString()}`
+                        ? `${Number(value).toLocaleString()}`
                         : value,
                       name === 'revenue' ? 'Revenue' : 'Orders',
                     ]}
@@ -1033,7 +1033,7 @@ export default function Dashboard() {
                             {order.customerName || '-'}
                           </td>
                           <td className="px-4 py-3">
-                            Rs {order.totalAmount}
+                           {order.totalAmount}
                           </td>
                           <td className="px-4 py-3">
                             <StatusBadge status={order.status} />

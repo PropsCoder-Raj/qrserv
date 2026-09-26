@@ -59,7 +59,7 @@ export declare const SubscriptionSchema: import("mongoose").Schema<Subscription,
     }, "id"> & {
         id: string;
     }>;
-    discountType?: import("mongoose").SchemaDefinitionProperty<"flat" | "none" | "percentage", Subscription, Document<unknown, {}, Subscription, {
+    discountType?: import("mongoose").SchemaDefinitionProperty<"none" | "flat" | "percentage", Subscription, Document<unknown, {}, Subscription, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Subscription & {
         _id: import("mongoose").Types.ObjectId;

@@ -166,7 +166,7 @@ export default function Tables() {
     return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('en-IN');
   };
 
-  const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString('en-IN')}`;
+  const formatCurrency = (value) => `${Number(value || 0).toLocaleString('en-IN')}`;
 
   const getStatusChipClass = (status) => {
     const value = String(status || '').toLowerCase();

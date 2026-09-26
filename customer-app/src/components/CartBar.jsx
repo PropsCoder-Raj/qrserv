@@ -35,7 +35,7 @@ export default function CartBar() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold text-white">
-                ₹{grandTotal}
+                {grandTotal}
               </span>
               <span className="text-xs font-medium text-white/70">
                 View Cart →
