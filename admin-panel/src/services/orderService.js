@@ -21,10 +21,12 @@ const orderService = {
     return api.get(`/orders?${params.toString()}`);
   },
   getOne: (id) => api.get(`/orders/${id}`),
-  getStats: (restaurantId, { datePreset } = {}) => {
+  getStats: (restaurantId, { datePreset, fromDate, toDate } = {}) => {
     const params = new URLSearchParams();
     if (restaurantId) params.append('restaurantId', restaurantId);
     if (datePreset) params.append('datePreset', datePreset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
     return api.get(`/orders/stats?${params.toString()}`);
   },
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),

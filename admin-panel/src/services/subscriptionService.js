@@ -27,7 +27,7 @@ const subscriptionService = {
   verifyPayment: (data) => api.post('/subscriptions/verify-payment', data),
   setMyAutoPay: (enabled) => api.patch('/subscriptions/my-auto-pay', { enabled }),
   getAllHistory: (
-    { page = 1, limit = 20, search, status, paymentStatus, datePreset } = {},
+    { page = 1, limit = 20, search, status, paymentStatus, datePreset, fromDate, toDate } = {},
   ) => {
     const params = new URLSearchParams();
     params.append('page', page);
@@ -36,9 +36,17 @@ const subscriptionService = {
     if (status) params.append('status', status);
     if (paymentStatus) params.append('paymentStatus', paymentStatus);
     if (datePreset) params.append('datePreset', datePreset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
     return api.get(`/subscriptions/all-history?${params.toString()}`);
   },
-  getPlanAnalytics: () => api.get('/subscriptions/analytics/plans'),
+  getPlanAnalytics: ({ datePreset, fromDate, toDate } = {}) => {
+    const params = new URLSearchParams();
+    if (datePreset) params.append('datePreset', datePreset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return api.get(`/subscriptions/analytics/plans?${params.toString()}`);
+  },
 };
 
 export default subscriptionService;

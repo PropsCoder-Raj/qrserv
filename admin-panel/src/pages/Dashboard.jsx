@@ -7,6 +7,8 @@ import {
   HiOutlineDownload,
 } from 'react-icons/hi';
 import * as XLSX from 'xlsx';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import SearchSelect from '../components/SearchSelect';
 import {
   Area,
@@ -57,8 +59,8 @@ export default function Dashboard() {
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
   const [restaurantsLoaded, setRestaurantsLoaded] = useState(false);
   const [stats, setStats] = useState({
-    totalOrders: 0,
-    totalSales: 0,
+    totalServedOrders: 0,
+    totalServedSales: 0,
     mostSoldItems: [],
   });
   const [revenueData, setRevenueData] = useState({
@@ -72,21 +74,49 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [subSummary, setSubSummary] = useState(null);
   const [planAnalytics, setPlanAnalytics] = useState([]);
-  const [datePreset] = useState('');
+  const [dateRange, setDateRange] = useState({ from: null, to: null });
+  const [appliedDateRange, setAppliedDateRange] = useState({
+    from: null,
+    to: null,
+  });
   const [exporting, setExporting] = useState(false);
+
+  const toApiDate = (date) => {
+    if (!date) return undefined;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     loadRestaurants();
-    if (isSuperAdmin) {
-      loadSubscriptionAnalytics();
-    }
   }, []);
+
+  // Only apply the range (and trigger data reloads) once both a start and
+  // end date are picked, or once the range is fully cleared — never on a
+  // single-date selection, so the API isn't called mid-pick.
+  useEffect(() => {
+    const isComplete =
+      (!dateRange.from && !dateRange.to) || (dateRange.from && dateRange.to);
+    if (isComplete) {
+      setAppliedDateRange(dateRange);
+    }
+  }, [dateRange.from, dateRange.to]);
 
   useEffect(() => {
     if (restaurantsLoaded) {
       loadDashboardData();
+      if (isSuperAdmin) {
+        loadSubscriptionAnalytics();
+      }
     }
-  }, [selectedRestaurant, restaurantsLoaded, datePreset]);
+  }, [
+    selectedRestaurant,
+    restaurantsLoaded,
+    appliedDateRange.from,
+    appliedDateRange.to,
+  ]);
 
   const loadRestaurants = async () => {
     try {
@@ -112,9 +142,13 @@ export default function Dashboard() {
         subscriptionService.getAllHistory({
           page: 1,
           limit: 1,
-          datePreset: datePreset || undefined,
+          fromDate: toApiDate(appliedDateRange.from),
+          toDate: toApiDate(appliedDateRange.to),
         }),
-        subscriptionService.getPlanAnalytics(),
+        subscriptionService.getPlanAnalytics({
+          fromDate: toApiDate(appliedDateRange.from),
+          toDate: toApiDate(appliedDateRange.to),
+        }),
       ]);
 
       const historyData = historyRes?.data?.data || {};
@@ -140,12 +174,14 @@ export default function Dashboard() {
     try {
       const [statsRes, ordersRes] = await Promise.allSettled([
         orderService.getStats(restaurantId, {
-          datePreset: datePreset || undefined,
+          fromDate: toApiDate(appliedDateRange.from),
+          toDate: toApiDate(appliedDateRange.to),
         }),
         orderService.getAll(restaurantId, undefined, {
           limit: 5,
           sortOrder: 'desc',
-          datePreset: datePreset || undefined,
+          fromDate: toApiDate(appliedDateRange.from),
+          toDate: toApiDate(appliedDateRange.to),
         }),
       ]);
 
@@ -153,8 +189,8 @@ export default function Dashboard() {
         const summary = statsRes.value?.data?.data;
         if (summary) {
           setStats({
-            totalOrders: summary.totalOrders || 0,
-            totalSales: summary.totalSales || 0,
+            totalServedOrders: summary.totalServedOrders || 0,
+            totalServedSales: summary.totalServedSales || 0,
             mostSoldItems: summary.mostSoldItems || [],
           });
           setRevenueData({
@@ -308,7 +344,8 @@ export default function Dashboard() {
         subscriptionService.getAllHistory({
           page,
           limit: 500,
-          datePreset: datePreset || undefined,
+          fromDate: toApiDate(appliedDateRange.from),
+          toDate: toApiDate(appliedDateRange.to),
         }),
       ),
       restaurantService.getAll({ page: 1, limit: 1000 }),
@@ -395,7 +432,8 @@ export default function Dashboard() {
         page,
         limit: 500,
         sortOrder: 'desc',
-        datePreset: datePreset || undefined,
+        fromDate: toApiDate(appliedDateRange.from),
+        toDate: toApiDate(appliedDateRange.to),
       }),
     );
 
@@ -411,8 +449,8 @@ export default function Dashboard() {
             {
               Role: isOrgAdmin ? 'Organization Admin' : 'Restaurant Owner',
               Restaurant: getRestaurantName(selectedRestaurant),
-              'Total Orders': stats.totalOrders || 0,
-              'Total Sales': stats.totalSales || 0,
+              'Total Served Orders': stats.totalServedOrders || 0,
+              'Total Served Sales': stats.totalServedSales || 0,
               'Recent Orders Loaded': orders.length,
               'Full Orders Exported': orderRows.length,
               'Exported At': formatDateTime(new Date()),
@@ -532,7 +570,27 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-slate-800">Dashboard</h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-2">
+            <DatePicker
+              selectsRange
+              startDate={dateRange.from}
+              endDate={dateRange.to}
+              onChange={([from, to]) => setDateRange({ from, to })}
+              isClearable={false}
+              placeholderText="Select date range"
+              dateFormat="MMM d, yyyy"
+              className="h-10 w-60 rounded-lg border border-stroke bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary"
+            />
+            {(dateRange.from || dateRange.to) && (
+              <button
+                onClick={() => setDateRange({ from: null, to: null })}
+                className="cursor-pointer text-sm font-medium text-slate-500 hover:text-slate-700"
+              >
+                Clear
+              </button>
+            )}
+          </div>
           {(
             (isOrgAdmin || isRestaurantOwner) &&
             restaurants.length > 0 &&
@@ -807,14 +865,14 @@ export default function Dashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatsCard
-                title="Total Orders"
-                value={stats.totalOrders.toLocaleString()}
+                title="Served Orders"
+                value={stats.totalServedOrders.toLocaleString()}
                 icon={HiOutlineClipboardList}
                 color="blue"
               />
               <StatsCard
-                title="Total Sales"
-                value={`${stats.totalSales.toLocaleString()}`}
+                title="Served Sales"
+                value={`${stats.totalServedSales.toLocaleString()}`}
                 icon={HiOutlineCurrencyRupee}
                 color="green"
               />

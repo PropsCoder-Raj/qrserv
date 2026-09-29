@@ -1,19 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlineRefresh, HiOutlineBell } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import { useAuth } from '../contexts/AuthContext';
+import { getOrdersSocket } from '../services/socket';
+import ringSound from '../assets/music/Ring.mpeg?url';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
 
 const STATUS_FLOW = ['pending', 'confirmed', 'preparing', 'ready', 'served'];
 
+function playNewOrderRing() {
+  try {
+    new Audio(ringSound).play()?.catch(() => {
+      // ignore if browser blocks autoplay before user interaction
+    });
+  } catch {
+    // ignore if audio isn't supported by the browser
+  }
+}
+
 export default function StaffOrders() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
+
 
   const [cancelState, setCancelState] = useState({
     openForOrderId: null,
@@ -25,21 +38,60 @@ export default function StaffOrders() {
 
   const restaurantId = user?.restaurantId;
 
+  // Always fetch the full (unfiltered) list so status filter buttons can
+  // show accurate counts; the active filter is then applied client-side.
   const loadOrders = useCallback(async () => {
     if (!restaurantId) return;
     setLoading(true);
     try {
-      const res = await orderService.getAll(restaurantId, filterStatus || undefined, { limit: 50, sortOrder: 'desc' });
+      const res = await orderService.getAll(restaurantId, undefined, { limit: 100, sortOrder: 'desc' });
       const result = res.data.data;
-      setOrders(result.data || result);
+      setAllOrders(result.data || result);
     } catch {
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, filterStatus]);
+  }, [restaurantId]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  // Real-time new-order notifications for this restaurant's staff panel.
+  useEffect(() => {
+    if (!restaurantId) return undefined;
+
+    const socket = getOrdersSocket();
+    socket.connect();
+    socket.emit('join', { restaurantId });
+
+    const handleNewOrder = (payload) => {
+      playNewOrderRing();
+      toast.custom(
+        () => (
+          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-white p-4 shadow-lg">
+            <div className="rounded-full bg-primary/10 p-2 text-primary">
+              <HiOutlineBell size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">New order received</p>
+              <p className="text-xs text-slate-500">
+                {payload?.orderNumber ? `Order #${payload.orderNumber}` : 'A new order was placed'}
+              </p>
+            </div>
+          </div>
+        ),
+        { duration: 5000 },
+      );
+      loadOrders();
+    };
+
+    socket.on('order:new', handleNewOrder);
+
+    return () => {
+      socket.off('order:new', handleNewOrder);
+      socket.disconnect();
+    };
+  }, [restaurantId, loadOrders]);
 
   const updateStatus = async (orderId, status) => {
     try {
@@ -75,7 +127,7 @@ export default function StaffOrders() {
       });
       const updated = res.data.data;
       toast.success('Item cancelled');
-      setOrders((prev) => prev.map((o) => (o._id === order._id ? updated : o)));
+      setAllOrders((prev) => prev.map((o) => (o._id === order._id ? updated : o)));
       setCancelState((p) => ({
         ...p,
         submitting: false,
@@ -124,6 +176,14 @@ export default function StaffOrders() {
     return table;
   };
 
+  const statusCounts = ORDER_STATUSES.reduce((acc, s) => {
+    acc[s] = allOrders.filter((o) => o.status === s).length;
+    return acc;
+  }, {});
+  const orders = filterStatus
+    ? allOrders.filter((o) => o.status === filterStatus)
+    : allOrders;
+
   if (!restaurantId) {
     return (
       <div className="flex h-64 items-center justify-center text-slate-500">
@@ -153,7 +213,7 @@ export default function StaffOrders() {
           onClick={() => setFilterStatus('')}
           className={`rounded-full px-3 py-1.5 text-xs font-medium transition cursor-pointer ${!filterStatus ? 'bg-primary text-white' : 'border border-stroke text-slate-600 hover:bg-slate-50'}`}
         >
-          All
+          All ({allOrders.length})
         </button>
         {ORDER_STATUSES.map((s) => (
           <button
@@ -161,7 +221,7 @@ export default function StaffOrders() {
             onClick={() => setFilterStatus(s)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition cursor-pointer ${filterStatus === s ? 'bg-primary text-white' : 'border border-stroke text-slate-600 hover:bg-slate-50'}`}
           >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {s.charAt(0).toUpperCase() + s.slice(1)} ({statusCounts[s] || 0})
           </button>
         ))}
       </div>

@@ -7,11 +7,10 @@ import {
   HiOutlineTag,
   HiOutlineQrcode,
   HiOutlineClipboardList,
-  HiOutlineChartBar,
   HiOutlineUsers,
   HiOutlineCreditCard,
   HiOutlineCollection,
-  HiOutlineCash,
+  HiOutlineCog,
   HiOutlineX,
 } from 'react-icons/hi';
 import useSubscription from '../hooks/useSubscription';
@@ -25,12 +24,11 @@ const allMenuItems = [
   { path: '/menu-items', label: 'Menu Items', icon: HiOutlineBookOpen },
   { path: '/tables', label: 'Tables', icon: HiOutlineQrcode,  },
   { path: '/orders', label: 'Orders', icon: HiOutlineClipboardList },
-  { path: '/order-payments', label: 'Order Payments', icon: HiOutlineChartBar, roles: ['super_admin', 'org_admin'] },
   { path: '/users', label: 'Users', icon: HiOutlineUsers },
   { path: '/subscriptions', label: 'Subscriptions', icon: HiOutlineCreditCard, roles: ['super_admin'] },
   { path: '/subscription-histories', label: 'Sub. Histories', icon: HiOutlineCollection, roles: ['super_admin'] },
   { path: '/my-subscription', label: 'My Subscription', icon: HiOutlineCreditCard, roles: ['org_admin'] },
-  { path: '/withdraw-requests', label: 'Withdraw Requests', icon: HiOutlineCash, roles: ['super_admin', 'org_admin', 'restaurant_owner'] },
+  { path: '/settings', label: 'Settings', icon: HiOutlineCog, roles: ['org_admin', 'restaurant_owner'] },
 ];
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
