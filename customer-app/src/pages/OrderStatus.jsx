@@ -448,13 +448,13 @@ export default function OrderStatus() {
                         )}
                         {hasTax && (
                           <div className="text-[11px] text-text-light space-x-2">
-                            <span>Base: ₹{base.toFixed(2)}</span>
-                            <span>CGST: ₹{itemCgst.toFixed(2)}</span>
-                            <span>SGST: ₹{itemSgst.toFixed(2)}</span>
+                            <span>Base: {base.toFixed(2)}</span>
+                            <span>CGST: {itemCgst.toFixed(2)}</span>
+                            <span>SGST: {itemSgst.toFixed(2)}</span>
                           </div>
                         )}
                       </div>
-                      <span className="text-sm font-medium text-text">₹{lineTotal}</span>
+                      <span className="text-sm font-medium text-text">{lineTotal}</span>
                     </div>
                   );
                 })}
@@ -511,7 +511,7 @@ export default function OrderStatus() {
                                 {item.name}
                               </p>
                               <p className="text-xs text-text-light">
-                                Rs {item.price}
+                               {item.price}
                               </p>
                             </div>
                             <div className="flex items-center gap-1 rounded-lg bg-primary px-1 py-0.5">
@@ -549,7 +549,7 @@ export default function OrderStatus() {
                   New item total
                 </span>
                 <span className="text-sm font-bold text-primary">
-                  Rs {draftTotal}
+                 {draftTotal}
                 </span>
               </div>
               <button
@@ -574,19 +574,19 @@ export default function OrderStatus() {
                       Food Subtotal
                     </span>
                     <span className="text-sm font-medium text-text">
-                      ₹{Number(order.foodSubtotal ?? order.subtotalAmount).toFixed(2)}
+                      {Number(order.foodSubtotal ?? order.subtotalAmount).toFixed(2)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">CGST ({order.cgstRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      ₹{Number(order.cgstAmount || 0).toFixed(2)}
+                      {Number(order.cgstAmount || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">SGST ({order.sgstRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      ₹{Number(order.sgstAmount || 0).toFixed(2)}
+                      {Number(order.sgstAmount || 0).toFixed(2)}
                     </span>
                   </div>
                 </>
@@ -600,13 +600,13 @@ export default function OrderStatus() {
                       Liquor Subtotal
                     </span>
                     <span className="text-sm font-medium text-text">
-                      ₹{Number(order.liquorSubtotal || 0).toFixed(2)}
+                      {Number(order.liquorSubtotal || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">VAT ({order.vatRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      ₹{Number(order.vatAmount || 0).toFixed(2)}
+                      {Number(order.vatAmount || 0).toFixed(2)}
                     </span>
                   </div>
                 </>
@@ -616,7 +616,7 @@ export default function OrderStatus() {
           <div className={`${order.taxAmount > 0 ? 'mt-2' : 'mt-4'} flex items-center justify-between rounded-xl bg-surface-cool p-4`}>
             <span className="text-sm text-text-secondary">Total Amount</span>
             <span className="text-lg font-bold text-text">
-              ₹{order.totalAmount}
+              {order.totalAmount}
             </span>
           </div>
 

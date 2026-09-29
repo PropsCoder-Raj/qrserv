@@ -18,6 +18,7 @@ const subscription_schema_1 = require("../../schemas/subscription.schema");
 const payments_module_1 = require("../payments/payments.module");
 const payment_schema_1 = require("../../schemas/payment.schema");
 const table_schema_1 = require("../../schemas/table.schema");
+const order_statistics_module_1 = require("../order-statistics/order-statistics.module");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
@@ -25,6 +26,7 @@ exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
         imports: [
             payments_module_1.PaymentsModule,
+            order_statistics_module_1.OrderStatisticsModule,
             mongoose_1.MongooseModule.forFeature([
                 { name: order_schema_1.Order.name, schema: order_schema_1.OrderSchema },
                 { name: restaurant_schema_1.Restaurant.name, schema: restaurant_schema_1.RestaurantSchema },

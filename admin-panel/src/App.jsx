@@ -21,6 +21,8 @@ import SubscriptionHistories from './pages/SubscriptionHistories';
 import StaffMenuItems from './pages/StaffMenuItems';
 import StaffOrders from './pages/StaffOrders';
 import WithdrawRequests from './pages/WithdrawRequests';
+import Settings from './pages/Settings';
+import OrderStatistics from './pages/OrderStatistics';
 
 export default function App() {
   return (
@@ -48,6 +50,10 @@ export default function App() {
             <Route path="/subscription-histories" element={<SubscriptionHistories />} />
             <Route path="/my-subscription" element={<MySubscription />} />
             <Route path="/withdraw-requests" element={<WithdrawRequests />} />
+            <Route path="/settings" element={<Settings />}>
+              <Route index element={<Navigate to="order-statistics" replace />} />
+              <Route path="order-statistics" element={<OrderStatistics />} />
+            </Route>
           </Route>
           <Route element={<StaffLayout />}>
             <Route path="/staff/menu" element={<StaffMenuItems />} />

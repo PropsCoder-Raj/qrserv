@@ -9,10 +9,11 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
-import { DatePreset } from '../../common/dto/date-filter.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { PaymentDocument } from '../../schemas/payment.schema';
 import { TableDocument } from '../../schemas/table.schema';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
 export declare class OrdersService {
     private orderModel;
     private restaurantModel;
@@ -21,37 +22,27 @@ export declare class OrdersService {
     private paymentModel;
     private tableModel;
     private paymentsService;
+    private eventEmitter;
+    private orderStatisticsService;
     private readonly orderRelationPopulate;
-    constructor(orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, paymentModel: Model<PaymentDocument>, tableModel: Model<TableDocument>, paymentsService: PaymentsService);
+    constructor(orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, paymentModel: Model<PaymentDocument>, tableModel: Model<TableDocument>, paymentsService: PaymentsService, eventEmitter: EventEmitter2, orderStatisticsService: OrderStatisticsService);
     private toObjectId;
     validateOrgRestaurant(restaurantId: string | Types.ObjectId, organizationId: string | Types.ObjectId): Promise<void>;
     private generateOrderNumber;
     private isPaymentGatewayAllocatedForRestaurant;
-    create(dto: CreateOrderDto): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    } & {
-        id: string;
-    }>;
+    create(dto: CreateOrderDto): Promise<OrderDocument>;
     createForCustomerApp(dto: CreateOrderDto): Promise<{
-        order: import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
-            _id: Types.ObjectId;
-        }> & {
-            __v: number;
-        } & {
-            id: string;
-        };
+        order: OrderDocument;
         paymentRequired: boolean;
         payment?: undefined;
     } | {
-        order: import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        order: OrderDocument | (import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
             _id: Types.ObjectId;
         }> & {
             __v: number;
         } & {
             id: string;
-        };
+        });
         paymentRequired: boolean;
         payment: {
             paymentId: Types.ObjectId;
@@ -155,9 +146,11 @@ export declare class OrdersService {
     } & {
         id: string;
     })[]>;
-    getStats(restaurantId?: string | Types.ObjectId, datePreset?: DatePreset): Promise<{
+    getStats(restaurantId?: string | Types.ObjectId, dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
+        totalServedOrders: number;
+        totalServedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;
@@ -183,9 +176,11 @@ export declare class OrdersService {
             orders: any;
         }[];
     }>;
-    getStatsByAll(datePreset?: any): Promise<{
+    getStatsByAll(dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
+        totalServedOrders: number;
+        totalServedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;
@@ -211,9 +206,11 @@ export declare class OrdersService {
             orders: any;
         }[];
     }>;
-    getStatsByOrganization(organizationId: string | Types.ObjectId, datePreset?: any): Promise<{
+    getStatsByOrganization(organizationId: string | Types.ObjectId, dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
+        totalServedOrders: number;
+        totalServedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;

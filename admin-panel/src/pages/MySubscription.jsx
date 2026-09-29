@@ -27,6 +27,8 @@ import Modal from '../components/Modal';
 import subscriptionService from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
 
+const USE_RAZORPAY = false;
+
 const PLAN_STYLE_PRESETS = [
   { background: 'linear-gradient(to right, #3b82f6, #2563eb)', color: '#2563eb', badge: 'Classic' }, // blue
   { background: 'linear-gradient(to right, #14b8a6, #0d9488)', color: '#0d9488', badge: 'Value' }, // teal
@@ -140,7 +142,7 @@ function formatDiscount(plan) {
   if (!plan) return null;
   if (!plan.discountType || plan.discountType === 'none' || !plan.discountValue) return null;
   return plan.discountType === 'flat'
-    ? `-₹${Number(plan.discountValue).toLocaleString()}`
+    ? `-${Number(plan.discountValue).toLocaleString()}`
     : `-${Number(plan.discountValue)}%`;
 }
 
@@ -195,25 +197,32 @@ export default function MySubscription() {
   const handlePurchase = async () => {
     if (!confirmModal.plan) return;
     const plan = confirmModal.plan;
+    if (plan.isPaymentGatewayAllocated && !USE_RAZORPAY) {
+      toast.error('Online payments are currently unavailable.');
+      return;
+    }
+    const usesRazorpay = USE_RAZORPAY && plan.isPaymentGatewayAllocated;
     const { finalTotal: payableAmount } = calculatePayableAmount(
       plan,
       selectedMonths,
     );
     setPurchasing(true);
 
-    // Free plan — activate directly without payment
-    try {
-      await subscriptionService.purchase(plan._id, selectedMonths, false);
-      toast.success('Subscription activated!');
-      setConfirmModal({ open: false, plan: null });
-      setSelectedMonths(1);
-      setAutoPay(false);
-      await refreshOrgData();
-      await loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to activate subscription');
-    } finally {
-      setPurchasing(false);
+    if (!usesRazorpay) {
+      try {
+        await subscriptionService.purchase(plan._id, selectedMonths, false);
+        toast.success('Subscription activated!');
+        setConfirmModal({ open: false, plan: null });
+        setSelectedMonths(1);
+        setAutoPay(false);
+        await refreshOrgData();
+        await loadData();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to activate subscription');
+      } finally {
+        setPurchasing(false);
+      }
+      return;
     }
 
     if (payableAmount === 0) {
@@ -536,6 +545,9 @@ export default function MySubscription() {
             const style = getPlanStyle(plan.name, idx);
             const PlanIcon = PLAN_ICON_PRESETS[idx % PLAN_ICON_PRESETS.length];
             const isCurrent = String(currentPlanId) === String(plan._id);
+            const usesRazorpay = USE_RAZORPAY && plan.isPaymentGatewayAllocated;
+            const paymentUnavailable =
+              plan.isPaymentGatewayAllocated && !USE_RAZORPAY;
             const { finalTotal: payableAmount } = calculatePayableAmount(plan, 1);
             const discountLabel = formatDiscount(plan);
             const discountValue = Number(plan?.discountValue) || 0;
@@ -586,7 +598,7 @@ export default function MySubscription() {
                   <div className="mt-4">
                     <div className="flex items-end gap-2 flex-wrap">
                       <span className="text-3xl font-bold">
-                        {displayPrice === 0 ? 'Free' : `₹${displayPrice.toLocaleString()}`}
+                        {displayPrice === 0 ? 'Free' : `${displayPrice.toLocaleString()}`}
                       </span>
                       {displayPrice > 0 && (
                         <span className="text-sm text-white/80">
@@ -606,14 +618,14 @@ export default function MySubscription() {
                     </div>
                     {showOfferPriceRow && (
                       <div className="mt-1 text-xs text-white/80">
-                        <span className="line-through">₹{Number(plan.price).toLocaleString()}</span>
-                        <span className="ml-2">You save ₹{Math.max(0, Number(plan.price) - displayPrice).toLocaleString()}</span>
+                        <span className="line-through">{Number(plan.price).toLocaleString()}</span>
+                        <span className="ml-2">You save {Math.max(0, Number(plan.price) - displayPrice).toLocaleString()}</span>
                       </div>
                     )}
                     {!showMaxOfferBadge && discountLabel && payableAmount > 0 && (
                       <div className="mt-1 text-xs text-white/80">
-                        <span className="line-through">₹{Number(plan.price).toLocaleString()}</span>
-                        <span className="ml-2">You save ₹{Math.max(0, Number(plan.price) - payableAmount).toLocaleString()}</span>
+                        <span className="line-through">{Number(plan.price).toLocaleString()}</span>
+                        <span className="ml-2">You save {Math.max(0, Number(plan.price) - payableAmount).toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -707,11 +719,18 @@ export default function MySubscription() {
                         setSelectedMonths(defaultMonths);
                         setConfirmModal({ open: true, plan });
                       }}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                      disabled={paymentUnavailable}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                       style={{ background: style.background }}
                     >
-                      <HiOutlineShoppingCart className="h-5 w-5" />
-                      {plan.isPaymentGatewayAllocated ? 'Buy Now' : 'Activate Plan'}
+                      {paymentUnavailable ? null : (
+                        <HiOutlineShoppingCart className="h-5 w-5" />
+                      )}
+                      {paymentUnavailable
+                        ? 'Payments Unavailable'
+                        : usesRazorpay
+                          ? 'Buy Now'
+                          : 'Activate Plan'}
                     </button>
                   )}
                 </div>
@@ -760,7 +779,7 @@ export default function MySubscription() {
                     <td className="px-6 py-4 text-slate-600">{index + 1}</td>
                     <td className="px-6 py-4 font-medium text-slate-800">{record.planName}</td>
                     <td className="px-6 py-4 text-slate-600">
-                      {record.price === 0 ? 'Free' : `₹${record.price.toLocaleString()}`}
+                      {record.price === 0 ? 'Free' : `${record.price.toLocaleString()}`}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       <div className="flex flex-wrap items-center gap-2">
@@ -852,6 +871,8 @@ export default function MySubscription() {
               ),
             ).sort((a, b) => a - b);
             const hasMonthOffers = offerMonths.length > 0;
+            const usesRazorpay =
+              USE_RAZORPAY && confirmModal.plan.isPaymentGatewayAllocated;
 
             const breakdown = calculatePayableAmount(confirmModal.plan, selectedMonths);
             const payableAmount = breakdown.finalTotal;
@@ -879,10 +900,10 @@ export default function MySubscription() {
                         <span>
                           {discountLabel && (
                             <span className="mr-2 text-slate-400 line-through">
-                              ₹{Number(baseTotal).toLocaleString()}
+                              {Number(baseTotal).toLocaleString()}
                             </span>
                           )}
-                          ₹{payableAmount.toLocaleString()}
+                          {payableAmount.toLocaleString()}
                         </span>
                       )}
                     </span>
@@ -890,7 +911,7 @@ export default function MySubscription() {
                   <div className="flex justify-between items-center gap-3">
                     <span className="text-sm text-slate-500">Purchase Flow</span>
                     <span className="text-sm font-semibold text-slate-800">
-                      {confirmModal.plan.isPaymentGatewayAllocated
+                      {usesRazorpay
                         ? 'Payment Gateway'
                         : 'Direct Activation'}
                     </span>
@@ -921,7 +942,7 @@ export default function MySubscription() {
                     )}
                   </div>
 
-                  {confirmModal.plan.isPaymentGatewayAllocated && payableAmount > 0 && (
+                  {usesRazorpay && payableAmount > 0 && (
                     <div className="flex justify-between items-center gap-3">
                       <span className="text-sm text-slate-500">Auto Pay</span>
                       <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 select-none cursor-pointer">
@@ -940,7 +961,7 @@ export default function MySubscription() {
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-500">Offer</span>
                       <span className="text-sm font-semibold text-green-600">
-                        -{breakdown.offerPercent}% (save ₹{offerDiscount.toLocaleString()})
+                        -{breakdown.offerPercent}% (save {offerDiscount.toLocaleString()})
                       </span>
                     </div>
                   )}
@@ -948,14 +969,14 @@ export default function MySubscription() {
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-500">Plan Discount</span>
                       <span className="text-sm font-semibold text-green-600">
-                        {discountLabel} (save ₹{planDiscount.toLocaleString()})
+                        {discountLabel} (save {planDiscount.toLocaleString()})
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span className="text-sm text-slate-500">Monthly Price</span>
                     <span className="text-sm font-semibold text-slate-800">
-                      {payableAmount === 0 ? 'Free' : `₹${monthlyFinal.toLocaleString()}`}
+                      {payableAmount === 0 ? 'Free' : `${monthlyFinal.toLocaleString()}`}
                     </span>
                   </div>
                 </div>
@@ -964,12 +985,12 @@ export default function MySubscription() {
                     Note: This will replace your current active subscription plan.
                   </p>
                 )}
-                {confirmModal.plan.isPaymentGatewayAllocated && payableAmount > 0 && (
+                {usesRazorpay && payableAmount > 0 && (
                   <p className="text-sm text-blue-600 bg-blue-50 rounded-lg p-3">
                     You will be redirected to Razorpay to complete the payment securely.
                   </p>
                 )}
-                {!confirmModal.plan.isPaymentGatewayAllocated && (
+                {!usesRazorpay && (
                   <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
                     This plan will be activated directly without payment gateway checkout.
                   </p>
@@ -989,7 +1010,7 @@ export default function MySubscription() {
                   >
                     {purchasing
                       ? 'Processing...'
-                      : confirmModal.plan.isPaymentGatewayAllocated
+                        : usesRazorpay
                         ? 'Proceed to Pay'
                         : 'Activate'}
                   </button>

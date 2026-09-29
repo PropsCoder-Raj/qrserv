@@ -13,6 +13,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const core_1 = require("@nestjs/core");
 const configuration_1 = require("./config/configuration");
 const cache_module_1 = require("./common/cache/cache.module");
+const events_module_1 = require("./common/events/events.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
 const auth_module_1 = require("./modules/auth/auth.module");
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
                 inject: [config_1.ConfigService],
             }),
             cache_module_1.CacheModule,
+            events_module_1.EventsModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             restaurants_module_1.RestaurantsModule,

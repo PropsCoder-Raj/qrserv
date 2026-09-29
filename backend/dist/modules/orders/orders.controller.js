@@ -57,17 +57,17 @@ let OrdersController = class OrdersController {
     }
     async getStats(restaurantId, query, user, role, organizationId, userRestaurantId) {
         if (role === decorators_1.Role.SUPER_ADMIN) {
-            return this.ordersService.getStats(restaurantId, query?.datePreset);
+            return this.ordersService.getStats(restaurantId, query);
         }
         if (role === decorators_1.Role.ORG_ADMIN && organizationId) {
             if (restaurantId) {
                 await this.ordersService.validateOrgRestaurant(restaurantId, organizationId);
-                return this.ordersService.getStats(restaurantId, query?.datePreset);
+                return this.ordersService.getStats(restaurantId, query);
             }
-            return this.ordersService.getStatsByOrganization(organizationId, query?.datePreset);
+            return this.ordersService.getStatsByOrganization(organizationId, query);
         }
         const effectiveRestaurantId = userRestaurantId || restaurantId;
-        return this.ordersService.getStats(effectiveRestaurantId, query?.datePreset);
+        return this.ordersService.getStats(effectiveRestaurantId, query);
     }
     findByPhone(phone) {
         return this.ordersService.findByPhone(phone);

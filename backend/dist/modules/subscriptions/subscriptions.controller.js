@@ -81,8 +81,8 @@ let SubscriptionsController = class SubscriptionsController {
     getAllHistory(query) {
         return this.subscriptionsService.getAllSubscriptionHistory(query);
     }
-    getPlanAnalytics() {
-        return this.subscriptionsService.getPlanAnalytics();
+    getPlanAnalytics(query) {
+        return this.subscriptionsService.getPlanAnalytics(query);
     }
     findOne(id) {
         return this.subscriptionsService.findOne(id);
@@ -245,8 +245,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({
         summary: 'Get subscription analytics by plan with active and total purchase counts',
     }),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [pagination_query_dto_1.PaginationQueryDto]),
     __metadata("design:returntype", void 0)
 ], SubscriptionsController.prototype, "getPlanAnalytics", null);
 __decorate([

@@ -122,7 +122,7 @@ export default function StaffMenuItems() {
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold text-primary">
-                    ₹{item.price}
+                    {item.price}
                   </span>
                   <div className="flex items-center gap-3 text-xs text-slate-500">
                     {categoryName && (

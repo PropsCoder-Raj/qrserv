@@ -24,8 +24,11 @@ const date_range_1 = require("../../common/utils/date-range");
 const payments_service_1 = require("../payments/payments.service");
 const payment_schema_1 = require("../../schemas/payment.schema");
 const table_schema_1 = require("../../schemas/table.schema");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const order_events_1 = require("../../common/events/order-events");
+const order_statistics_service_1 = require("../order-statistics/order-statistics.service");
 let OrdersService = class OrdersService {
-    constructor(orderModel, restaurantModel, organizationModel, subscriptionModel, paymentModel, tableModel, paymentsService) {
+    constructor(orderModel, restaurantModel, organizationModel, subscriptionModel, paymentModel, tableModel, paymentsService, eventEmitter, orderStatisticsService) {
         this.orderModel = orderModel;
         this.restaurantModel = restaurantModel;
         this.organizationModel = organizationModel;
@@ -33,6 +36,8 @@ let OrdersService = class OrdersService {
         this.paymentModel = paymentModel;
         this.tableModel = tableModel;
         this.paymentsService = paymentsService;
+        this.eventEmitter = eventEmitter;
+        this.orderStatisticsService = orderStatisticsService;
         this.orderRelationPopulate = [
             {
                 path: 'restaurantId',
@@ -229,8 +234,9 @@ let OrdersService = class OrdersService {
         }
         const orderNumber = await this.generateOrderNumber(restaurantObjectId);
         const { tableId: _tableId, ...orderDto } = dto;
+        let order;
         try {
-            return await this.orderModel.create({
+            order = await this.orderModel.create({
                 ...orderDto,
                 restaurantId: restaurantObjectId,
                 tableId: tableObjectId,
@@ -266,7 +272,7 @@ let OrdersService = class OrdersService {
             if (err?.code !== 11000 || !err?.keyPattern?.orderNumber) {
                 throw err;
             }
-            return this.orderModel.create({
+            order = await this.orderModel.create({
                 ...orderDto,
                 restaurantId: restaurantObjectId,
                 tableId: tableObjectId,
@@ -298,6 +304,8 @@ let OrdersService = class OrdersService {
                 isPaymentGatewayAllocated,
             });
         }
+        this.eventEmitter.emit(order_events_1.OrderEvent.CREATED, new order_events_1.OrderCreatedEvent(order._id.toString(), restaurantObjectId.toString(), restaurant.organizationId, order.orderNumber, order.totalAmount));
+        return order;
     }
     async createForCustomerApp(dto) {
         const order = await this.create(dto);
@@ -537,10 +545,14 @@ let OrdersService = class OrdersService {
             const cQty = Number(it.cancelledQuantity || 0);
             return qty > 0 && cQty >= qty;
         });
+        const previousStatus = order.status;
         if (allCancelled) {
             order.status = order_schema_1.OrderStatus.CANCELLED;
         }
         await order.save();
+        if (previousStatus !== order.status) {
+            this.eventEmitter.emit(order_events_1.OrderEvent.STATUS_CHANGED, new order_events_1.OrderStatusChangedEvent(order._id.toString(), order.restaurantId?.toString(), previousStatus, order.status, restaurant?.organizationId, order.totalAmount));
+        }
         return order;
     }
     async findAll(restaurantId, status, query) {
@@ -698,15 +710,37 @@ let OrdersService = class OrdersService {
         return order;
     }
     async updateStatus(id, dto) {
+        const existing = await this.orderModel
+            .findById(id)
+            .select('status restaurantId');
+        if (!existing)
+            throw new common_1.NotFoundException('Order not found');
+        const previousStatus = existing.status;
         const order = await this.orderModel.findByIdAndUpdate(id, { status: dto.status }, { new: true });
         if (!order)
             throw new common_1.NotFoundException('Order not found');
+        if (previousStatus !== dto.status) {
+            const restaurant = await this.restaurantModel
+                .findById(order.restaurantId)
+                .select('organizationId')
+                .lean();
+            this.eventEmitter.emit(order_events_1.OrderEvent.STATUS_CHANGED, new order_events_1.OrderStatusChangedEvent(order._id.toString(), order.restaurantId?.toString(), previousStatus, dto.status, restaurant?.organizationId, order.totalAmount));
+        }
         return order;
     }
     async updatePaymentStatus(id, dto) {
+        const existing = await this.orderModel
+            .findById(id)
+            .select('paymentStatus restaurantId');
+        if (!existing)
+            throw new common_1.NotFoundException('Order not found');
+        const previousStatus = existing.paymentStatus;
         const order = await this.orderModel.findByIdAndUpdate(id, { paymentStatus: dto.paymentStatus }, { new: true });
         if (!order)
             throw new common_1.NotFoundException('Order not found');
+        if (previousStatus !== dto.paymentStatus) {
+            this.eventEmitter.emit(order_events_1.OrderEvent.PAYMENT_STATUS_CHANGED, new order_events_1.OrderPaymentStatusChangedEvent(order._id.toString(), order.restaurantId?.toString(), previousStatus, dto.paymentStatus));
+        }
         return order;
     }
     async findByRestaurant(restaurantId) {
@@ -726,26 +760,26 @@ let OrdersService = class OrdersService {
             .sort({ createdAt: -1 })
             .exec();
     }
-    async getStats(restaurantId, datePreset) {
+    async getStats(restaurantId, dateQuery) {
         const match = {};
         if (restaurantId) {
             match.restaurantId = this.toObjectId(restaurantId, 'restaurantId');
         }
-        const range = (0, date_range_1.getDateRangeFromPreset)(datePreset);
+        const range = (0, date_range_1.getDateRangeFromQuery)(dateQuery);
         if (range) {
             match.createdAt = { $gte: range.from, $lte: range.to };
         }
         return this.getStatsWithMatch(match);
     }
-    async getStatsByAll(datePreset) {
+    async getStatsByAll(dateQuery) {
         const match = {};
-        const range = (0, date_range_1.getDateRangeFromPreset)(datePreset);
+        const range = (0, date_range_1.getDateRangeFromQuery)(dateQuery);
         if (range) {
             match.createdAt = { $gte: range.from, $lte: range.to };
         }
         return this.getStatsWithMatch(match);
     }
-    async getStatsByOrganization(organizationId, datePreset) {
+    async getStatsByOrganization(organizationId, dateQuery) {
         const organizationObjectId = this.toObjectId(organizationId, 'organizationId');
         const orgRestaurants = await this.restaurantModel
             .find({ organizationId: organizationObjectId })
@@ -753,7 +787,7 @@ let OrdersService = class OrdersService {
             .exec();
         const restaurantIds = orgRestaurants.map((r) => r._id);
         const match = { restaurantId: { $in: restaurantIds } };
-        const range = (0, date_range_1.getDateRangeFromPreset)(datePreset);
+        const range = (0, date_range_1.getDateRangeFromQuery)(dateQuery);
         if (range) {
             match.createdAt = { $gte: range.from, $lte: range.to };
         }
@@ -770,6 +804,8 @@ let OrdersService = class OrdersService {
                 },
             },
         ]);
+        const restaurantScope = match.restaurantId?.$in ?? match.restaurantId;
+        const { servedOrderCount, totalOrderAmount } = await this.orderStatisticsService.getServedTotals(restaurantScope);
         const mostSoldItems = await this.orderModel.aggregate([
             { $match: match },
             { $unwind: '$items' },
@@ -782,10 +818,15 @@ let OrdersService = class OrdersService {
             { $sort: { totalQuantity: -1 } },
             { $limit: 10 },
         ]);
+        const hasDateFilter = Boolean(match.createdAt);
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const revenueDaily = await this.orderModel.aggregate([
-            { $match: { ...match, createdAt: { $gte: thirtyDaysAgo } } },
+            {
+                $match: hasDateFilter
+                    ? match
+                    : { ...match, createdAt: { $gte: thirtyDaysAgo } },
+            },
             {
                 $group: {
                     _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -798,7 +839,11 @@ let OrdersService = class OrdersService {
         const twelveWeeksAgo = new Date();
         twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
         const revenueWeekly = await this.orderModel.aggregate([
-            { $match: { ...match, createdAt: { $gte: twelveWeeksAgo } } },
+            {
+                $match: hasDateFilter
+                    ? match
+                    : { ...match, createdAt: { $gte: twelveWeeksAgo } },
+            },
             {
                 $group: {
                     _id: { $dateToString: { format: '%Y-W%V', date: '$createdAt' } },
@@ -811,7 +856,11 @@ let OrdersService = class OrdersService {
         const twelveMonthsAgo = new Date();
         twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
         const revenueMonthly = await this.orderModel.aggregate([
-            { $match: { ...match, createdAt: { $gte: twelveMonthsAgo } } },
+            {
+                $match: hasDateFilter
+                    ? match
+                    : { ...match, createdAt: { $gte: twelveMonthsAgo } },
+            },
             {
                 $group: {
                     _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
@@ -835,6 +884,8 @@ let OrdersService = class OrdersService {
         return {
             totalOrders: totals?.totalOrders || 0,
             totalSales: totals?.totalSales || 0,
+            totalServedOrders: servedOrderCount,
+            totalServedSales: totalOrderAmount,
             mostSoldItems: mostSoldItems.map((item) => ({
                 name: item._id,
                 quantity: item.totalQuantity,
@@ -877,6 +928,8 @@ exports.OrdersService = OrdersService = __decorate([
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
-        payments_service_1.PaymentsService])
+        payments_service_1.PaymentsService,
+        event_emitter_1.EventEmitter2,
+        order_statistics_service_1.OrderStatisticsService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

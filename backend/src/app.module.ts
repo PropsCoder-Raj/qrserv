@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
 import configuration from './config/configuration';
 import { CacheModule } from './common/cache/cache.module';
+import { EventsModule } from './common/events/events.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './modules/auth/auth.module';
@@ -32,6 +33,7 @@ import { WithdrawRequestsModule } from './modules/withdraw-requests/withdraw-req
       inject: [ConfigService],
     }),
     CacheModule,
+    EventsModule,
     AuthModule,
     UsersModule,
     RestaurantsModule,

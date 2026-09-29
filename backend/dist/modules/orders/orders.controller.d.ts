@@ -10,31 +10,19 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 export declare class OrdersController {
     private readonly ordersService;
     constructor(ordersService: OrdersService);
-    create(dto: CreateOrderDto): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
-        _id: import("mongoose").Types.ObjectId;
-    }> & {
-        __v: number;
-    } & {
-        id: string;
-    }>;
+    create(dto: CreateOrderDto): Promise<import("../../schemas/order.schema").OrderDocument>;
     createForCustomerApp(dto: CreateOrderDto): Promise<{
-        order: import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
-            _id: import("mongoose").Types.ObjectId;
-        }> & {
-            __v: number;
-        } & {
-            id: string;
-        };
+        order: import("../../schemas/order.schema").OrderDocument;
         paymentRequired: boolean;
         payment?: undefined;
     } | {
-        order: import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        order: import("../../schemas/order.schema").OrderDocument | (import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
             _id: import("mongoose").Types.ObjectId;
         }> & {
             __v: number;
         } & {
             id: string;
-        };
+        });
         paymentRequired: boolean;
         payment: {
             paymentId: import("mongoose").Types.ObjectId;
@@ -74,6 +62,8 @@ export declare class OrdersController {
     getStats(restaurantId?: string, query?: PaginationQueryDto, user?: any, role?: string, organizationId?: string, userRestaurantId?: string): Promise<{
         totalOrders: any;
         totalSales: any;
+        totalServedOrders: number;
+        totalServedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;

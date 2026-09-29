@@ -145,7 +145,7 @@ export default function SubscriptionHistories() {
   const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-  const fmtPrice = (p) => (p === 0 ? 'Free' : `₹${Number(p).toLocaleString('en-IN')}`);
+  const fmtPrice = (p) => (p === 0 ? 'Free' : `${Number(p).toLocaleString('en-IN')}`);
 
   return (
     <div className="space-y-5">
@@ -166,7 +166,7 @@ export default function SubscriptionHistories() {
         <StatCard
           icon={HiOutlineCurrencyRupee}
           label="Total Revenue"
-          value={`₹${Number(summary.totalRevenue).toLocaleString('en-IN')}`}
+          value={`${Number(summary.totalRevenue).toLocaleString('en-IN')}`}
           color="bg-green-50 text-green-600"
         />
         <StatCard

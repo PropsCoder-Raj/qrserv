@@ -108,7 +108,7 @@ export default function WithdrawRequests() {
   const canRaiseRequest = availableAmount > 0;
   const raiseRequestTooltip = canRaiseRequest
     ? 'Raise a withdraw request'
-    : 'Withdraw request is disabled because available request amount is Rs 0';
+    : 'Withdraw request is disabled because available request amount is0';
   const requestedAmount = Number(createForm.amount || 0);
   const withdrawChargeBaseAmount = Number(
     ((requestedAmount * withdrawChargePercentage) / 100).toFixed(2),
@@ -409,9 +409,9 @@ export default function WithdrawRequests() {
           </div>
           {Number(item.chargeBaseAmount || 0) > 0 && (
             <div className="text-xs text-slate-400">
-              Razorpay Rs {Number(item.chargeBaseAmount || 0).toLocaleString('en-IN')}
+              Razorpay{Number(item.chargeBaseAmount || 0).toLocaleString('en-IN')}
               {' + '}
-              GST Rs {Number(item.chargeGstAmount || 0).toLocaleString('en-IN')}
+              GST{Number(item.chargeGstAmount || 0).toLocaleString('en-IN')}
             </div>
           )}
           <div className="text-sm font-bold text-slate-800">
@@ -568,19 +568,19 @@ export default function WithdrawRequests() {
           <div className="rounded-xl border border-stroke bg-card p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Razorpay Collected</div>
             <div className="mt-2 text-2xl font-bold text-slate-800">
-              Rs {Number(summary.razorpayCollectedAmount || 0).toLocaleString('en-IN')}
+             {Number(summary.razorpayCollectedAmount || 0).toLocaleString('en-IN')}
             </div>
           </div>
           <div className="rounded-xl border border-stroke bg-card p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Withdraw Paid</div>
             <div className="mt-2 text-2xl font-bold text-slate-800">
-              Rs {Number(summary.paidWithdrawAmount || 0).toLocaleString('en-IN')}
+             {Number(summary.paidWithdrawAmount || 0).toLocaleString('en-IN')}
             </div>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-emerald-700">Available Request Amount</div>
             <div className="mt-2 text-2xl font-bold text-emerald-800">
-              Rs {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+             {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
             </div>
           </div>
         </div>
@@ -616,7 +616,7 @@ export default function WithdrawRequests() {
               Total Available Request Amount
             </div>
             <div className="mt-1 text-2xl font-bold text-emerald-800">
-              Rs {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+             {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
             </div>
             <p className="mt-1 text-xs text-emerald-700">
               Calculation: Razorpay paid orders - paid withdraw requests
@@ -635,7 +635,7 @@ export default function WithdrawRequests() {
               className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <p className="mt-1 text-xs text-slate-500">
-              You can request up to Rs {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+              You can request up to{Number(summary.availableAmount || 0).toLocaleString('en-IN')}
             </p>
           </div>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -643,7 +643,7 @@ export default function WithdrawRequests() {
               Withdraw Calculation
             </div>
             <div className="mt-2 space-y-1 text-sm text-amber-900">
-              <div>Requested Amount: Rs {requestedAmount.toLocaleString('en-IN')}</div>
+              <div>Requested Amount:{requestedAmount.toLocaleString('en-IN')}</div>
               <div>
                 Razorpay Charge ({withdrawChargePercentage}%): Rs{' '}
                 {withdrawChargeBaseAmount.toLocaleString('en-IN')}
@@ -653,15 +653,15 @@ export default function WithdrawRequests() {
                 {withdrawChargeGstAmount.toLocaleString('en-IN')}
               </div>
               <div>
-                Total Deduction: Rs {withdrawChargeAmount.toLocaleString('en-IN')}
+                Total Deduction:{withdrawChargeAmount.toLocaleString('en-IN')}
               </div>
               <div className="font-semibold">
-                Withdraw Amount: Rs {withdrawNetAmount.toLocaleString('en-IN')}
+                Withdraw Amount:{withdrawNetAmount.toLocaleString('en-IN')}
               </div>
             </div>
             <p className="mt-2 text-xs text-amber-700">
-              Example: if you request Rs 1000, Razorpay charge is Rs 25 and GST is Rs 4.5,
-              then you will receive Rs 970.5.
+              Example: if you request1000, Razorpay charge is25 and GST is4.5,
+              then you will receive970.5.
             </p>
           </div>
           <div className="space-y-3 rounded-lg border border-stroke p-4">

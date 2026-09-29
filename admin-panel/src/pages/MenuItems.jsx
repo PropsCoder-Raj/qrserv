@@ -171,7 +171,7 @@ export default function MenuItems() {
           <span className="text-xs text-slate-400">No image</span>
         ),
     },
-    { key: 'price', label: 'Price', sortable: true, render: (r) => `₹${r.price}` },
+    { key: 'price', label: 'Price', sortable: true, render: (r) => `${r.price}` },
     { key: 'categoryId', label: 'Category', render: (r) => getCategoryName(r.categoryId) },
     { key: 'isVeg', label: 'Veg/Non-Veg', render: (r) => (
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${r.isVeg ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -288,9 +288,9 @@ export default function MenuItems() {
                       <p className="font-medium text-amber-700">
                         {vatType === 'inclusive' ? 'Price breakdown (VAT inclusive)' : 'Price breakdown (VAT exclusive)'}
                       </p>
-                      <div className="flex justify-between"><span>Base Price</span><span>₹{basePrice.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>VAT ({vatR}%)</span><span>₹{vat.toFixed(2)}</span></div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-amber-300 pt-1"><span>Customer Pays</span><span>₹{total.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Base Price</span><span>{basePrice.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>VAT ({vatR}%)</span><span>{vat.toFixed(2)}</span></div>
+                      <div className="flex justify-between font-semibold text-slate-800 border-t border-amber-300 pt-1"><span>Customer Pays</span><span>{total.toFixed(2)}</span></div>
                     </div>
                   );
                 }
@@ -329,10 +329,10 @@ export default function MenuItems() {
                       <p className="font-medium text-slate-700">
                         {taxType === 'inclusive' ? 'Price breakdown (GST inclusive)' : 'Price breakdown (GST exclusive)'}
                       </p>
-                      <div className="flex justify-between"><span>Base Price</span><span>₹{basePrice.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>CGST ({cgstRate}%)</span><span>₹{cgst.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>SGST ({sgstRate}%)</span><span>₹{sgst.toFixed(2)}</span></div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1"><span>Customer Pays</span><span>₹{total.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Base Price</span><span>{basePrice.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>CGST ({cgstRate}%)</span><span>{cgst.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>SGST ({sgstRate}%)</span><span>{sgst.toFixed(2)}</span></div>
+                      <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1"><span>Customer Pays</span><span>{total.toFixed(2)}</span></div>
                     </div>
                   );
                 }

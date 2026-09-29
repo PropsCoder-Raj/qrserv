@@ -130,7 +130,7 @@ export class OrdersController {
     @CurrentUser('restaurantId') userRestaurantId?: string,
   ) {
     if (role === Role.SUPER_ADMIN) {
-      return this.ordersService.getStats(restaurantId, query?.datePreset);
+      return this.ordersService.getStats(restaurantId, query);
     }
     if (role === Role.ORG_ADMIN && organizationId) {
       if (restaurantId) {
@@ -138,18 +138,18 @@ export class OrdersController {
           restaurantId,
           organizationId,
         );
-        return this.ordersService.getStats(restaurantId, query?.datePreset);
+        return this.ordersService.getStats(restaurantId, query);
       }
       return this.ordersService.getStatsByOrganization(
         organizationId,
-        query?.datePreset,
+        query,
       );
     }
     // restaurant_owner, manager, staff — always scope to their restaurant
     const effectiveRestaurantId = userRestaurantId || restaurantId;
     return this.ordersService.getStats(
       effectiveRestaurantId,
-      query?.datePreset,
+      query,
     );
   }
 

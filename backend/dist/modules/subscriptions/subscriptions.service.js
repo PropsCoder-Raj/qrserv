@@ -442,9 +442,9 @@ let SubscriptionsService = class SubscriptionsService {
         };
     }
     async getAllSubscriptionHistory(query) {
-        const { page = 1, limit = 20, search, sortBy, sortOrder, datePreset, } = query || {};
+        const { page = 1, limit = 20, search, sortBy, sortOrder, } = query || {};
         const filter = {};
-        const range = (0, date_range_1.getDateRangeFromPreset)(datePreset);
+        const range = (0, date_range_1.getDateRangeFromQuery)(query);
         if (range) {
             filter.purchasedAt = { $gte: range.from, $lte: range.to };
         }
@@ -515,8 +515,15 @@ let SubscriptionsService = class SubscriptionsService {
             summary,
         };
     }
-    async getPlanAnalytics() {
+    async getPlanAnalytics(query) {
         const now = new Date();
+        const range = (0, date_range_1.getDateRangeFromQuery)(query);
+        const purchaseMatch = {
+            $expr: { $eq: ['$subscriptionId', '$$planId'] },
+        };
+        if (range) {
+            purchaseMatch.purchasedAt = { $gte: range.from, $lte: range.to };
+        }
         const plans = await this.subscriptionModel.aggregate([
             {
                 $lookup: {
@@ -544,11 +551,7 @@ let SubscriptionsService = class SubscriptionsService {
                     from: 'subscriptionhistories',
                     let: { planId: '$_id' },
                     pipeline: [
-                        {
-                            $match: {
-                                $expr: { $eq: ['$subscriptionId', '$$planId'] },
-                            },
-                        },
+                        { $match: purchaseMatch },
                         { $count: 'count' },
                     ],
                     as: 'purchaseHistory',

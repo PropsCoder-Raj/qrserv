@@ -139,7 +139,7 @@ export declare class SubscriptionsService {
         totalPages: number;
         summary: any;
     }>;
-    getPlanAnalytics(): Promise<{
+    getPlanAnalytics(query?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         plans: any[];
         summary: {
             totalPlans: number;

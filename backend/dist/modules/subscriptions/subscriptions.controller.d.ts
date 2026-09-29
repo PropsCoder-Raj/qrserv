@@ -144,7 +144,7 @@ export declare class SubscriptionsController {
         totalPages: number;
         summary: any;
     }>;
-    getPlanAnalytics(): Promise<{
+    getPlanAnalytics(query?: PaginationQueryDto): Promise<{
         plans: any[];
         summary: {
             totalPlans: number;

@@ -32,7 +32,7 @@ export class Subscription {
   discountType: 'none' | 'flat' | 'percentage';
 
   @ApiProperty({
-    description: 'Flat amount (₹) or percentage (%) based on discountType',
+    description: 'Flat amount or percentage (%) based on discountType',
     default: 0,
   })
   @Prop({ default: 0 })

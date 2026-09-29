@@ -21,6 +21,7 @@ __exportStar(require("./category.schema"), exports);
 __exportStar(require("./menu-item.schema"), exports);
 __exportStar(require("./table.schema"), exports);
 __exportStar(require("./order.schema"), exports);
+__exportStar(require("./order-statistics.schema"), exports);
 __exportStar(require("./subscription.schema"), exports);
 __exportStar(require("./payment.schema"), exports);
 __exportStar(require("./subscription-history.schema"), exports);

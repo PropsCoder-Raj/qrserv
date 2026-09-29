@@ -277,7 +277,7 @@ export default function Orders() {
     { key: 'orderType', label: 'Order Type', render: (o) => renderOrderType(o.orderType) },
     { key: 'paymentMethod', label: 'Payment Type', render: (o) => renderPaymentMethod(o.paymentMethod) },
     { key: 'items', label: 'Items', render: (o) => `${o.items?.length || 0} items` },
-    { key: 'totalAmount', label: 'Total', sortable: true, render: (o) => `₹${o.totalAmount}` },
+    { key: 'totalAmount', label: 'Total', sortable: true, render: (o) => `${o.totalAmount}` },
     {
       key: 'status', label: 'Status', render: (o) => (
         <select
@@ -514,15 +514,15 @@ export default function Orders() {
                                   )}
                                   {isLiquor && hasVat && (
                                     <div className="mt-0.5 text-[11px] text-slate-400 space-x-2">
-                                      <span>Base: ₹{base.toFixed(2)}</span>
-                                      <span>VAT: ₹{itemVat.toFixed(2)}</span>
+                                      <span>Base: {base.toFixed(2)}</span>
+                                      <span>VAT: {itemVat.toFixed(2)}</span>
                                     </div>
                                   )}
                                   {!isLiquor && hasGst && (
                                     <div className="mt-0.5 text-[11px] text-slate-400 space-x-2">
-                                      <span>Base: ₹{base.toFixed(2)}</span>
-                                      <span>CGST: ₹{itemCgst.toFixed(2)}</span>
-                                      <span>SGST: ₹{itemSgst.toFixed(2)}</span>
+                                      <span>Base: {base.toFixed(2)}</span>
+                                      <span>CGST: {itemCgst.toFixed(2)}</span>
+                                      <span>SGST: {itemSgst.toFixed(2)}</span>
                                     </div>
                                   )}
                                 </td>
@@ -534,7 +534,7 @@ export default function Orders() {
                                     </div>
                                   )}
                                 </td>
-                                <td className="px-3 py-2 text-right">₹{lineTotal}</td>
+                                <td className="px-3 py-2 text-right">{lineTotal}</td>
                               </tr>
                             );
                           })}
@@ -546,24 +546,24 @@ export default function Orders() {
                         {hasGst && (
                           <>
                             <div className="text-slate-600">
-                              Food Subtotal: ₹{(o.foodSubtotal || 0).toFixed(2)}
+                              Food Subtotal: {(o.foodSubtotal || 0).toFixed(2)}
                             </div>
-                            <div className="text-slate-600">CGST ({cgstR}%): ₹{o.cgstAmount}</div>
-                            <div className="text-slate-600">SGST ({sgstR}%): ₹{o.sgstAmount}</div>
+                            <div className="text-slate-600">CGST ({cgstR}%): {o.cgstAmount}</div>
+                            <div className="text-slate-600">SGST ({sgstR}%): {o.sgstAmount}</div>
                           </>
                         )}
                         {hasVat && (
                           <>
                             <div className="text-slate-600">
-                              Liquor Subtotal: ₹{(o.liquorSubtotal || 0).toFixed(2)}
+                              Liquor Subtotal: {(o.liquorSubtotal || 0).toFixed(2)}
                             </div>
-                            <div className="text-slate-600">VAT ({vatR}%): ₹{o.vatAmount}</div>
+                            <div className="text-slate-600">VAT ({vatR}%): {o.vatAmount}</div>
                           </>
                         )}
-                        <div className="font-bold border-t border-stroke pt-1">Total: ₹{o.totalAmount}</div>
+                        <div className="font-bold border-t border-stroke pt-1">Total: {o.totalAmount}</div>
                       </div>
                     ) : (
-                      <div className="mt-2 text-right text-sm font-bold">Total: ₹{o.totalAmount}</div>
+                      <div className="mt-2 text-right text-sm font-bold">Total: {o.totalAmount}</div>
                     )}
                   </>
                 );

@@ -31,14 +31,18 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
-import {
-  getDateRangeFromPreset,
-  getDateRangeFromQuery,
-} from '../../common/utils/date-range';
-import { DatePreset } from '../../common/dto/date-filter.dto';
+import { getDateRangeFromQuery } from '../../common/utils/date-range';
 import { PaymentsService } from '../payments/payments.service';
 import { Payment, PaymentDocument } from '../../schemas/payment.schema';
 import { Table, TableDocument } from '../../schemas/table.schema';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  OrderCreatedEvent,
+  OrderEvent,
+  OrderPaymentStatusChangedEvent,
+  OrderStatusChangedEvent,
+} from '../../common/events/order-events';
+import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
 
 @Injectable()
 export class OrdersService {
@@ -67,6 +71,8 @@ export class OrdersService {
     @InjectModel(Table.name)
     private tableModel: Model<TableDocument>,
     private paymentsService: PaymentsService,
+    private eventEmitter: EventEmitter2,
+    private orderStatisticsService: OrderStatisticsService,
   ) {}
 
   private toObjectId(
@@ -336,8 +342,9 @@ export class OrdersService {
 
     const { tableId: _tableId, ...orderDto } = dto;
 
+    let order: OrderDocument;
     try {
-      return await this.orderModel.create({
+      order = await this.orderModel.create({
         ...orderDto,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
@@ -373,7 +380,7 @@ export class OrdersService {
         throw err;
       }
 
-      return this.orderModel.create({
+      order = await this.orderModel.create({
         ...orderDto,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
@@ -405,6 +412,19 @@ export class OrdersService {
         isPaymentGatewayAllocated,
       });
     }
+
+    this.eventEmitter.emit(
+      OrderEvent.CREATED,
+      new OrderCreatedEvent(
+        order._id.toString(),
+        restaurantObjectId.toString(),
+        restaurant.organizationId,
+        order.orderNumber,
+        order.totalAmount,
+      ),
+    );
+
+    return order;
   }
 
   async createForCustomerApp(dto: CreateOrderDto) {
@@ -701,11 +721,27 @@ export class OrdersService {
       const cQty = Number(it.cancelledQuantity || 0);
       return qty > 0 && cQty >= qty;
     });
+    const previousStatus = order.status;
     if (allCancelled) {
       order.status = OrderStatus.CANCELLED;
     }
 
     await order.save();
+
+    if (previousStatus !== order.status) {
+      this.eventEmitter.emit(
+        OrderEvent.STATUS_CHANGED,
+        new OrderStatusChangedEvent(
+          order._id.toString(),
+          order.restaurantId?.toString(),
+          previousStatus,
+          order.status,
+          restaurant?.organizationId,
+          order.totalAmount,
+        ),
+      );
+    }
+
     return order;
   }
 
@@ -895,22 +931,67 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
+    const existing = await this.orderModel
+      .findById(id)
+      .select('status restaurantId');
+    if (!existing) throw new NotFoundException('Order not found');
+
+    const previousStatus = existing.status;
     const order = await this.orderModel.findByIdAndUpdate(
       id,
       { status: dto.status },
       { new: true },
     );
     if (!order) throw new NotFoundException('Order not found');
+
+    if (previousStatus !== dto.status) {
+      const restaurant = await this.restaurantModel
+        .findById(order.restaurantId)
+        .select('organizationId')
+        .lean();
+
+      this.eventEmitter.emit(
+        OrderEvent.STATUS_CHANGED,
+        new OrderStatusChangedEvent(
+          order._id.toString(),
+          order.restaurantId?.toString(),
+          previousStatus,
+          dto.status,
+          restaurant?.organizationId,
+          order.totalAmount,
+        ),
+      );
+    }
+
     return order;
   }
 
   async updatePaymentStatus(id: string, dto: UpdatePaymentStatusDto) {
+    const existing = await this.orderModel
+      .findById(id)
+      .select('paymentStatus restaurantId');
+    if (!existing) throw new NotFoundException('Order not found');
+
+    const previousStatus = existing.paymentStatus;
     const order = await this.orderModel.findByIdAndUpdate(
       id,
       { paymentStatus: dto.paymentStatus },
       { new: true },
     );
     if (!order) throw new NotFoundException('Order not found');
+
+    if (previousStatus !== dto.paymentStatus) {
+      this.eventEmitter.emit(
+        OrderEvent.PAYMENT_STATUS_CHANGED,
+        new OrderPaymentStatusChangedEvent(
+          order._id.toString(),
+          order.restaurantId?.toString(),
+          previousStatus,
+          dto.paymentStatus,
+        ),
+      );
+    }
+
     return order;
   }
 
@@ -936,14 +1017,14 @@ export class OrdersService {
 
   async getStats(
     restaurantId?: string | Types.ObjectId,
-    datePreset?: DatePreset,
+    dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>,
   ) {
     const match: any = {};
     if (restaurantId) {
       match.restaurantId = this.toObjectId(restaurantId, 'restaurantId');
     }
 
-    const range = getDateRangeFromPreset(datePreset);
+    const range = getDateRangeFromQuery(dateQuery);
     if (range) {
       match.createdAt = { $gte: range.from, $lte: range.to };
     }
@@ -951,9 +1032,11 @@ export class OrdersService {
     return this.getStatsWithMatch(match);
   }
 
-  async getStatsByAll(datePreset?: any) {
+  async getStatsByAll(
+    dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>,
+  ) {
     const match: any = {};
-    const range = getDateRangeFromPreset(datePreset);
+    const range = getDateRangeFromQuery(dateQuery);
     if (range) {
       match.createdAt = { $gte: range.from, $lte: range.to };
     }
@@ -962,7 +1045,7 @@ export class OrdersService {
 
   async getStatsByOrganization(
     organizationId: string | Types.ObjectId,
-    datePreset?: any,
+    dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>,
   ) {
     const organizationObjectId = this.toObjectId(
       organizationId,
@@ -975,7 +1058,7 @@ export class OrdersService {
       .exec();
     const restaurantIds = orgRestaurants.map((r) => r._id);
     const match: any = { restaurantId: { $in: restaurantIds } };
-    const range = getDateRangeFromPreset(datePreset);
+    const range = getDateRangeFromQuery(dateQuery);
     if (range) {
       match.createdAt = { $gte: range.from, $lte: range.to };
     }
@@ -994,6 +1077,12 @@ export class OrdersService {
       },
     ]);
 
+    // OrderStatistics is cumulative (not date-scoped), so only the
+    // restaurant scope from `match` applies here, not the date range.
+    const restaurantScope = match.restaurantId?.$in ?? match.restaurantId;
+    const { servedOrderCount, totalOrderAmount } =
+      await this.orderStatisticsService.getServedTotals(restaurantScope);
+
     const mostSoldItems = await this.orderModel.aggregate([
       { $match: match },
       { $unwind: '$items' },
@@ -1007,10 +1096,19 @@ export class OrdersService {
       { $limit: 10 },
     ]);
 
+    // Respect an explicit date filter from the caller (fromDate/toDate or a
+    // datePreset) if present; otherwise fall back to the default lookback
+    // window for each revenue bucket.
+    const hasDateFilter = Boolean(match.createdAt);
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const revenueDaily = await this.orderModel.aggregate([
-      { $match: { ...match, createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $match: hasDateFilter
+          ? match
+          : { ...match, createdAt: { $gte: thirtyDaysAgo } },
+      },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -1024,7 +1122,11 @@ export class OrdersService {
     const twelveWeeksAgo = new Date();
     twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
     const revenueWeekly = await this.orderModel.aggregate([
-      { $match: { ...match, createdAt: { $gte: twelveWeeksAgo } } },
+      {
+        $match: hasDateFilter
+          ? match
+          : { ...match, createdAt: { $gte: twelveWeeksAgo } },
+      },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-W%V', date: '$createdAt' } },
@@ -1038,7 +1140,11 @@ export class OrdersService {
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const revenueMonthly = await this.orderModel.aggregate([
-      { $match: { ...match, createdAt: { $gte: twelveMonthsAgo } } },
+      {
+        $match: hasDateFilter
+          ? match
+          : { ...match, createdAt: { $gte: twelveMonthsAgo } },
+      },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
@@ -1064,6 +1170,8 @@ export class OrdersService {
     return {
       totalOrders: totals?.totalOrders || 0,
       totalSales: totals?.totalSales || 0,
+      totalServedOrders: servedOrderCount,
+      totalServedSales: totalOrderAmount,
       mostSoldItems: mostSoldItems.map((item) => ({
         name: item._id,
         quantity: item.totalQuantity,
