@@ -23,7 +23,7 @@ import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { AssignSubscriptionDto } from './dto/assign-subscription.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
-import { getDateRangeFromPreset } from '../../common/utils/date-range';
+import { getDateRangeFromQuery } from '../../common/utils/date-range';
 
 @Injectable()
 export class SubscriptionsService {
@@ -660,11 +660,10 @@ export class SubscriptionsService {
       search,
       sortBy,
       sortOrder,
-      datePreset,
     } = query || {};
     const filter: any = {};
 
-    const range = getDateRangeFromPreset(datePreset);
+    const range = getDateRangeFromQuery(query);
     if (range) {
       // For subscription histories, use purchasedAt
       filter.purchasedAt = { $gte: range.from, $lte: range.to };
@@ -739,8 +738,17 @@ export class SubscriptionsService {
     };
   }
 
-  async getPlanAnalytics() {
+  async getPlanAnalytics(
+    query?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>,
+  ) {
     const now = new Date();
+    const range = getDateRangeFromQuery(query);
+    const purchaseMatch: any = {
+      $expr: { $eq: ['$subscriptionId', '$$planId'] },
+    };
+    if (range) {
+      purchaseMatch.purchasedAt = { $gte: range.from, $lte: range.to };
+    }
 
     const plans = await this.subscriptionModel.aggregate([
       {
@@ -769,11 +777,7 @@ export class SubscriptionsService {
           from: 'subscriptionhistories',
           let: { planId: '$_id' },
           pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$subscriptionId', '$$planId'] },
-              },
-            },
+            { $match: purchaseMatch },
             { $count: 'count' },
           ],
           as: 'purchaseHistory',

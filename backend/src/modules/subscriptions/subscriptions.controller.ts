@@ -220,8 +220,8 @@ export class SubscriptionsController {
     summary:
       'Get subscription analytics by plan with active and total purchase counts',
   })
-  getPlanAnalytics() {
-    return this.subscriptionsService.getPlanAnalytics();
+  getPlanAnalytics(@Query() query?: PaginationQueryDto) {
+    return this.subscriptionsService.getPlanAnalytics(query);
   }
 
   @Get(':id')

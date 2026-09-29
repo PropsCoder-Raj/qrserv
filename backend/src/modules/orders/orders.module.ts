@@ -15,10 +15,12 @@ import {
 import { PaymentsModule } from '../payments/payments.module';
 import { Payment, PaymentSchema } from '../../schemas/payment.schema';
 import { Table, TableSchema } from '../../schemas/table.schema';
+import { OrderStatisticsModule } from '../order-statistics/order-statistics.module';
 
 @Module({
   imports: [
     PaymentsModule,
+    OrderStatisticsModule,
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
       { name: Restaurant.name, schema: RestaurantSchema },
