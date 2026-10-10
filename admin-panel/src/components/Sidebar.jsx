@@ -22,6 +22,7 @@ const allMenuItems = [
   { path: '/restaurants', label: 'Restaurants', icon: HiOutlineOfficeBuilding, roles: ['super_admin', 'org_admin'] },
   { path: '/categories', label: 'Categories', icon: HiOutlineTag },
   { path: '/menu-items', label: 'Menu Items', icon: HiOutlineBookOpen },
+  { path: '/coupons', label: 'Coupons', icon: HiOutlineTag, roles: ['super_admin', 'org_admin', 'restaurant_owner'] },
   { path: '/tables', label: 'Tables', icon: HiOutlineQrcode,  },
   { path: '/orders', label: 'Orders', icon: HiOutlineClipboardList },
   { path: '/users', label: 'Users', icon: HiOutlineUsers },

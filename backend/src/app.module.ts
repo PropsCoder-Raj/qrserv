@@ -18,6 +18,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { WithdrawRequestsModule } from './modules/withdraw-requests/withdraw-requests.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { WithdrawRequestsModule } from './modules/withdraw-requests/withdraw-req
     OrganizationsModule,
     ContactModule,
     WithdrawRequestsModule,
+    CouponsModule,
   ],
   providers: [
     {

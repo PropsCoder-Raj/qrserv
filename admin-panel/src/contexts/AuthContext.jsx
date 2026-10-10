@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import userService from '../services/userService';
 import restaurantService from '../services/restaurantService';
 import organizationService from '../services/organizationService';
 
@@ -13,6 +14,27 @@ export function AuthProvider({ children }) {
   const [restaurant, setRestaurant] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationSettingsLoading, setNotificationSettingsLoading] =
+    useState(false);
+
+  const fetchNotificationSettings = async (userData) => {
+    if (!['manager', 'staff'].includes(userData?.role)) return;
+    setNotificationSettingsLoading(true);
+    try {
+      const res = await userService.getNotificationSettings();
+      setNotificationsEnabled(res.data.data.enabled);
+    } catch {
+      setNotificationsEnabled(true);
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  };
+
+  const updateNotificationSettings = async (enabled) => {
+    const res = await userService.updateNotificationSettings(enabled);
+    setNotificationsEnabled(res.data.data.enabled);
+  };
 
   const fetchOrgData = async (userData) => {
     if (!userData?.organizationId) return;
@@ -54,6 +76,7 @@ export function AuthProvider({ children }) {
       try {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
+        fetchNotificationSettings(parsed);
         fetchOrgData(parsed);
         fetchRestaurantData(parsed);
       } catch {
@@ -70,6 +93,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refreshToken', result.refreshToken);
     localStorage.setItem('user', JSON.stringify(result.user));
     setUser(result.user);
+    await fetchNotificationSettings(result.user);
     await fetchOrgData(result.user);
     await fetchRestaurantData(result.user);
     return result;
@@ -82,6 +106,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refreshToken', result.refreshToken);
     localStorage.setItem('user', JSON.stringify(result.user));
     setUser(result.user);
+    await fetchNotificationSettings(result.user);
     await fetchOrgData(result.user);
     await fetchRestaurantData(result.user);
     return result;
@@ -94,6 +119,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refreshToken', result.refreshToken);
     localStorage.setItem('user', JSON.stringify(result.user));
     setUser(result.user);
+    await fetchNotificationSettings(result.user);
     await fetchOrgData(result.user);
     await fetchRestaurantData(result.user);
     return result;
@@ -111,13 +137,31 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
+    setNotificationsEnabled(true);
+    setNotificationSettingsLoading(false);
     setOrganization(null);
     setRestaurant(null);
     setSubscription(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, organization, restaurant, subscription, login, loginManager, loginStaff, logout, refreshOrgData, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        organization,
+        restaurant,
+        subscription,
+        notificationsEnabled,
+        notificationSettingsLoading,
+        updateNotificationSettings,
+        login,
+        loginManager,
+        loginStaff,
+        logout,
+        refreshOrgData,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

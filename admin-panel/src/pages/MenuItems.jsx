@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import ExcelImportModal from '../components/ExcelImportModal';
 import DatePresetFilter from '../components/DatePresetFilter';
+import CustomizationEditor from '../components/CustomizationEditor';
 
 export default function MenuItems() {
   const { user } = useAuth();
@@ -19,7 +20,8 @@ export default function MenuItems() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '', price: '', categoryId: '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '' });
+  const defaultCustomization = { spiceLevels: [], addOns: [], allowSpecialInstructions: true };
+  const [form, setForm] = useState({ name: '', description: '', ingredients: '', price: '', categoryId: '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
   const [importOpen, setImportOpen] = useState(false);
 
   // Pagination, search, sort state
@@ -80,7 +82,7 @@ export default function MenuItems() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', description: '', price: '', categoryId: categories[0]?._id || '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '' });
+    setForm({ name: '', description: '', ingredients: '', price: '', categoryId: categories[0]?._id || '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
     setModalOpen(true);
   };
 
@@ -89,6 +91,7 @@ export default function MenuItems() {
     setForm({
       name: item.name,
       description: item.description || '',
+      ingredients: item.ingredients || '',
       price: item.price,
       categoryId: item.categoryId,
       isVeg: item.isVeg || false,
@@ -96,6 +99,11 @@ export default function MenuItems() {
       itemType: item.itemType || 'food',
       imageFile: null,
       imagePreview: item.image || '',
+      customization: {
+        spiceLevels: item.customization?.spiceLevels || [],
+        addOns: item.customization?.addOns || [],
+        allowSpecialInstructions: item.customization?.allowSpecialInstructions !== false,
+      },
     });
     setModalOpen(true);
   };
@@ -106,14 +114,16 @@ export default function MenuItems() {
       const payload = {
         name: form.name,
         description: form.description,
+        ingredients: form.ingredients,
         price: Number(form.price),
         categoryId: form.categoryId,
         isVeg: form.isVeg,
         preparationTime: Number(form.preparationTime),
         itemType: form.itemType,
+        customization: form.customization,
       };
       if (editing) {
-        await menuService.updateMenuItem(editing._id, { name: payload.name, description: payload.description, price: payload.price, isVeg: payload.isVeg, preparationTime: payload.preparationTime, itemType: payload.itemType });
+        await menuService.updateMenuItem(editing._id, payload);
         if (form.imageFile) {
           await menuService.uploadMenuItemImage(editing._id, form.imageFile);
         }
@@ -260,6 +270,10 @@ export default function MenuItems() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Description</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
           </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Ingredients (optional)</label>
+            <textarea value={form.ingredients} onChange={(e) => setForm({ ...form, ingredients: e.target.value })} rows={2} placeholder="List the ingredients" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Price *</label>
@@ -379,6 +393,10 @@ export default function MenuItems() {
               </label>
             </div>
           </div>
+          <CustomizationEditor
+            value={form.customization}
+            onChange={(customization) => setForm({ ...form, customization })}
+          />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Item Image</label>
             <input
@@ -423,6 +441,7 @@ export default function MenuItems() {
         columns={[
           { key: 'name', label: 'Name', required: true },
           { key: 'description', label: 'Description' },
+          { key: 'ingredients', label: 'Ingredients' },
           { key: 'price', label: 'Price', required: true },
           { key: 'category', label: 'Category', required: true },
           { key: 'isVeg', label: 'Is Veg' },
@@ -438,6 +457,7 @@ export default function MenuItems() {
           return menuService.createMenuItem({
             name: row.name,
             description: row.description || '',
+            ingredients: row.ingredients || '',
             price: Number(row.price),
             categoryId: cat._id,
             isVeg: vegVal === 'yes' || vegVal === 'true' || vegVal === '1',

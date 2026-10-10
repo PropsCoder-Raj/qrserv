@@ -88,6 +88,9 @@ export default function OrderStatus() {
           price: Number(item.price || 0),
           quantity: Math.max(0, quantity),
           itemType: item.itemType || 'food',
+          spiceLevel: item.spiceLevel || undefined,
+          addOns: item.addOns?.length ? item.addOns : undefined,
+          specialInstructions: item.specialInstructions || undefined,
         };
       })
       .filter((item) => item.quantity > 0);
@@ -441,6 +444,21 @@ export default function OrderStatus() {
                             </span>
                           )}
                         </span>
+                        {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
+                          <div className="text-[11px] text-text-light">
+                            {item.spiceLevel?.name && (
+                              <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
+                            )}
+                            {item.addOns?.length > 0 && (
+                              <div>
+                                {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
+                              </div>
+                            )}
+                            {item.specialInstructions && (
+                              <div className="italic">Note: {item.specialInstructions}</div>
+                            )}
+                          </div>
+                        )}
                         {cancelledQty > 0 && item.cancelReason && (
                           <div className="text-[11px] text-danger mt-0.5">
                             Reason: {item.cancelReason}

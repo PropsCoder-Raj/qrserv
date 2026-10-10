@@ -8,8 +8,50 @@ import {
   IsOptional,
   IsString,
   Min,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ItemType } from '../../../schemas/menu-item.schema';
+
+export class CustomizationOptionDto {
+  @ApiProperty({ example: 'Extra Cheese' })
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ example: '🧀' })
+  @IsOptional()
+  @IsString()
+  emoji?: string;
+
+  @ApiPropertyOptional({ example: 20, default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  priceDelta?: number;
+}
+
+export class MenuItemCustomizationDto {
+  @ApiPropertyOptional({ type: [CustomizationOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CustomizationOptionDto)
+  spiceLevels?: CustomizationOptionDto[];
+
+  @ApiPropertyOptional({ type: [CustomizationOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CustomizationOptionDto)
+  addOns?: CustomizationOptionDto[];
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  allowSpecialInstructions?: boolean;
+}
 
 export class CreateMenuItemDto {
   @ApiProperty({ example: 'Paneer Tikka' })
@@ -21,6 +63,11 @@ export class CreateMenuItemDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: 'Paneer, yogurt, ginger, garlic, spices' })
+  @IsOptional()
+  @IsString()
+  ingredients?: string;
 
   @ApiProperty({ example: 250 })
   @IsNotEmpty()
@@ -60,4 +107,10 @@ export class CreateMenuItemDto {
   @IsOptional()
   @IsEnum(ItemType)
   itemType?: ItemType;
+
+  @ApiPropertyOptional({ type: MenuItemCustomizationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MenuItemCustomizationDto)
+  customization?: MenuItemCustomizationDto;
 }

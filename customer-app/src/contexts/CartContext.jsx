@@ -4,11 +4,28 @@ const CartContext = createContext(null);
 
 export const useCart = () => useContext(CartContext);
 
+// Builds a stable key that identifies a unique cart line — same menu item
+// with different spice level/add-ons/instructions is tracked separately.
+export function buildCartItemId(menuItemId, spiceLevel, addOns, specialInstructions) {
+  const addOnsKey = (addOns || [])
+    .map((a) => a.name)
+    .sort()
+    .join(',');
+  return [menuItemId, spiceLevel?.name || '', addOnsKey, specialInstructions || ''].join('::');
+}
+
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
       const saved = localStorage.getItem('cart');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      // Backfill cartItemId for carts saved before customization support
+      return parsed.map((i) => ({
+        ...i,
+        cartItemId:
+          i.cartItemId ||
+          buildCartItemId(i.menuItemId, i.spiceLevel, i.addOns, i.specialInstructions),
+      }));
     } catch {
       return [];
     }
@@ -40,32 +57,38 @@ export function CartProvider({ children }) {
     localStorage.setItem('cartPaymentMethod', paymentMethod);
   }, [restaurantId, tableId, orderType, paymentMethod]);
 
-  const addItem = (item) => {
+  const addItem = (item, quantity = 1) => {
+    const cartItemId = buildCartItemId(
+      item.menuItemId,
+      item.spiceLevel,
+      item.addOns,
+      item.specialInstructions,
+    );
     setItems((prev) => {
-      const existing = prev.find((i) => i.menuItemId === item.menuItemId);
+      const existing = prev.find((i) => i.cartItemId === cartItemId);
       if (existing) {
         return prev.map((i) =>
-          i.menuItemId === item.menuItemId
-            ? { ...i, quantity: i.quantity + 1 }
+          i.cartItemId === cartItemId
+            ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...item, cartItemId, quantity }];
     });
   };
 
-  const removeItem = (menuItemId) => {
-    setItems((prev) => prev.filter((i) => i.menuItemId !== menuItemId));
+  const removeItem = (cartItemId) => {
+    setItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
   };
 
-  const updateQuantity = (menuItemId, quantity) => {
+  const updateQuantity = (cartItemId, quantity) => {
     if (quantity <= 0) {
-      removeItem(menuItemId);
+      removeItem(cartItemId);
       return;
     }
     setItems((prev) =>
       prev.map((i) =>
-        i.menuItemId === menuItemId ? { ...i, quantity } : i
+        i.cartItemId === cartItemId ? { ...i, quantity } : i
       )
     );
   };
@@ -76,6 +99,11 @@ export function CartProvider({ children }) {
   };
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const getQuantityForMenuItem = (menuItemId) =>
+    items
+      .filter((i) => i.menuItemId === menuItemId)
+      .reduce((sum, i) => sum + i.quantity, 0);
 
   // Separate items into food and liquor groups
   const foodItems = items.filter((i) => (i.itemType || 'food') === 'food');
@@ -182,6 +210,7 @@ export function CartProvider({ children }) {
         addItem,
         removeItem,
         updateQuantity,
+        getQuantityForMenuItem,
         clearCart,
         totalAmount,
         totalItems,

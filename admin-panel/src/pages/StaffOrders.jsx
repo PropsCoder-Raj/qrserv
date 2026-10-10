@@ -22,7 +22,7 @@ function playNewOrderRing() {
 }
 
 export default function StaffOrders() {
-  const { user } = useAuth();
+  const { user, notificationsEnabled, notificationSettingsLoading } = useAuth();
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
@@ -58,30 +58,32 @@ export default function StaffOrders() {
 
   // Real-time new-order notifications for this restaurant's staff panel.
   useEffect(() => {
-    if (!restaurantId) return undefined;
+    if (!restaurantId || notificationSettingsLoading) return undefined;
 
     const socket = getOrdersSocket();
     socket.connect();
     socket.emit('join', { restaurantId });
 
     const handleNewOrder = (payload) => {
-      playNewOrderRing();
-      toast.custom(
-        () => (
-          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-white p-4 shadow-lg">
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
-              <HiOutlineBell size={20} />
+      if (notificationsEnabled) {
+        playNewOrderRing();
+        toast.custom(
+          () => (
+            <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-white p-4 shadow-lg">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <HiOutlineBell size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">New order received</p>
+                <p className="text-xs text-slate-500">
+                  {payload?.orderNumber ? `Order #${payload.orderNumber}` : 'A new order was placed'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">New order received</p>
-              <p className="text-xs text-slate-500">
-                {payload?.orderNumber ? `Order #${payload.orderNumber}` : 'A new order was placed'}
-              </p>
-            </div>
-          </div>
-        ),
-        { duration: 5000 },
-      );
+          ),
+          { duration: 5000 },
+        );
+      }
       loadOrders();
     };
 
@@ -91,7 +93,7 @@ export default function StaffOrders() {
       socket.off('order:new', handleNewOrder);
       socket.disconnect();
     };
-  }, [restaurantId, loadOrders]);
+  }, [restaurantId, loadOrders, notificationsEnabled, notificationSettingsLoading]);
 
   const updateStatus = async (orderId, status) => {
     try {
@@ -259,13 +261,13 @@ export default function StaffOrders() {
                 {/* Items */}
                 <div className="mb-3 space-y-1">
                   {order.items?.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm text-slate-700">
+                    <div key={i} className="text-sm text-slate-700">
                       {(() => {
                         const totalQty = Number(item.quantity || 0);
                         const cancelledQty = Number(item.cancelledQuantity || 0);
                         const remainingQty = Math.max(0, totalQty - cancelledQty);
                         return (
-                          <>
+                          <div className="flex justify-between">
                             <span>
                               {remainingQty}x {item.name}
                               {cancelledQty > 0 && (
@@ -275,9 +277,24 @@ export default function StaffOrders() {
                               )}
                             </span>
                             <span className="text-slate-500">{item.price * remainingQty}</span>
-                          </>
+                          </div>
                         );
                       })()}
+                      {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
+                        <div className="ml-2 space-y-0.5 text-[11px] text-slate-500">
+                          {item.spiceLevel?.name && (
+                            <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
+                          )}
+                          {item.addOns?.length > 0 && (
+                            <div>
+                              {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
+                            </div>
+                          )}
+                          {item.specialInstructions && (
+                            <div className="italic">Note: {item.specialInstructions}</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

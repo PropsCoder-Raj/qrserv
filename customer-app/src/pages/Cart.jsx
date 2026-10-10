@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiArrowLeft, HiPlus, HiMinus, HiTrash } from 'react-icons/hi';
@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import orderService from '../services/orderService';
 import paymentService from '../services/paymentService';
+import couponService from '../services/couponService';
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -55,8 +56,16 @@ export default function Cart() {
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [phoneError, setPhoneError] = useState('');
   const [placing, setPlacing] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const finalTotal = Math.max(0, grandTotal - (appliedCoupon?.discountAmount || 0));
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  }, [items, restaurantId]);
 
   const orderTypeOptions = [
     { value: 'takeaway', label: 'Takeaway' },
@@ -67,26 +76,40 @@ export default function Cart() {
     { value: 'online', label: 'Online' },
   ];
 
-  const handlePhoneChange = (e) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setCustomerPhone(digitsOnly);
-
-    if (!digitsOnly) {
-      setPhoneError('');
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Enter a coupon code');
+      return;
+    }
+    if (!restaurantId || items.length === 0) {
+      toast.error('Add items before applying a coupon');
       return;
     }
 
-    if (!/^[6-9]/.test(digitsOnly)) {
-      setPhoneError('Mobile number must start with 6, 7, 8, or 9');
-      return;
+    setValidatingCoupon(true);
+    try {
+      const res = await couponService.validate({
+        restaurantId,
+        code: couponCode.trim(),
+        items: items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        })),
+      });
+      setAppliedCoupon(res.data.data);
+      setCouponCode(res.data.data.couponCode);
+      toast.success('Coupon applied');
+    } catch (error) {
+      setAppliedCoupon(null);
+      toast.error(error.response?.data?.message || 'Coupon is not valid');
+    } finally {
+      setValidatingCoupon(false);
     }
+  };
 
-    if (digitsOnly.length < 10) {
-      setPhoneError('Mobile number must be 10 digits');
-      return;
-    }
-
-    setPhoneError('');
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
   };
 
   const handlePlaceOrder = async () => {
@@ -98,14 +121,6 @@ export default function Cart() {
       toast.error('Please scan a QR code first');
       return;
     }
-    if (!customerPhone || phoneError || !/^[6-9]\d{9}$/.test(customerPhone)) {
-      setPhoneError(
-        phoneError || 'Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9',
-      );
-      toast.error('Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9');
-      return;
-    }
-
     setPlacing(true);
     let orderForRollback = null;
     let razorpayOrderIdForRollback = '';
@@ -116,12 +131,16 @@ export default function Cart() {
         ...(tableId ? { tableId } : {}),
         orderType,
         paymentMethod: hasTable ? 'cash' : paymentMethod,
+        couponCode: appliedCoupon?.couponCode || undefined,
         items: items.map((i) => ({
           menuItemId: i.menuItemId,
           name: i.name,
           price: i.price,
           quantity: i.quantity,
           itemType: i.itemType || 'food',
+          spiceLevel: i.spiceLevel || undefined,
+          addOns: i.addOns?.length ? i.addOns : undefined,
+          specialInstructions: i.specialInstructions || undefined,
         })),
         customerName: customerName || undefined,
         customerPhone,
@@ -316,7 +335,7 @@ export default function Cart() {
               <AnimatePresence>
                 {items.map((item) => (
                   <motion.div
-                    key={item.menuItemId}
+                    key={item.cartItemId}
                     layout
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -327,6 +346,21 @@ export default function Cart() {
                       <h3 className="text-sm font-semibold text-text truncate">
                         {item.name}
                       </h3>
+                      {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
+                        <div className="mt-0.5 space-y-0.5 text-[11px] text-text-light">
+                          {item.spiceLevel?.name && (
+                            <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
+                          )}
+                          {item.addOns?.length > 0 && (
+                            <div>
+                              {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
+                            </div>
+                          )}
+                          {item.specialInstructions && (
+                            <div className="italic">Note: {item.specialInstructions}</div>
+                          )}
+                        </div>
+                      )}
                       <p className="mt-0.5 text-sm font-medium text-primary">
                         {item.price * item.quantity}
                       </p>
@@ -335,7 +369,7 @@ export default function Cart() {
                     <div className="flex items-center gap-1 rounded-xl bg-surface-cool p-1">
                       <button
                         onClick={() =>
-                          updateQuantity(item.menuItemId, item.quantity - 1)
+                          updateQuantity(item.cartItemId, item.quantity - 1)
                         }
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
                       >
@@ -350,7 +384,7 @@ export default function Cart() {
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.menuItemId, item.quantity + 1)
+                          updateQuantity(item.cartItemId, item.quantity + 1)
                         }
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
                       >
@@ -360,6 +394,43 @@ export default function Cart() {
                   </motion.div>
                 ))}
               </AnimatePresence>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
+              <h3 className="mb-3 text-sm font-semibold text-text">Apply Coupon</h3>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-text">{appliedCoupon.couponCode}</p>
+                    <p className="mt-1 text-xs text-green-700">Coupon applied</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-secondary hover:bg-surface-cool"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                    placeholder="Enter coupon code"
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-surface-cool px-4 py-3 text-sm uppercase outline-none placeholder:text-text-light focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={validatingCoupon || !couponCode.trim()}
+                    className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {validatingCoupon ? 'Checking...' : 'Apply'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Customer Info */}
@@ -385,20 +456,9 @@ export default function Cart() {
                   type="tel"
                   placeholder="Phone number"
                   value={customerPhone}
-                  onChange={handlePhoneChange}
-                  inputMode="numeric"
-                  maxLength={10}
-                  pattern="[6-9][0-9]{9}"
-                  required
-                  className={`w-full rounded-xl border bg-surface-cool px-4 py-3 text-sm outline-none placeholder:text-text-light focus:ring-2 ${
-                    phoneError
-                      ? 'border-danger focus:border-danger focus:ring-danger/10'
-                      : 'border-border focus:border-primary focus:ring-primary/10'
-                  }`}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-surface-cool px-4 py-3 text-sm outline-none placeholder:text-text-light focus:border-primary focus:ring-2 focus:ring-primary/10"
                 />
-                {phoneError && (
-                  <p className="px-1 text-xs text-danger">{phoneError}</p>
-                )}
               </div>
             </div>
 
@@ -470,11 +530,18 @@ export default function Cart() {
                     }
                   }
                   return (
-                    <div key={item.menuItemId}>
+                    <div key={item.cartItemId}>
                       <div className="flex justify-between text-text-secondary">
                         <span>{item.name}{isLiquor ? ' [L]' : ''} x {item.quantity}</span>
                         <span>{lineTotal}</span>
                       </div>
+                      {(item.spiceLevel?.name || item.addOns?.length > 0) && (
+                        <div className="text-[11px] text-text-light ml-1">
+                          {[item.spiceLevel?.name, ...(item.addOns || []).map((a) => a.name)]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </div>
+                      )}
                       {hasGst && (
                         <div className="text-[11px] text-text-light ml-1 mt-0.5 space-x-2">
                           <span>Base: {base.toFixed(2)}</span>
@@ -492,6 +559,16 @@ export default function Cart() {
                   );
                 })}
                 <div className="border-t border-border pt-2 space-y-1">
+                  <div className="flex justify-between text-text-secondary">
+                    <span>Subtotal</span>
+                    <span>₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-700">
+                      <span>Coupon {appliedCoupon.couponCode}</span>
+                      <span>-₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   {(cgstAmount + sgstAmount) > 0 && (
                     <>
                       <div className="flex justify-between text-text-secondary">
@@ -522,7 +599,7 @@ export default function Cart() {
                   )}
                   <div className="flex justify-between font-bold text-text">
                     <span>Total</span>
-                    <span className="text-primary">{grandTotal}</span>
+                    <span className="text-primary">₹{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -542,7 +619,7 @@ export default function Cart() {
                     Placing Order...
                   </span>
                 ) : (
-                  `${paymentMethod === 'online' ? 'Pay Online' : 'Place Order'}  •  ${grandTotal}`
+                  `${paymentMethod === 'online' ? 'Pay Online' : 'Place Order'}  •  ₹${finalTotal.toFixed(2)}`
                 )}
               </motion.button>
             </div>

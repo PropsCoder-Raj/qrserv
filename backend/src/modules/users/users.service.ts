@@ -280,6 +280,28 @@ export class UsersService implements OnModuleInit {
     return user;
   }
 
+  async getNotificationSettings(userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('notificationsEnabled');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return { enabled: user.notificationsEnabled ?? true };
+  }
+
+  async updateNotificationSettings(userId: string, enabled: boolean) {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { notificationsEnabled: enabled },
+      { new: true, select: 'notificationsEnabled' },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return { enabled: user.notificationsEnabled };
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto) {
     const updateData: any = { ...updateUserDto };
     const hasOrganizationId = Object.prototype.hasOwnProperty.call(
