@@ -46,6 +46,10 @@ export class User {
   @Prop({ default: true })
   isActive: boolean;
 
+  @ApiProperty({ default: true })
+  @Prop({ default: true })
+  notificationsEnabled: boolean;
+
   @Prop()
   refreshToken: string;
 }

@@ -1,6 +1,7 @@
 import api from './api';
 
 const orderService = {
+  create: (data) => api.post('/orders', data),
   getAll: (
     restaurantId,
     status,

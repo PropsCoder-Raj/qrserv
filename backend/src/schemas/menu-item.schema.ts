@@ -1,11 +1,46 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum ItemType {
   FOOD = 'food',
   LIQUOR = 'liquor',
 }
+
+@Schema({ _id: false })
+export class CustomizationOption {
+  @ApiProperty()
+  @Prop({ required: true })
+  name: string;
+
+  @ApiPropertyOptional()
+  @Prop({ default: '' })
+  emoji: string;
+
+  @ApiPropertyOptional({ default: 0 })
+  @Prop({ default: 0 })
+  priceDelta: number;
+}
+export const CustomizationOptionSchema =
+  SchemaFactory.createForClass(CustomizationOption);
+
+@Schema({ _id: false })
+export class MenuItemCustomization {
+  @ApiPropertyOptional({ type: [CustomizationOption] })
+  @Prop({ type: [CustomizationOptionSchema], default: [] })
+  spiceLevels: CustomizationOption[];
+
+  @ApiPropertyOptional({ type: [CustomizationOption] })
+  @Prop({ type: [CustomizationOptionSchema], default: [] })
+  addOns: CustomizationOption[];
+
+  @ApiPropertyOptional({ default: true })
+  @Prop({ default: true })
+  allowSpecialInstructions: boolean;
+}
+export const MenuItemCustomizationSchema = SchemaFactory.createForClass(
+  MenuItemCustomization,
+);
 
 @Schema({ timestamps: true })
 export class MenuItem {
@@ -16,6 +51,10 @@ export class MenuItem {
   @ApiProperty()
   @Prop()
   description: string;
+
+  @ApiPropertyOptional()
+  @Prop()
+  ingredients: string;
 
   @ApiProperty()
   @Prop({ required: true })
@@ -48,6 +87,10 @@ export class MenuItem {
   @ApiProperty({ enum: ItemType })
   @Prop({ enum: ItemType, default: ItemType.FOOD })
   itemType: ItemType;
+
+  @ApiPropertyOptional({ type: MenuItemCustomization })
+  @Prop({ type: MenuItemCustomizationSchema, default: () => ({}) })
+  customization: MenuItemCustomization;
 }
 
 export type MenuItemDocument = MenuItem & Document;

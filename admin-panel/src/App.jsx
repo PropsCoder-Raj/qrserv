@@ -23,6 +23,7 @@ import StaffOrders from './pages/StaffOrders';
 import WithdrawRequests from './pages/WithdrawRequests';
 import Settings from './pages/Settings';
 import OrderStatistics from './pages/OrderStatistics';
+import Coupons from './pages/Coupons';
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/restaurants" element={<Restaurants />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/menu-items" element={<MenuItems />} />
+            <Route path="/coupons" element={<Coupons />} />
             <Route path="/tables" element={<Tables />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/users" element={<Users />} />

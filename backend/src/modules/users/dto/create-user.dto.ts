@@ -39,9 +39,9 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({ example: '9876543210' })
   @IsOptional()
-  @Matches(/^[6-9]\d{9}$/, {
-    message: 'Phone must be a 10-digit number starting with 6, 7, 8 or 9',
-  })
+  // @Matches(/^[6-9]\d{9}$/, {
+  //   message: 'Phone must be a 10-digit number starting with 6, 7, 8 or 9',
+  // })
   phone?: string;
 
   @ApiProperty({ enum: UserRole })

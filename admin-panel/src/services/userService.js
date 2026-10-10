@@ -16,6 +16,9 @@ const userService = {
     return api.get(`/users?${params.toString()}`);
   },
   getOne: (id) => api.get(`/users/${id}`),
+  getNotificationSettings: () => api.get('/users/notification-settings'),
+  updateNotificationSettings: (enabled) =>
+    api.patch('/users/notification-settings', { enabled }),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.patch(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),

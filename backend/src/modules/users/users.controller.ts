@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateNotificationSettingsDto } from './dto/update-notification-settings.dto';
 import { CurrentUser, Roles, Role } from '../../common/decorators';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
@@ -20,6 +21,23 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 @Controller('api/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('notification-settings')
+  @Roles(Role.MANAGER, Role.STAFF)
+  @ApiOperation({ summary: 'Get notification settings for the current user' })
+  getNotificationSettings(@CurrentUser('userId') userId: string) {
+    return this.usersService.getNotificationSettings(userId);
+  }
+
+  @Patch('notification-settings')
+  @Roles(Role.MANAGER, Role.STAFF)
+  @ApiOperation({ summary: 'Update notification settings for the current user' })
+  updateNotificationSettings(
+    @CurrentUser('userId') userId: string,
+    @Body() body: UpdateNotificationSettingsDto,
+  ) {
+    return this.usersService.updateNotificationSettings(userId, body.enabled);
+  }
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER)

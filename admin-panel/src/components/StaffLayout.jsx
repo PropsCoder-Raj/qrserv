@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { HiOutlineLogout, HiOutlineClipboardList, HiOutlineViewGrid } from 'react-icons/hi';
+import { HiOutlineLogout, HiOutlineClipboardList, HiOutlineViewGrid, HiOutlineBell } from 'react-icons/hi';
+import toast from 'react-hot-toast';
 
 export default function StaffLayout() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, notificationsEnabled, updateNotificationSettings } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -34,6 +35,14 @@ export default function StaffLayout() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const toggleNotifications = async () => {
+    try {
+      await updateNotificationSettings(!notificationsEnabled);
+    } catch {
+      toast.error('Failed to update notification settings');
+    }
   };
 
   const linkClass = ({ isActive }) =>
@@ -70,11 +79,26 @@ export default function StaffLayout() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-lg border border-stroke bg-card py-2 shadow-lg">
+            <div className="absolute right-0 mt-2 w-70 rounded-lg border border-stroke bg-card py-2 shadow-lg">
               <div className="border-b border-stroke px-4 py-2 sm:hidden">
                 <p className="text-sm font-medium">{user?.name}</p>
                 <p className="text-xs text-slate-500">{user?.role?.replace('_', ' ')}</p>
               </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={notificationsEnabled}
+                onClick={toggleNotifications}
+                className="flex w-full items-center justify-between gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <HiOutlineBell size={18} />
+                  Order notifications
+                </span>
+                <span className={`relative h-5 w-9 rounded-full transition ${notificationsEnabled ? 'bg-primary' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${notificationsEnabled ? 'left-[1.125rem]' : 'left-0.5'}`} />
+                </span>
+              </button>
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-slate-100 cursor-pointer"

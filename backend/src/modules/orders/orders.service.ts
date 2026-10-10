@@ -43,6 +43,7 @@ import {
   OrderStatusChangedEvent,
 } from '../../common/events/order-events';
 import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 @Injectable()
 export class OrdersService {
@@ -73,6 +74,7 @@ export class OrdersService {
     private paymentsService: PaymentsService,
     private eventEmitter: EventEmitter2,
     private orderStatisticsService: OrderStatisticsService,
+    private couponsService: CouponsService,
   ) {}
 
   private toObjectId(
@@ -213,14 +215,18 @@ export class OrdersService {
     if (!restaurant) {
       throw new NotFoundException('Restaurant not found');
     }
+    const pricedItems = await this.couponsService.priceOrderItems(
+      dto.restaurantId,
+      dto.items || [],
+    );
     const isPaymentGatewayAllocated =
       await this.isPaymentGatewayAllocatedForRestaurant(restaurant);
 
     // Separate items into food and liquor groups
-    const foodItems = dto.items.filter(
+    const foodItems = pricedItems.filter(
       (i) => (i.itemType || 'food') === 'food',
     );
-    const liquorItems = dto.items.filter(
+    const liquorItems = pricedItems.filter(
       (i) => (i.itemType || 'food') === 'liquor',
     );
 
@@ -288,7 +294,20 @@ export class OrdersService {
     // Combined totals
     const subtotalAmount = foodBase + liquorBase;
     const taxAmount = cgstAmount + sgstAmount + vatAmount;
-    const totalAmount = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+    const orderSubtotal = foodTotal + liquorTotal;
+    const preDiscountTotal = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+    const coupon = dto.couponCode
+      ? await this.couponsService.validateCoupon(
+          dto.restaurantId,
+          dto.couponCode,
+          orderSubtotal,
+        )
+      : null;
+    const discountAmount = coupon?.discountAmount || 0;
+    const totalAmount = Math.max(
+      0,
+      Math.round((preDiscountTotal - discountAmount) * 100) / 100,
+    );
 
     const orderType = dto.orderType
       ? dto.orderType
@@ -348,7 +367,7 @@ export class OrdersService {
         ...orderDto,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
-        items: (dto.items || []).map((i) => ({
+        items: pricedItems.map((i) => ({
           ...i,
           menuItemId: new Types.ObjectId(i.menuItemId),
           status: OrderItemStatus.ACTIVE,
@@ -371,6 +390,9 @@ export class OrdersService {
         vatType,
         foodSubtotal: foodBase,
         liquorSubtotal: liquorBase,
+        couponId: coupon?.coupon._id,
+        couponCode: coupon?.coupon.code,
+        discountAmount,
         totalAmount,
         status: OrderStatus.PENDING,
         isPaymentGatewayAllocated,
@@ -384,7 +406,7 @@ export class OrdersService {
         ...orderDto,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
-        items: (dto.items || []).map((i) => ({
+        items: pricedItems.map((i) => ({
           ...i,
           menuItemId: new Types.ObjectId(i.menuItemId),
           status: OrderItemStatus.ACTIVE,
@@ -407,10 +429,26 @@ export class OrdersService {
         vatType,
         foodSubtotal: foodBase,
         liquorSubtotal: liquorBase,
+        couponId: coupon?.coupon._id,
+        couponCode: coupon?.coupon.code,
+        discountAmount,
         totalAmount,
         status: OrderStatus.PENDING,
         isPaymentGatewayAllocated,
       });
+    }
+
+    if (coupon) {
+      try {
+        await this.couponsService.recordUsage(
+          coupon.coupon._id,
+          order._id,
+          discountAmount,
+        );
+      } catch (error) {
+        await this.orderModel.findByIdAndDelete(order._id);
+        throw error;
+      }
     }
 
     this.eventEmitter.emit(
@@ -470,6 +508,7 @@ export class OrdersService {
     }
 
     await this.paymentModel.deleteMany({ orderId: order._id });
+    await this.couponsService.revertUsage(order._id);
     await this.orderModel.findByIdAndDelete(orderId);
 
     return { message: 'Failed payment order removed successfully' };
@@ -518,6 +557,19 @@ export class OrdersService {
       status: OrderItemStatus.ACTIVE,
       cancelledQuantity: 0,
       cancelReason: '',
+      spiceLevel: item.spiceLevel
+        ? {
+            name: item.spiceLevel.name,
+            emoji: item.spiceLevel.emoji || '',
+            priceDelta: Number(item.spiceLevel.priceDelta) || 0,
+          }
+        : undefined,
+      addOns: (item.addOns || []).map((addOn) => ({
+        name: addOn.name,
+        emoji: addOn.emoji || '',
+        priceDelta: Number(addOn.priceDelta) || 0,
+      })),
+      specialInstructions: item.specialInstructions || '',
     }));
     const totals = this.computeTotalsForItems(restaurant, normalizedItems);
 
