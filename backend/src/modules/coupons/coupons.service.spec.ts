@@ -99,4 +99,45 @@ describe('CouponsService', () => {
       itemType: 'liquor',
     });
   });
+
+  it('applies the menu item percentage price drop before add-ons', async () => {
+    const menuItemId = new Types.ObjectId();
+    const storedItem = {
+      _id: menuItemId,
+      name: 'Discounted item',
+      price: 200,
+      itemType: 'food',
+      discountType: 'percentage',
+      discountValue: 25,
+    };
+    const { service } = createService(null, [storedItem]);
+
+    const items = await service.priceOrderItems(restaurantId, [{
+      menuItemId: menuItemId.toString(),
+      quantity: 2,
+      addOns: [{ name: 'Extra', priceDelta: 10 }],
+    }]);
+
+    expect(items[0].price).toBe(160);
+  });
+
+  it('caps a fixed menu item price drop at the original price', async () => {
+    const menuItemId = new Types.ObjectId();
+    const storedItem = {
+      _id: menuItemId,
+      name: 'Free item',
+      price: 50,
+      itemType: 'food',
+      discountType: 'fixed',
+      discountValue: 75,
+    };
+    const { service } = createService(null, [storedItem]);
+
+    const items = await service.priceOrderItems(restaurantId, [{
+      menuItemId: menuItemId.toString(),
+      quantity: 1,
+    }]);
+
+    expect(items[0].price).toBe(0);
+  });
 });

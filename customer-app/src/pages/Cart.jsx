@@ -361,8 +361,9 @@ export default function Cart() {
                           )}
                         </div>
                       )}
-                      <p className="mt-0.5 text-sm font-medium text-primary">
-                        {item.price * item.quantity}
+                      <p className="mt-0.5 flex items-baseline gap-2 text-sm font-medium text-primary">
+                        {item.originalPrice > item.price && <del className="text-xs font-normal text-text-light">{(item.originalPrice * item.quantity).toFixed(2)}</del>}
+                        <span>{(item.price * item.quantity).toFixed(2)}</span>
                       </p>
                     </div>
 

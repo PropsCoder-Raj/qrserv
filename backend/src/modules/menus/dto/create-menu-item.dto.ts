@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ItemType } from '../../../schemas/menu-item.schema';
+import { ItemType, PriceDropType } from '../../../schemas/menu-item.schema';
 
 export class CustomizationOptionDto {
   @ApiProperty({ example: 'Extra Cheese' })
@@ -74,6 +74,17 @@ export class CreateMenuItemDto {
   @IsNumber()
   @Min(0)
   price: number;
+
+  @ApiPropertyOptional({ enum: PriceDropType })
+  @IsOptional()
+  @IsEnum(PriceDropType)
+  discountType?: PriceDropType | null;
+
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountValue?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

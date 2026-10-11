@@ -2,6 +2,7 @@ import api from './api';
 
 const orderService = {
   create: (data) => api.post('/orders', data),
+  updateItems: (id, data) => api.patch(`/orders/${id}/items`, data),
   getAll: (
     restaurantId,
     status,

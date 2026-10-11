@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiX, HiPlus, HiMinus } from 'react-icons/hi';
 import { SPICE_EMOJI_FALLBACK, ADD_ON_EMOJI_FALLBACK } from '../utils/customizationPresets';
+import { getMenuItemSalePrice, getMenuItemDiscountLabel } from '../utils/menuItemPricing';
 
 export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
   const customization = item.customization || {};
@@ -24,7 +25,9 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
 
   const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + (Number(a.priceDelta) || 0), 0);
   const spiceDelta = Number(spiceLevel?.priceDelta) || 0;
-  const unitPrice = Math.round((item.price + addOnsTotal + spiceDelta) * 100) / 100;
+  const saleBasePrice = getMenuItemSalePrice(item);
+  const originalUnitPrice = Math.round((Number(item.price) + addOnsTotal + spiceDelta) * 100) / 100;
+  const unitPrice = Math.round((saleBasePrice + addOnsTotal + spiceDelta) * 100) / 100;
 
   const handleConfirm = () => {
     onConfirm(
@@ -32,6 +35,9 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
         menuItemId: item._id,
         name: item.name,
         price: unitPrice,
+        originalPrice: originalUnitPrice,
+        discountType: item.discountType || '',
+        discountValue: Number(item.discountValue) || 0,
         itemType: item.itemType || 'food',
         spiceLevel: spiceLevel || undefined,
         addOns: selectedAddOns,
@@ -61,6 +67,12 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
             <div>
               <h3 className="text-base font-semibold text-text">{item.name}</h3>
               <p className="text-xs text-text-light">Customize your order</p>
+              {unitPrice < originalUnitPrice && (
+                <p className="mt-1 text-xs text-green-700">
+                  <del className="mr-1 text-text-light">{originalUnitPrice.toFixed(2)}</del>
+                  {unitPrice.toFixed(2)} · {getMenuItemDiscountLabel(item)}
+                </p>
+              )}
             </div>
             <button
               onClick={onClose}

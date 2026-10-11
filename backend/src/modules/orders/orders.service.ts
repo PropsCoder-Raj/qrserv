@@ -27,6 +27,7 @@ import {
 } from '../../schemas/subscription.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemDto } from './dto/create-order.dto';
+import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
@@ -44,6 +45,7 @@ import {
 } from '../../common/events/order-events';
 import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { Role } from '../../common/decorators';
 
 @Injectable()
 export class OrdersService {
@@ -548,11 +550,15 @@ export class OrdersService {
     const restaurant = await this.restaurantModel.findById(order.restaurantId);
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    const normalizedItems = items.map((item) => ({
+    const pricedItems = await this.couponsService.priceOrderItems(
+      order.restaurantId.toString(),
+      items,
+    );
+    const normalizedItems = pricedItems.map((item) => ({
       menuItemId: new Types.ObjectId(item.menuItemId),
       name: item.name,
-      price: Number(item.price),
-      quantity: Number(item.quantity),
+      price: item.price,
+      quantity: item.quantity,
       itemType: item.itemType || 'food',
       status: OrderItemStatus.ACTIVE,
       cancelledQuantity: 0,
@@ -598,6 +604,118 @@ export class OrdersService {
 
     await order.save();
     return this.getStatus(id);
+  }
+
+  async updateOrderItems(
+    id: string,
+    dto: UpdateOrderItemsDto,
+    role: string,
+    organizationId?: string,
+    userRestaurantId?: string,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid orderId');
+    }
+    if (!dto.items?.length) {
+      throw new BadRequestException('Order must contain at least one item');
+    }
+
+    const order = await this.orderModel.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (role === Role.ORG_ADMIN) {
+      if (!organizationId) throw new ForbiddenException('Organization not assigned');
+      await this.validateOrgRestaurant(order.restaurantId, organizationId);
+    } else if (role !== Role.SUPER_ADMIN) {
+      if (
+        !userRestaurantId ||
+        order.restaurantId.toString() !== userRestaurantId.toString()
+      ) {
+        throw new ForbiddenException('Restaurant access denied');
+      }
+    }
+
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      throw new BadRequestException('Paid orders cannot be updated');
+    }
+    if ([OrderStatus.CANCELLED, OrderStatus.SERVED].includes(order.status)) {
+      throw new BadRequestException(
+        `Order cannot be updated when status is '${order.status}'`,
+      );
+    }
+    if (order.items.some((item: any) => Number(item.cancelledQuantity || 0) > 0)) {
+      throw new BadRequestException(
+        'Orders with cancelled items cannot be updated',
+      );
+    }
+
+    const restaurantId = order.restaurantId.toString();
+    const restaurant = await this.restaurantModel.findById(order.restaurantId);
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const pricedItems = await this.couponsService.priceOrderItems(
+      restaurantId,
+      dto.items,
+    );
+    const totals = this.computeTotalsForItems(restaurant, pricedItems);
+    const orderSubtotal = pricedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const couponCode = dto.couponCode?.trim();
+    const coupon = couponCode
+      ? await this.couponsService.validateCoupon(
+          restaurantId,
+          couponCode,
+          orderSubtotal,
+          order._id,
+        )
+      : null;
+    const discountAmount = coupon?.discountAmount || 0;
+
+    await this.couponsService.replaceUsage(
+      order._id,
+      coupon?.coupon._id || null,
+      discountAmount,
+    );
+
+    order.items = pricedItems.map((item) => ({
+      ...item,
+      menuItemId: new Types.ObjectId(item.menuItemId),
+      status: OrderItemStatus.ACTIVE,
+      cancelledQuantity: 0,
+      cancelReason: '',
+    })) as any;
+    (order as any).subtotalAmount = totals.subtotalAmount;
+    (order as any).taxAmount = totals.taxAmount;
+    (order as any).taxRate = totals.taxRate;
+    (order as any).taxType = totals.taxType;
+    (order as any).cgstRate = totals.cgstRate;
+    (order as any).sgstRate = totals.sgstRate;
+    (order as any).cgstAmount = totals.cgstAmount;
+    (order as any).sgstAmount = totals.sgstAmount;
+    (order as any).vatAmount = totals.vatAmount;
+    (order as any).vatRate = totals.vatRate;
+    (order as any).vatType = totals.vatType;
+    (order as any).foodSubtotal = totals.foodSubtotal;
+    (order as any).liquorSubtotal = totals.liquorSubtotal;
+    (order as any).couponId = coupon?.coupon._id;
+    (order as any).couponCode = coupon?.coupon.code || '';
+    (order as any).discountAmount = discountAmount;
+    (order as any).totalAmount = Math.max(
+      0,
+      Math.round((totals.totalAmount - discountAmount) * 100) / 100,
+    );
+    if (order.razorpayOrderId) {
+      await this.paymentModel.deleteMany({ orderId: order._id });
+      order.razorpayOrderId = '';
+      order.razorpayPaymentId = '';
+      order.paymentId = '';
+      order.paymentStatus = PaymentStatus.PENDING;
+    }
+
+    await order.save();
+    return this.findOne(id);
   }
 
   private computeTotalsForItems(

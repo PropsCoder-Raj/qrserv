@@ -15,6 +15,7 @@ import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { RollbackFailedOrderDto } from './dto/rollback-failed-order.dto';
 import { UpdateCustomerOrderItemsDto } from './dto/update-customer-order-items.dto';
+import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import { CurrentUser, Public, Roles, Role } from '../../common/decorators';
 import { OrderStatus } from '../../schemas/order.schema';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
@@ -204,6 +205,31 @@ export class OrdersController {
     @Body() dto: UpdatePaymentStatusDto,
   ) {
     return this.ordersService.updatePaymentStatus(id, dto);
+  }
+
+  @Patch(':id/items')
+  @ApiBearerAuth()
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ORG_ADMIN,
+    Role.RESTAURANT_OWNER,
+    Role.MANAGER,
+  )
+  @ApiOperation({ summary: 'Update order items and coupon code' })
+  updateOrderItems(
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderItemsDto,
+    @CurrentUser('role') role: string,
+    @CurrentUser('organizationId') organizationId?: string,
+    @CurrentUser('restaurantId') restaurantId?: string,
+  ) {
+    return this.ordersService.updateOrderItems(
+      id,
+      dto,
+      role,
+      organizationId,
+      restaurantId,
+    );
   }
 
   @Patch(':id/items/cancel')

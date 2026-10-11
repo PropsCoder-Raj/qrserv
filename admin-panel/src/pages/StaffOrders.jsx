@@ -5,6 +5,7 @@ import orderService from '../services/orderService';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrdersSocket } from '../services/socket';
 import ringSound from '../assets/music/Ring.mpeg?url';
+import Orders from './Orders';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
@@ -185,6 +186,8 @@ export default function StaffOrders() {
   const orders = filterStatus
     ? allOrders.filter((o) => o.status === filterStatus)
     : allOrders;
+
+  if (user?.role === 'manager') return <Orders />;
 
   if (!restaurantId) {
     return (

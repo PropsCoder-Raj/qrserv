@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getMenuItemSalePrice } from '../utils/menuItemPricing';
 
 const CartContext = createContext(null);
 
@@ -91,6 +92,27 @@ export function CartProvider({ children }) {
         i.cartItemId === cartItemId ? { ...i, quantity } : i
       )
     );
+  };
+
+  const syncMenuPrices = (menuItems) => {
+    const menuItemsById = new Map(menuItems.map((item) => [String(item._id), item]));
+    setItems((current) => current.map((cartItem) => {
+      const menuItem = menuItemsById.get(String(cartItem.menuItemId));
+      if (!menuItem) return cartItem;
+      const optionsPrice = (cartItem.addOns || []).reduce(
+        (sum, addOn) => sum + (Number(addOn.priceDelta) || 0),
+        0,
+      ) + (Number(cartItem.spiceLevel?.priceDelta) || 0);
+      return {
+        ...cartItem,
+        name: menuItem.name,
+        itemType: menuItem.itemType || 'food',
+        price: Math.round((getMenuItemSalePrice(menuItem) + optionsPrice) * 100) / 100,
+        originalPrice: Math.round((Number(menuItem.price) + optionsPrice) * 100) / 100,
+        discountType: menuItem.discountType || '',
+        discountValue: Number(menuItem.discountValue) || 0,
+      };
+    }));
   };
 
   const clearCart = () => {
@@ -210,6 +232,7 @@ export function CartProvider({ children }) {
         addItem,
         removeItem,
         updateQuantity,
+        syncMenuPrices,
         getQuantityForMenuItem,
         clearCart,
         totalAmount,

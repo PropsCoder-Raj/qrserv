@@ -176,7 +176,7 @@ export class CouponsService {
         restaurantId: new Types.ObjectId(restaurantId),
         isAvailable: true,
       })
-      .select('name price itemType');
+      .select('name price itemType discountType discountValue');
     const menuItemsById = new Map(menuItems.map((item) => [item._id.toString(), item]));
     return items.map((item) => {
       const menuItem = menuItemsById.get(item.menuItemId);
@@ -188,8 +188,18 @@ export class CouponsService {
         0,
       );
       const spiceLevelDelta = Number(item.spiceLevel?.priceDelta) || 0;
+      const discountValue = Number(menuItem.discountValue) || 0;
+      const discountAmount = menuItem.discountType === 'percentage'
+        ? (menuItem.price * Math.min(discountValue, 100)) / 100
+        : menuItem.discountType === 'fixed'
+          ? Math.min(discountValue, menuItem.price)
+          : 0;
+      const discountedPrice = Math.max(
+        0,
+        Math.round((menuItem.price - discountAmount) * 100) / 100,
+      );
       const unitPrice =
-        Math.round((menuItem.price + addOnsTotal + spiceLevelDelta) * 100) / 100;
+        Math.round((discountedPrice + addOnsTotal + spiceLevelDelta) * 100) / 100;
       return {
         menuItemId: item.menuItemId,
         name: menuItem.name,
@@ -213,7 +223,12 @@ export class CouponsService {
     });
   }
 
-  async validateCoupon(restaurantId: string, code: string, subtotal: number) {
+  async validateCoupon(
+    restaurantId: string,
+    code: string,
+    subtotal: number,
+    existingOrderId?: Types.ObjectId,
+  ) {
     if (!Types.ObjectId.isValid(restaurantId)) {
       throw new BadRequestException('Invalid restaurantId');
     }
@@ -232,7 +247,17 @@ export class CouponsService {
     if (subtotal < coupon.minOrderAmount) {
       throw new BadRequestException(`Minimum order amount is ${coupon.minOrderAmount}`);
     }
-    if (coupon.usageLimit != null && coupon.usageCount >= coupon.usageLimit) {
+    const hasExistingUsage = existingOrderId
+      ? Boolean(await this.couponUsageModel.exists({
+          couponId: coupon._id,
+          orderId: existingOrderId,
+        }))
+      : false;
+    if (
+      coupon.usageLimit != null &&
+      coupon.usageCount >= coupon.usageLimit &&
+      !hasExistingUsage
+    ) {
       throw new BadRequestException('Coupon usage limit reached');
     }
 
@@ -293,6 +318,74 @@ export class CouponsService {
     if (usage) {
       await this.couponModel.updateOne(
         { _id: usage.couponId, usageCount: { $gt: 0 } },
+        { $inc: { usageCount: -1 } },
+      );
+    }
+  }
+
+  async replaceUsage(
+    orderId: Types.ObjectId,
+    couponId: Types.ObjectId | null,
+    discountAmount: number,
+  ) {
+    const existingUsage = await this.couponUsageModel.findOne({ orderId });
+    if (!couponId) {
+      if (existingUsage) {
+        await this.couponUsageModel.deleteOne({ _id: existingUsage._id });
+        await this.couponModel.updateOne(
+          { _id: existingUsage.couponId, usageCount: { $gt: 0 } },
+          { $inc: { usageCount: -1 } },
+        );
+      }
+      return;
+    }
+
+    if (existingUsage?.couponId.toString() === couponId.toString()) {
+      await this.couponUsageModel.updateOne(
+        { _id: existingUsage._id },
+        { $set: { discountAmount } },
+      );
+      return;
+    }
+
+    const now = new Date();
+    const coupon = await this.couponModel.findOneAndUpdate(
+      {
+        _id: couponId,
+        isActive: true,
+        startAt: { $lte: now },
+        expiresAt: { $gte: now },
+        $or: [
+          { usageLimit: null },
+          { usageLimit: { $exists: false } },
+          { $expr: { $lt: ['$usageCount', '$usageLimit'] } },
+        ],
+      },
+      { $inc: { usageCount: 1 } },
+      { new: true },
+    );
+    if (!coupon) throw new BadRequestException('Coupon is no longer available');
+
+    try {
+      if (existingUsage) {
+        await this.couponUsageModel.updateOne(
+          { _id: existingUsage._id },
+          { $set: { couponId, discountAmount } },
+        );
+      } else {
+        await this.couponUsageModel.create({ couponId, orderId, discountAmount });
+      }
+    } catch (error) {
+      await this.couponModel.updateOne(
+        { _id: couponId, usageCount: { $gt: 0 } },
+        { $inc: { usageCount: -1 } },
+      );
+      throw error;
+    }
+
+    if (existingUsage) {
+      await this.couponModel.updateOne(
+        { _id: existingUsage.couponId, usageCount: { $gt: 0 } },
         { $inc: { usageCount: -1 } },
       );
     }

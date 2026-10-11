@@ -9,7 +9,11 @@ import { Model, Types } from 'mongoose';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Category, CategoryDocument } from '../../schemas/category.schema';
-import { MenuItem, MenuItemDocument } from '../../schemas/menu-item.schema';
+import {
+  MenuItem,
+  MenuItemDocument,
+  PriceDropType,
+} from '../../schemas/menu-item.schema';
 import {
   Restaurant,
   RestaurantDocument,
@@ -37,6 +41,20 @@ export class MenusService {
     private organizationModel: Model<OrganizationDocument>,
     private cacheService: CacheService,
   ) {}
+
+  private validatePriceDrop(
+    discountType?: PriceDropType | null,
+    discountValue?: number,
+  ) {
+    if (!discountType) return;
+    const value = Number(discountValue);
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new BadRequestException('Discount value must be greater than 0');
+    }
+    if (discountType === PriceDropType.PERCENTAGE && value > 100) {
+      throw new BadRequestException('Percentage discount cannot exceed 100%');
+    }
+  }
 
   async validateOrgRestaurant(restaurantId: string, organizationId: string) {
     if (!Types.ObjectId.isValid(restaurantId)) {
@@ -215,6 +233,7 @@ export class MenusService {
   // --- Menu Items ---
 
   async createMenuItem(dto: CreateMenuItemDto, organizationId: string) {
+    this.validatePriceDrop(dto.discountType, dto.discountValue);
     if (!Types.ObjectId.isValid(dto.restaurantId)) {
       throw new BadRequestException('Invalid restaurantId');
     }
@@ -323,6 +342,15 @@ export class MenusService {
   }
 
   async updateMenuItem(id: string, dto: UpdateMenuItemDto) {
+    const existing = await this.menuItemModel.findById(id);
+    if (!existing) throw new NotFoundException('Menu item not found');
+    const discountType = dto.discountType === null
+      ? undefined
+      : dto.discountType ?? existing.discountType;
+    const discountValue = dto.discountType === null
+      ? 0
+      : dto.discountValue ?? existing.discountValue;
+    this.validatePriceDrop(discountType, discountValue);
     const item = await this.menuItemModel.findByIdAndUpdate(id, dto, {
       new: true,
     });

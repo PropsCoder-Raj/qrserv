@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { HiPlus, HiMinus, HiOutlineClock, HiOutlineAdjustments } from 'react-icons/hi';
 import { useCart } from '../contexts/CartContext';
 import ItemCustomizationModal from './ItemCustomizationModal';
+import { getMenuItemSalePrice, getMenuItemDiscountLabel } from '../utils/menuItemPricing';
 
 export default function MenuItemCard({ item }) {
   const {
@@ -23,6 +24,8 @@ export default function MenuItemCard({ item }) {
 
   const cartItem = items.find((i) => i.menuItemId === item._id && !i.spiceLevel && !i.addOns?.length && !i.specialInstructions);
   const qty = hasCustomization ? getQuantityForMenuItem(item._id) : cartItem?.quantity || 0;
+  const salePrice = getMenuItemSalePrice(item);
+  const hasPriceDrop = salePrice < Number(item.price);
 
   const handleAdd = () => {
     if (hasCustomization) {
@@ -32,7 +35,10 @@ export default function MenuItemCard({ item }) {
     addItem({
       menuItemId: item._id,
       name: item.name,
-      price: item.price,
+      price: salePrice,
+      originalPrice: Number(item.price),
+      discountType: item.discountType || '',
+      discountValue: Number(item.discountValue) || 0,
       itemType: item.itemType || 'food',
     });
   };
@@ -95,8 +101,10 @@ export default function MenuItemCard({ item }) {
 
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-text">
-             {item.price}
+            <span className="flex flex-wrap items-baseline gap-x-1.5 text-sm font-bold text-text">
+              <span className={hasPriceDrop ? 'text-green-700' : ''}>{salePrice.toFixed(2)}</span>
+              {hasPriceDrop && <del className="text-xs font-normal text-text-light">{item.price}</del>}
+              {hasPriceDrop && <span className="rounded bg-green-100 px-1 py-0.5 text-[10px] font-semibold text-green-700">{getMenuItemDiscountLabel(item)}</span>}
               {isLiquor && vatEnabled && vatType === 'inclusive' && (
                 <span className="ml-1 text-[10px] font-normal text-text-light">
                   (incl. VAT)

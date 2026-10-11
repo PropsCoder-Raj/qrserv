@@ -7,6 +7,11 @@ export enum ItemType {
   LIQUOR = 'liquor',
 }
 
+export enum PriceDropType {
+  PERCENTAGE = 'percentage',
+  FIXED = 'fixed',
+}
+
 @Schema({ _id: false })
 export class CustomizationOption {
   @ApiProperty()
@@ -59,6 +64,14 @@ export class MenuItem {
   @ApiProperty()
   @Prop({ required: true })
   price: number;
+
+  @ApiPropertyOptional({ enum: PriceDropType })
+  @Prop({ enum: PriceDropType })
+  discountType?: PriceDropType;
+
+  @ApiPropertyOptional({ default: 0 })
+  @Prop({ min: 0, default: 0 })
+  discountValue: number;
 
   @ApiProperty()
   @Prop()
