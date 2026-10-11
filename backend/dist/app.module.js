@@ -27,6 +27,7 @@ const subscriptions_module_1 = require("./modules/subscriptions/subscriptions.mo
 const organizations_module_1 = require("./modules/organizations/organizations.module");
 const contact_module_1 = require("./modules/contact/contact.module");
 const withdraw_requests_module_1 = require("./modules/withdraw-requests/withdraw-requests.module");
+const coupons_module_1 = require("./modules/coupons/coupons.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -57,6 +58,7 @@ exports.AppModule = AppModule = __decorate([
             organizations_module_1.OrganizationsModule,
             contact_module_1.ContactModule,
             withdraw_requests_module_1.WithdrawRequestsModule,
+            coupons_module_1.CouponsModule,
         ],
         providers: [
             {

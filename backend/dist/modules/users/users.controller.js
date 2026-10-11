@@ -18,11 +18,18 @@ const swagger_1 = require("@nestjs/swagger");
 const users_service_1 = require("./users.service");
 const create_user_dto_1 = require("./dto/create-user.dto");
 const update_user_dto_1 = require("./dto/update-user.dto");
+const update_notification_settings_dto_1 = require("./dto/update-notification-settings.dto");
 const decorators_1 = require("../../common/decorators");
 const pagination_query_dto_1 = require("../../common/dto/pagination-query.dto");
 let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
+    }
+    getNotificationSettings(userId) {
+        return this.usersService.getNotificationSettings(userId);
+    }
+    updateNotificationSettings(userId, body) {
+        return this.usersService.updateNotificationSettings(userId, body.enabled);
     }
     async create(createUserDto, role, organizationId, userRestaurantId) {
         if (role === decorators_1.Role.ORG_ADMIN && organizationId) {
@@ -65,6 +72,25 @@ let UsersController = class UsersController {
     }
 };
 exports.UsersController = UsersController;
+__decorate([
+    (0, common_1.Get)('notification-settings'),
+    (0, decorators_1.Roles)(decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, swagger_1.ApiOperation)({ summary: 'Get notification settings for the current user' }),
+    __param(0, (0, decorators_1.CurrentUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getNotificationSettings", null);
+__decorate([
+    (0, common_1.Patch)('notification-settings'),
+    (0, decorators_1.Roles)(decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, swagger_1.ApiOperation)({ summary: 'Update notification settings for the current user' }),
+    __param(0, (0, decorators_1.CurrentUser)('userId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_notification_settings_dto_1.UpdateNotificationSettingsDto]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "updateNotificationSettings", null);
 __decorate([
     (0, common_1.Post)(),
     (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER),

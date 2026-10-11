@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OrderSchema = exports.Order = exports.OrderItem = exports.OrderItemStatus = exports.PaymentStatus = exports.OrderStatus = void 0;
+exports.OrderSchema = exports.Order = exports.OrderItem = exports.SelectedSpiceLevel = exports.SelectedAddOn = exports.OrderItemStatus = exports.PaymentStatus = exports.OrderStatus = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
@@ -33,6 +33,36 @@ var OrderItemStatus;
     OrderItemStatus["ACTIVE"] = "active";
     OrderItemStatus["CANCELLED"] = "cancelled";
 })(OrderItemStatus || (exports.OrderItemStatus = OrderItemStatus = {}));
+class SelectedAddOn {
+}
+exports.SelectedAddOn = SelectedAddOn;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], SelectedAddOn.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], SelectedAddOn.prototype, "emoji", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: 0 }),
+    __metadata("design:type", Number)
+], SelectedAddOn.prototype, "priceDelta", void 0);
+class SelectedSpiceLevel {
+}
+exports.SelectedSpiceLevel = SelectedSpiceLevel;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], SelectedSpiceLevel.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], SelectedSpiceLevel.prototype, "emoji", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: 0 }),
+    __metadata("design:type", Number)
+], SelectedSpiceLevel.prototype, "priceDelta", void 0);
 class OrderItem {
 }
 exports.OrderItem = OrderItem;
@@ -76,6 +106,18 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)
 ], OrderItem.prototype, "itemType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, type: SelectedSpiceLevel }),
+    __metadata("design:type", SelectedSpiceLevel)
+], OrderItem.prototype, "spiceLevel", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, type: [SelectedAddOn] }),
+    __metadata("design:type", Array)
+], OrderItem.prototype, "addOns", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], OrderItem.prototype, "specialInstructions", void 0);
 let Order = class Order {
 };
 exports.Order = Order;
@@ -119,6 +161,27 @@ __decorate([
                 cancelledBy: { type: mongoose_2.Types.ObjectId, ref: 'User', required: false },
                 cancelledAt: { type: Date, required: false },
                 itemType: { type: String, default: 'food' },
+                spiceLevel: {
+                    type: {
+                        name: String,
+                        emoji: { type: String, default: '' },
+                        priceDelta: { type: Number, default: 0 },
+                    },
+                    required: false,
+                    _id: false,
+                },
+                addOns: {
+                    type: [
+                        {
+                            name: String,
+                            emoji: { type: String, default: '' },
+                            priceDelta: { type: Number, default: 0 },
+                            _id: false,
+                        },
+                    ],
+                    default: [],
+                },
+                specialInstructions: { type: String, default: '' },
             },
         ],
         required: true,
@@ -195,6 +258,21 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 0 }),
     __metadata("design:type", Number)
 ], Order.prototype, "liquorSubtotal", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Coupon', required: false }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Order.prototype, "couponId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Order.prototype, "couponCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0 }),
+    __metadata("design:type", Number)
+], Order.prototype, "discountAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ enum: OrderStatus }),
     (0, mongoose_1.Prop)({ enum: OrderStatus, default: OrderStatus.PENDING }),

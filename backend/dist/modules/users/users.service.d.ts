@@ -24,6 +24,7 @@ export declare class UsersService implements OnModuleInit {
         organizationId: Types.ObjectId;
         restaurantId: Types.ObjectId;
         isActive: boolean;
+        notificationsEnabled: boolean;
         _id: Types.ObjectId;
         $locals: Record<string, unknown>;
         $op: "save" | "validate" | "remove" | null;
@@ -55,6 +56,12 @@ export declare class UsersService implements OnModuleInit {
         __v: number;
     } & {
         id: string;
+    }>;
+    getNotificationSettings(userId: string): Promise<{
+        enabled: boolean;
+    }>;
+    updateNotificationSettings(userId: string, enabled: boolean): Promise<{
+        enabled: boolean;
     }>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<import("mongoose").Document<unknown, {}, UserDocument, {}, import("mongoose").DefaultSchemaOptions> & User & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;

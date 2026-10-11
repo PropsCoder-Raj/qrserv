@@ -1,10 +1,17 @@
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateNotificationSettingsDto } from './dto/update-notification-settings.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
+    getNotificationSettings(userId: string): Promise<{
+        enabled: boolean;
+    }>;
+    updateNotificationSettings(userId: string, body: UpdateNotificationSettingsDto): Promise<{
+        enabled: boolean;
+    }>;
     create(createUserDto: CreateUserDto, role?: string, organizationId?: string, userRestaurantId?: string): Promise<{
         name: string;
         email: string;
@@ -13,6 +20,7 @@ export declare class UsersController {
         organizationId: import("mongoose").Types.ObjectId;
         restaurantId: import("mongoose").Types.ObjectId;
         isActive: boolean;
+        notificationsEnabled: boolean;
         _id: import("mongoose").Types.ObjectId;
         $locals: Record<string, unknown>;
         $op: "save" | "validate" | "remove" | null;

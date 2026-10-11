@@ -9,10 +9,58 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateMenuItemDto = void 0;
+exports.CreateMenuItemDto = exports.MenuItemCustomizationDto = exports.CustomizationOptionDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const menu_item_schema_1 = require("../../../schemas/menu-item.schema");
+class CustomizationOptionDto {
+}
+exports.CustomizationOptionDto = CustomizationOptionDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Extra Cheese' }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CustomizationOptionDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '🧀' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CustomizationOptionDto.prototype, "emoji", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 20, default: 0 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CustomizationOptionDto.prototype, "priceDelta", void 0);
+class MenuItemCustomizationDto {
+}
+exports.MenuItemCustomizationDto = MenuItemCustomizationDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: [CustomizationOptionDto] }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => CustomizationOptionDto),
+    __metadata("design:type", Array)
+], MenuItemCustomizationDto.prototype, "spiceLevels", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: [CustomizationOptionDto] }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => CustomizationOptionDto),
+    __metadata("design:type", Array)
+], MenuItemCustomizationDto.prototype, "addOns", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], MenuItemCustomizationDto.prototype, "allowSpecialInstructions", void 0);
 class CreateMenuItemDto {
 }
 exports.CreateMenuItemDto = CreateMenuItemDto;
@@ -28,6 +76,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateMenuItemDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Paneer, yogurt, ginger, garlic, spices' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateMenuItemDto.prototype, "ingredients", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 250 }),
     (0, class_validator_1.IsNotEmpty)(),
@@ -74,4 +128,11 @@ __decorate([
     (0, class_validator_1.IsEnum)(menu_item_schema_1.ItemType),
     __metadata("design:type", String)
 ], CreateMenuItemDto.prototype, "itemType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: MenuItemCustomizationDto }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => MenuItemCustomizationDto),
+    __metadata("design:type", MenuItemCustomizationDto)
+], CreateMenuItemDto.prototype, "customization", void 0);
 //# sourceMappingURL=create-menu-item.dto.js.map

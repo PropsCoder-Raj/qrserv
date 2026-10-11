@@ -16,6 +16,7 @@ export declare class User {
     organizationId: Types.ObjectId;
     restaurantId: Types.ObjectId;
     isActive: boolean;
+    notificationsEnabled: boolean;
     refreshToken: string;
 }
 export type UserDocument = User & Document;
@@ -111,6 +112,15 @@ export declare const UserSchema: import("mongoose").Schema<User, import("mongoos
         id: string;
     }>;
     isActive?: import("mongoose").SchemaDefinitionProperty<boolean, User, Document<unknown, {}, User, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<User & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    notificationsEnabled?: import("mongoose").SchemaDefinitionProperty<boolean, User, Document<unknown, {}, User, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<User & {
         _id: Types.ObjectId;

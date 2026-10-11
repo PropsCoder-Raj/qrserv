@@ -27,8 +27,9 @@ const table_schema_1 = require("../../schemas/table.schema");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const order_events_1 = require("../../common/events/order-events");
 const order_statistics_service_1 = require("../order-statistics/order-statistics.service");
+const coupons_service_1 = require("../coupons/coupons.service");
 let OrdersService = class OrdersService {
-    constructor(orderModel, restaurantModel, organizationModel, subscriptionModel, paymentModel, tableModel, paymentsService, eventEmitter, orderStatisticsService) {
+    constructor(orderModel, restaurantModel, organizationModel, subscriptionModel, paymentModel, tableModel, paymentsService, eventEmitter, orderStatisticsService, couponsService) {
         this.orderModel = orderModel;
         this.restaurantModel = restaurantModel;
         this.organizationModel = organizationModel;
@@ -38,6 +39,7 @@ let OrdersService = class OrdersService {
         this.paymentsService = paymentsService;
         this.eventEmitter = eventEmitter;
         this.orderStatisticsService = orderStatisticsService;
+        this.couponsService = couponsService;
         this.orderRelationPopulate = [
             {
                 path: 'restaurantId',
@@ -135,9 +137,10 @@ let OrdersService = class OrdersService {
         if (!restaurant) {
             throw new common_1.NotFoundException('Restaurant not found');
         }
+        const pricedItems = await this.couponsService.priceOrderItems(dto.restaurantId, dto.items || []);
         const isPaymentGatewayAllocated = await this.isPaymentGatewayAllocatedForRestaurant(restaurant);
-        const foodItems = dto.items.filter((i) => (i.itemType || 'food') === 'food');
-        const liquorItems = dto.items.filter((i) => (i.itemType || 'food') === 'liquor');
+        const foodItems = pricedItems.filter((i) => (i.itemType || 'food') === 'food');
+        const liquorItems = pricedItems.filter((i) => (i.itemType || 'food') === 'liquor');
         const foodTotal = foodItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const liquorTotal = liquorItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
         let foodBase = foodTotal;
@@ -191,7 +194,13 @@ let OrdersService = class OrdersService {
         }
         const subtotalAmount = foodBase + liquorBase;
         const taxAmount = cgstAmount + sgstAmount + vatAmount;
-        const totalAmount = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+        const orderSubtotal = foodTotal + liquorTotal;
+        const preDiscountTotal = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+        const coupon = dto.couponCode
+            ? await this.couponsService.validateCoupon(dto.restaurantId, dto.couponCode, orderSubtotal)
+            : null;
+        const discountAmount = coupon?.discountAmount || 0;
+        const totalAmount = Math.max(0, Math.round((preDiscountTotal - discountAmount) * 100) / 100);
         const orderType = dto.orderType
             ? dto.orderType
             : tableId
@@ -240,7 +249,7 @@ let OrdersService = class OrdersService {
                 ...orderDto,
                 restaurantId: restaurantObjectId,
                 tableId: tableObjectId,
-                items: (dto.items || []).map((i) => ({
+                items: pricedItems.map((i) => ({
                     ...i,
                     menuItemId: new mongoose_2.Types.ObjectId(i.menuItemId),
                     status: order_schema_1.OrderItemStatus.ACTIVE,
@@ -263,6 +272,9 @@ let OrdersService = class OrdersService {
                 vatType,
                 foodSubtotal: foodBase,
                 liquorSubtotal: liquorBase,
+                couponId: coupon?.coupon._id,
+                couponCode: coupon?.coupon.code,
+                discountAmount,
                 totalAmount,
                 status: order_schema_1.OrderStatus.PENDING,
                 isPaymentGatewayAllocated,
@@ -276,7 +288,7 @@ let OrdersService = class OrdersService {
                 ...orderDto,
                 restaurantId: restaurantObjectId,
                 tableId: tableObjectId,
-                items: (dto.items || []).map((i) => ({
+                items: pricedItems.map((i) => ({
                     ...i,
                     menuItemId: new mongoose_2.Types.ObjectId(i.menuItemId),
                     status: order_schema_1.OrderItemStatus.ACTIVE,
@@ -299,10 +311,22 @@ let OrdersService = class OrdersService {
                 vatType,
                 foodSubtotal: foodBase,
                 liquorSubtotal: liquorBase,
+                couponId: coupon?.coupon._id,
+                couponCode: coupon?.coupon.code,
+                discountAmount,
                 totalAmount,
                 status: order_schema_1.OrderStatus.PENDING,
                 isPaymentGatewayAllocated,
             });
+        }
+        if (coupon) {
+            try {
+                await this.couponsService.recordUsage(coupon.coupon._id, order._id, discountAmount);
+            }
+            catch (error) {
+                await this.orderModel.findByIdAndDelete(order._id);
+                throw error;
+            }
         }
         this.eventEmitter.emit(order_events_1.OrderEvent.CREATED, new order_events_1.OrderCreatedEvent(order._id.toString(), restaurantObjectId.toString(), restaurant.organizationId, order.orderNumber, order.totalAmount));
         return order;
@@ -340,6 +364,7 @@ let OrdersService = class OrdersService {
             throw new common_1.BadRequestException('Invalid rollback request');
         }
         await this.paymentModel.deleteMany({ orderId: order._id });
+        await this.couponsService.revertUsage(order._id);
         await this.orderModel.findByIdAndDelete(orderId);
         return { message: 'Failed payment order removed successfully' };
     }
@@ -382,6 +407,19 @@ let OrdersService = class OrdersService {
             status: order_schema_1.OrderItemStatus.ACTIVE,
             cancelledQuantity: 0,
             cancelReason: '',
+            spiceLevel: item.spiceLevel
+                ? {
+                    name: item.spiceLevel.name,
+                    emoji: item.spiceLevel.emoji || '',
+                    priceDelta: Number(item.spiceLevel.priceDelta) || 0,
+                }
+                : undefined,
+            addOns: (item.addOns || []).map((addOn) => ({
+                name: addOn.name,
+                emoji: addOn.emoji || '',
+                priceDelta: Number(addOn.priceDelta) || 0,
+            })),
+            specialInstructions: item.specialInstructions || '',
         }));
         const totals = this.computeTotalsForItems(restaurant, normalizedItems);
         order.items = normalizedItems;
@@ -930,6 +968,7 @@ exports.OrdersService = OrdersService = __decorate([
         mongoose_2.Model,
         payments_service_1.PaymentsService,
         event_emitter_1.EventEmitter2,
-        order_statistics_service_1.OrderStatisticsService])
+        order_statistics_service_1.OrderStatisticsService,
+        coupons_service_1.CouponsService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

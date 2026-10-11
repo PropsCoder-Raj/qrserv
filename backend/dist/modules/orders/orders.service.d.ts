@@ -14,6 +14,7 @@ import { PaymentDocument } from '../../schemas/payment.schema';
 import { TableDocument } from '../../schemas/table.schema';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
+import { CouponsService } from '../coupons/coupons.service';
 export declare class OrdersService {
     private orderModel;
     private restaurantModel;
@@ -24,8 +25,9 @@ export declare class OrdersService {
     private paymentsService;
     private eventEmitter;
     private orderStatisticsService;
+    private couponsService;
     private readonly orderRelationPopulate;
-    constructor(orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, paymentModel: Model<PaymentDocument>, tableModel: Model<TableDocument>, paymentsService: PaymentsService, eventEmitter: EventEmitter2, orderStatisticsService: OrderStatisticsService);
+    constructor(orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, paymentModel: Model<PaymentDocument>, tableModel: Model<TableDocument>, paymentsService: PaymentsService, eventEmitter: EventEmitter2, orderStatisticsService: OrderStatisticsService, couponsService: CouponsService);
     private toObjectId;
     validateOrgRestaurant(restaurantId: string | Types.ObjectId, organizationId: string | Types.ObjectId): Promise<void>;
     private generateOrderNumber;

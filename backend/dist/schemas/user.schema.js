@@ -68,6 +68,11 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "isActive", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ default: true }),
+    (0, mongoose_1.Prop)({ default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "notificationsEnabled", void 0);
+__decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], User.prototype, "refreshToken", void 0);

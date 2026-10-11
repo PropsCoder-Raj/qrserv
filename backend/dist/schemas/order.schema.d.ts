@@ -16,6 +16,16 @@ export declare enum OrderItemStatus {
     ACTIVE = "active",
     CANCELLED = "cancelled"
 }
+export declare class SelectedAddOn {
+    name: string;
+    emoji?: string;
+    priceDelta?: number;
+}
+export declare class SelectedSpiceLevel {
+    name: string;
+    emoji?: string;
+    priceDelta?: number;
+}
 export declare class OrderItem {
     menuItemId: Types.ObjectId;
     name: string;
@@ -27,6 +37,9 @@ export declare class OrderItem {
     cancelledBy?: Types.ObjectId;
     cancelledAt?: Date;
     itemType: string;
+    spiceLevel?: SelectedSpiceLevel;
+    addOns?: SelectedAddOn[];
+    specialInstructions?: string;
 }
 export declare class Order {
     orderNumber: string;
@@ -49,6 +62,9 @@ export declare class Order {
     vatType: string;
     foodSubtotal: number;
     liquorSubtotal: number;
+    couponId?: Types.ObjectId;
+    couponCode?: string;
+    discountAmount: number;
     status: OrderStatus;
     customerName: string;
     customerPhone: string;
@@ -250,6 +266,33 @@ export declare const OrderSchema: import("mongoose").Schema<Order, import("mongo
         id: string;
     }>;
     liquorSubtotal?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    couponId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    couponCode?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    discountAmount?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
         _id: Types.ObjectId;

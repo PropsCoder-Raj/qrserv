@@ -205,6 +205,22 @@ let UsersService = UsersService_1 = class UsersService {
         }
         return user;
     }
+    async getNotificationSettings(userId) {
+        const user = await this.userModel
+            .findById(userId)
+            .select('notificationsEnabled');
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return { enabled: user.notificationsEnabled ?? true };
+    }
+    async updateNotificationSettings(userId, enabled) {
+        const user = await this.userModel.findByIdAndUpdate(userId, { notificationsEnabled: enabled }, { new: true, select: 'notificationsEnabled' });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return { enabled: user.notificationsEnabled };
+    }
     async update(id, updateUserDto) {
         const updateData = { ...updateUserDto };
         const hasOrganizationId = Object.prototype.hasOwnProperty.call(updateUserDto, 'organizationId');

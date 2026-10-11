@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MenuItemSchema = exports.MenuItem = exports.ItemType = void 0;
+exports.MenuItemSchema = exports.MenuItem = exports.MenuItemCustomizationSchema = exports.MenuItemCustomization = exports.CustomizationOptionSchema = exports.CustomizationOption = exports.ItemType = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
@@ -18,6 +18,50 @@ var ItemType;
     ItemType["FOOD"] = "food";
     ItemType["LIQUOR"] = "liquor";
 })(ItemType || (exports.ItemType = ItemType = {}));
+let CustomizationOption = class CustomizationOption {
+};
+exports.CustomizationOption = CustomizationOption;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, mongoose_1.Prop)({ required: true }),
+    __metadata("design:type", String)
+], CustomizationOption.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], CustomizationOption.prototype, "emoji", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0 }),
+    __metadata("design:type", Number)
+], CustomizationOption.prototype, "priceDelta", void 0);
+exports.CustomizationOption = CustomizationOption = __decorate([
+    (0, mongoose_1.Schema)({ _id: false })
+], CustomizationOption);
+exports.CustomizationOptionSchema = mongoose_1.SchemaFactory.createForClass(CustomizationOption);
+let MenuItemCustomization = class MenuItemCustomization {
+};
+exports.MenuItemCustomization = MenuItemCustomization;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: [CustomizationOption] }),
+    (0, mongoose_1.Prop)({ type: [exports.CustomizationOptionSchema], default: [] }),
+    __metadata("design:type", Array)
+], MenuItemCustomization.prototype, "spiceLevels", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: [CustomizationOption] }),
+    (0, mongoose_1.Prop)({ type: [exports.CustomizationOptionSchema], default: [] }),
+    __metadata("design:type", Array)
+], MenuItemCustomization.prototype, "addOns", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: true }),
+    (0, mongoose_1.Prop)({ default: true }),
+    __metadata("design:type", Boolean)
+], MenuItemCustomization.prototype, "allowSpecialInstructions", void 0);
+exports.MenuItemCustomization = MenuItemCustomization = __decorate([
+    (0, mongoose_1.Schema)({ _id: false })
+], MenuItemCustomization);
+exports.MenuItemCustomizationSchema = mongoose_1.SchemaFactory.createForClass(MenuItemCustomization);
 let MenuItem = class MenuItem {
 };
 exports.MenuItem = MenuItem;
@@ -31,6 +75,11 @@ __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], MenuItem.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], MenuItem.prototype, "ingredients", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, mongoose_1.Prop)({ required: true }),
@@ -71,6 +120,11 @@ __decorate([
     (0, mongoose_1.Prop)({ enum: ItemType, default: ItemType.FOOD }),
     __metadata("design:type", String)
 ], MenuItem.prototype, "itemType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: MenuItemCustomization }),
+    (0, mongoose_1.Prop)({ type: exports.MenuItemCustomizationSchema, default: () => ({}) }),
+    __metadata("design:type", MenuItemCustomization)
+], MenuItem.prototype, "customization", void 0);
 exports.MenuItem = MenuItem = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], MenuItem);

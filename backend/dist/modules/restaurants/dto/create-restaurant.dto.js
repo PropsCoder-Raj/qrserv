@@ -63,9 +63,6 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: '9876543210' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.ValidateIf)((o) => o.phone !== '' && o.phone != null),
-    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, {
-        message: 'Phone must be a 10-digit number starting with 6, 7, 8 or 9',
-    }),
     __metadata("design:type", String)
 ], CreateRestaurantDto.prototype, "phone", void 0);
 __decorate([
