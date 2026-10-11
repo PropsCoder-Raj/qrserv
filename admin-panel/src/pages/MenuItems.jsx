@@ -10,6 +10,7 @@ import SearchSelect from '../components/SearchSelect';
 import ExcelImportModal from '../components/ExcelImportModal';
 import DatePresetFilter from '../components/DatePresetFilter';
 import CustomizationEditor from '../components/CustomizationEditor';
+import { getMenuItemSalePrice } from '../utils/menuItemPricing';
 
 export default function MenuItems() {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export default function MenuItems() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const defaultCustomization = { spiceLevels: [], addOns: [], allowSpecialInstructions: true };
-  const [form, setForm] = useState({ name: '', description: '', ingredients: '', price: '', categoryId: '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
+  const [form, setForm] = useState({ name: '', description: '', ingredients: '', price: '', discountType: '', discountValue: '', categoryId: '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
   const [importOpen, setImportOpen] = useState(false);
 
   // Pagination, search, sort state
@@ -82,7 +83,7 @@ export default function MenuItems() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', description: '', ingredients: '', price: '', categoryId: categories[0]?._id || '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
+    setForm({ name: '', description: '', ingredients: '', price: '', discountType: '', discountValue: '', categoryId: categories[0]?._id || '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
     setModalOpen(true);
   };
 
@@ -93,6 +94,8 @@ export default function MenuItems() {
       description: item.description || '',
       ingredients: item.ingredients || '',
       price: item.price,
+      discountType: item.discountType || '',
+      discountValue: item.discountType ? item.discountValue : '',
       categoryId: item.categoryId,
       isVeg: item.isVeg || false,
       preparationTime: item.preparationTime || 15,
@@ -110,12 +113,24 @@ export default function MenuItems() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.discountType && (
+      !form.discountValue ||
+      Number(form.discountValue) <= 0 ||
+      (form.discountType === 'percentage' && Number(form.discountValue) > 100)
+    )) {
+      toast.error(form.discountType === 'percentage'
+        ? 'Percentage discount must be greater than 0 and at most 100'
+        : 'Discount amount must be greater than 0');
+      return;
+    }
     try {
       const payload = {
         name: form.name,
         description: form.description,
         ingredients: form.ingredients,
         price: Number(form.price),
+        discountType: form.discountType || null,
+        discountValue: Number(form.discountValue) || 0,
         categoryId: form.categoryId,
         isVeg: form.isVeg,
         preparationTime: Number(form.preparationTime),
@@ -181,7 +196,14 @@ export default function MenuItems() {
           <span className="text-xs text-slate-400">No image</span>
         ),
     },
-    { key: 'price', label: 'Price', sortable: true, render: (r) => `${r.price}` },
+    { key: 'price', label: 'Price', sortable: true, render: (r) => (
+      r.discountType ? (
+        <div>
+          <span className="mr-2 text-xs text-slate-400 line-through">{r.price}</span>
+          <span className="font-semibold text-green-700">{getMenuItemSalePrice(r).toFixed(2)}</span>
+        </div>
+      ) : `${r.price}`
+    ) },
     { key: 'categoryId', label: 'Category', render: (r) => getCategoryName(r.categoryId) },
     { key: 'isVeg', label: 'Veg/Non-Veg', render: (r) => (
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${r.isVeg ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -278,9 +300,35 @@ export default function MenuItems() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Price *</label>
               <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" step="0.01" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+              <div className="mt-3">
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Discount / Price Drop</label>
+                <select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: e.target.value, discountValue: e.target.value ? form.discountValue : '' })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="">No discount</option>
+                  <option value="percentage">Percentage off</option>
+                  <option value="fixed">Fixed amount off</option>
+                </select>
+                {form.discountType && (
+                  <div className="mt-2">
+                    <label className="mb-1 block text-xs font-medium text-slate-600">
+                      {form.discountType === 'percentage' ? 'Discount percentage' : 'Discount amount'}
+                    </label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      max={form.discountType === 'percentage' ? 100 : undefined}
+                      step="0.01"
+                      required
+                      value={form.discountValue}
+                      onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                      className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+                    />
+                    <p className="mt-1 text-xs text-green-700">Price after discount: {getMenuItemSalePrice({ price: form.price, discountType: form.discountType, discountValue: form.discountValue }).toFixed(2)}</p>
+                  </div>
+                )}
+              </div>
               {(() => {
                 const rest = restaurants.find((r) => r._id === selectedRestaurant);
-                const price = parseFloat(form.price) || 0;
+                const price = getMenuItemSalePrice(form);
                 const isLiquor = form.itemType === 'liquor';
 
                 // Liquor items use VAT

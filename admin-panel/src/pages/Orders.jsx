@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { HiOutlineEye, HiOutlinePlus } from 'react-icons/hi';
+import { HiOutlineEye, HiOutlinePencil, HiOutlinePlus, HiOutlinePrinter } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import generateBillPdf from '../utils/generateBillPdf';
 import restaurantService from '../services/restaurantService';
@@ -12,11 +12,29 @@ import useSubscription from '../hooks/useSubscription';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
+import CustomizationEditor from '../components/CustomizationEditor';
+import { getMenuItemSalePrice } from '../utils/menuItemPricing';
 import subscriptionService from '../services/subscriptionService';
 import DatePresetFilter from '../components/DatePresetFilter';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+const EMPTY_OPEN_FOOD_FORM = {
+  name: '',
+  description: '',
+  ingredients: '',
+  price: '',
+  discountType: '',
+  discountValue: '',
+  categoryId: '',
+  newCategoryName: '',
+  preparationTime: 15,
+  itemType: 'food',
+  isVeg: false,
+  imageFile: null,
+  imagePreview: '',
+  customization: { spiceLevels: [], addOns: [], allowSpecialInstructions: true },
+};
 
 export default function Orders() {
   const { user } = useAuth();
@@ -33,10 +51,13 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [detailModal, setDetailModal] = useState({ open: false, order: null });
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
-  const [createSubmitting, setCreateSubmitting] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [menuCategories, setMenuCategories] = useState([]);
+  const [openFoodVisible, setOpenFoodVisible] = useState(false);
+  const [openFoodSubmitting, setOpenFoodSubmitting] = useState(false);
+  const [openFoodForm, setOpenFoodForm] = useState(EMPTY_OPEN_FOOD_FORM);
   const [tables, setTables] = useState([]);
   const [itemSearch, setItemSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -48,6 +69,9 @@ export default function Orders() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponSubmitting, setCouponSubmitting] = useState(false);
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const canCreateOrder = ['super_admin', 'org_admin', 'restaurant_owner', 'manager'].includes(user?.role);
+  const canEditOrder = canCreateOrder;
   const [newOrder, setNewOrder] = useState({
     restaurantId: '',
     orderType: 'takeaway',
@@ -139,8 +163,14 @@ export default function Orders() {
 
   const loadRestaurants = async () => {
     try {
-      const res = isSuperAdmin ? await restaurantService.getAll({ limit: 100 }) : await restaurantService.getMy({ limit: 100 });
-      const list = res.data.data.data || res.data.data;
+      const res = isSuperAdmin
+        ? await restaurantService.getAll({ limit: 100 })
+        : user?.role === 'manager' && user.restaurantId
+          ? await restaurantService.getOne(user.restaurantId)
+          : await restaurantService.getMy({ limit: 100 });
+      const list = user?.role === 'manager'
+        ? [res.data.data]
+        : res.data.data.data || res.data.data;
       const arr = Array.isArray(list) ? list : [];
       setRestaurants(arr);
       if (!showAllOption && arr.length > 0) {
@@ -243,7 +273,7 @@ export default function Orders() {
     const addOns = configuration.addOns || [];
     const spiceLevel = configuration.spiceLevel;
     const addOnsTotal = addOns.reduce((sum, addOn) => sum + (Number(addOn.priceDelta) || 0), 0);
-    const price = Math.round((Number(menuItem.price) + addOnsTotal + (Number(spiceLevel?.priceDelta) || 0)) * 100) / 100;
+    const price = Math.round((getMenuItemSalePrice(menuItem) + addOnsTotal + (Number(spiceLevel?.priceDelta) || 0)) * 100) / 100;
     const itemKey = [menuItem._id, spiceLevel?.name || '', ...addOns.map((addOn) => addOn.name).sort(), configuration.specialInstructions || ''].join('::');
     const orderItem = {
       itemKey,
@@ -272,6 +302,83 @@ export default function Orders() {
     setDraftSpiceLevel('');
     setDraftAddOns([]);
     setDraftInstructions('');
+  };
+
+  const createOpenFoodItem = async () => {
+    if (!newOrder.restaurantId) return toast.error('Select a restaurant first');
+    if (!openFoodForm.name.trim()) return toast.error('Enter an item name');
+    if (!openFoodForm.price.trim() || !Number.isFinite(Number(openFoodForm.price)) || Number(openFoodForm.price) < 0) {
+      return toast.error('Enter a valid item price');
+    }
+    if (openFoodForm.discountType && (
+      !openFoodForm.discountValue ||
+      Number(openFoodForm.discountValue) <= 0 ||
+      (openFoodForm.discountType === 'percentage' && Number(openFoodForm.discountValue) > 100)
+    )) {
+      return toast.error(openFoodForm.discountType === 'percentage'
+        ? 'Percentage discount must be greater than 0 and at most 100'
+        : 'Discount amount must be greater than 0');
+    }
+
+    setOpenFoodSubmitting(true);
+    try {
+      let category = menuCategories.find((entry) => entry._id === openFoodForm.categoryId);
+      if (openFoodForm.categoryId === '__new__') {
+        if (!openFoodForm.newCategoryName.trim()) {
+          toast.error('Enter a category name');
+          return;
+        }
+        const categoryResponse = await menuService.createCategory({
+          name: openFoodForm.newCategoryName.trim(),
+          restaurantId: newOrder.restaurantId,
+        });
+        category = categoryResponse.data.data;
+        setMenuCategories((current) => [...current, { ...category, items: [] }]);
+        setOpenFoodForm((current) => ({ ...current, categoryId: category._id, newCategoryName: '' }));
+      }
+      if (!category?._id) return toast.error('Select or create a category');
+
+      const itemResponse = await menuService.createMenuItem({
+        name: openFoodForm.name.trim(),
+        description: openFoodForm.description.trim(),
+        ingredients: openFoodForm.ingredients.trim(),
+        price: Number(openFoodForm.price),
+        discountType: openFoodForm.discountType || null,
+        discountValue: Number(openFoodForm.discountValue) || 0,
+        categoryId: category._id,
+        restaurantId: newOrder.restaurantId,
+        itemType: openFoodForm.itemType,
+        isVeg: openFoodForm.isVeg,
+        preparationTime: Number(openFoodForm.preparationTime) || 15,
+        customization: openFoodForm.customization,
+      });
+      const createdItem = itemResponse.data.data;
+      if (openFoodForm.imageFile && createdItem?._id) {
+        try {
+          await menuService.uploadMenuItemImage(createdItem._id, openFoodForm.imageFile);
+        } catch (error) {
+          toast.error(error?.response?.data?.message || 'Item added, but image upload failed');
+        }
+      }
+      setMenuItems((current) => [...current, createdItem]);
+      setMenuCategories((current) => {
+        const categoryExists = current.some((entry) => entry._id === category._id);
+        return categoryExists
+          ? current.map((entry) => entry._id === category._id
+            ? { ...entry, items: [...(entry.items || []), createdItem] }
+            : entry)
+          : [...current, { ...category, items: [createdItem] }];
+      });
+      setSelectedCategory(category._id);
+      addNewOrderItem(createdItem);
+      setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM, categoryId: category._id });
+      setOpenFoodVisible(false);
+      toast.success('Food item added to menu and order');
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to create food item');
+    } finally {
+      setOpenFoodSubmitting(false);
+    }
   };
 
   const configureOrAddMenuItem = (menuItem) => {
@@ -382,20 +489,38 @@ export default function Orders() {
     if (newOrder.orderType === 'dine_in' && !newOrder.tableId) {
       return toast.error('Select a table for dine-in');
     }
-    setCreateSubmitting(true);
+    setOrderSubmitting(true);
     try {
-      await orderService.create({
-        restaurantId: newOrder.restaurantId,
-        tableId: newOrder.orderType === 'dine_in' ? newOrder.tableId : null,
-        orderType: newOrder.orderType,
-        paymentMethod: 'cash',
-        customerName: newOrder.customerName.trim() || undefined,
-        customerPhone: newOrder.customerPhone.trim() || undefined,
-        couponCode: appliedCoupon?.code,
-        items: newOrder.items.map(({ itemKey, ...item }) => item),
-      });
-      toast.success('Order created');
+      if (editingOrderId) {
+        await orderService.updateItems(editingOrderId, {
+          couponCode: appliedCoupon?.code || '',
+          items: newOrder.items.map((item) => {
+            const payload = { ...item };
+            delete payload.itemKey;
+            return payload;
+          }),
+        });
+        toast.success('Order updated');
+        setDetailModal({ open: false, order: null });
+      } else {
+        await orderService.create({
+          restaurantId: newOrder.restaurantId,
+          tableId: newOrder.orderType === 'dine_in' ? newOrder.tableId : null,
+          orderType: newOrder.orderType,
+          paymentMethod: 'cash',
+          customerName: newOrder.customerName.trim() || undefined,
+          customerPhone: newOrder.customerPhone.trim() || undefined,
+          couponCode: appliedCoupon?.code,
+          items: newOrder.items.map((item) => {
+            const payload = { ...item };
+            delete payload.itemKey;
+            return payload;
+          }),
+        });
+        toast.success('Order created');
+      }
       setCreateModalOpen(false);
+      setEditingOrderId('');
       setNewOrder((current) => ({
         ...current,
         tableId: '',
@@ -409,8 +534,38 @@ export default function Orders() {
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to create order');
     } finally {
-      setCreateSubmitting(false);
+      setOrderSubmitting(false);
     }
+  };
+
+  const startEditingOrder = (order) => {
+    const restaurantId = getRestaurantId(order);
+    const items = (order.items || []).map((item) => {
+      const menuItemId = typeof item.menuItemId === 'object'
+        ? item.menuItemId?._id
+        : item.menuItemId;
+      return {
+        ...item,
+        menuItemId,
+        itemKey: [menuItemId, item.spiceLevel?.name || '', ...(item.addOns || []).map((addOn) => addOn.name).sort(), item.specialInstructions || ''].join('::'),
+      };
+    });
+    setEditingOrderId(order._id);
+    setNewOrder({
+      restaurantId,
+      orderType: order.orderType || 'takeaway',
+      tableId: getTableId(order) || '',
+      customerName: order.customerName || '',
+      customerPhone: order.customerPhone || '',
+      items,
+    });
+    setCouponCode(order.couponCode || '');
+    setAppliedCoupon(order.couponCode ? {
+      code: order.couponCode,
+      discountAmount: Number(order.discountAmount) || 0,
+    } : null);
+    setDetailModal({ open: false, order: null });
+    setCreateModalOpen(true);
   };
 
   const statusColor = (status) => {
@@ -495,6 +650,12 @@ export default function Orders() {
     return table && typeof table === 'object' ? table._id : table;
   };
 
+  const isOrderEditable = (order) =>
+    canEditOrder &&
+    ['pending', 'confirmed', 'preparing'].includes(order?.status) &&
+    order?.paymentStatus !== 'paid' &&
+    !(order?.items || []).some((item) => Number(item.cancelledQuantity || 0) > 0);
+
   const columns = [
     { key: 'orderNumber', label: 'Order #', sortable: true, render: (o) => <span className="font-medium">{o.orderNumber}</span> },
     { key: 'restaurantId', label: 'Restaurant', render: (o) => getRestaurantName(o) },
@@ -530,9 +691,16 @@ export default function Orders() {
     { key: 'createdAt', label: 'Date', sortable: true, render: (o) => new Date(o.createdAt).toLocaleDateString() },
     {
       key: 'actions', label: '', render: (o) => (
-        <button onClick={() => setDetailModal({ open: true, order: o })} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100">
-          <HiOutlineEye size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button type="button" aria-label={`View order ${o.orderNumber}`} onClick={() => setDetailModal({ open: true, order: o })} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100">
+            <HiOutlineEye size={16} />
+          </button>
+          {isOrderEditable(o) && (
+            <button type="button" aria-label={`Update order ${o.orderNumber}`} title="Update order" onClick={() => startEditingOrder(o)} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50">
+              <HiOutlinePencil size={16} />
+            </button>
+          )}
+        </div>
       )
     },
   ];
@@ -542,16 +710,28 @@ export default function Orders() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-slate-800">Orders</h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
+          {canCreateOrder && <button
             type="button"
             onClick={() => {
-              setNewOrder((current) => ({ ...current, restaurantId: selectedRestaurant || (restaurants.length === 1 ? restaurants[0]._id : '') }));
+              setEditingOrderId('');
+              setNewOrder({
+                restaurantId: selectedRestaurant || (restaurants.length === 1 ? restaurants[0]._id : ''),
+                orderType: 'takeaway',
+                tableId: '',
+                customerName: '',
+                customerPhone: '',
+                items: [],
+              });
+              setOpenFoodVisible(false);
+              setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM });
+              setCouponCode('');
+              setAppliedCoupon(null);
               setCreateModalOpen(true);
             }}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
           >
             <HiOutlinePlus size={16} /> Create order
-          </button>
+          </button>}
           {restaurants.length > 0 && (showAllOption || restaurants.length > 1) && (
             <div className="w-56">
               <SearchSelect
@@ -604,10 +784,10 @@ export default function Orders() {
         />
       </div>
 
-      <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create order">
+      <Modal isOpen={createModalOpen} onClose={() => { setCreateModalOpen(false); setEditingOrderId(''); setOpenFoodVisible(false); setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM }); }} title={editingOrderId ? 'Update order' : 'Create order'}>
         <form onSubmit={submitNewOrder} className="space-y-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="text-sm font-medium text-slate-700">
+            {!editingOrderId && <label className="text-sm font-medium text-slate-700">
               Restaurant
               <select
                 required
@@ -627,8 +807,8 @@ export default function Orders() {
                 <option value="">Select restaurant</option>
                 {restaurants.map((restaurant) => <option key={restaurant._id} value={restaurant._id}>{restaurant.name}</option>)}
               </select>
-            </label>
-            <label className="text-sm font-medium text-slate-700">
+            </label>}
+            {!editingOrderId && <label className="text-sm font-medium text-slate-700">
               Order type
               <select
                 value={newOrder.orderType}
@@ -638,8 +818,8 @@ export default function Orders() {
                 <option value="takeaway">Takeaway</option>
                 <option value="dine_in">Dine in</option>
               </select>
-            </label>
-            {newOrder.orderType === 'dine_in' && (
+            </label>}
+            {!editingOrderId && newOrder.orderType === 'dine_in' && (
               <label className="text-sm font-medium text-slate-700">
                 Table
                 <select
@@ -657,14 +837,14 @@ export default function Orders() {
                 </select>
               </label>
             )}
-            <label className="text-sm font-medium text-slate-700">
+            {!editingOrderId && <label className="text-sm font-medium text-slate-700">
               Customer name <span className="font-normal text-slate-400">(optional)</span>
               <input value={newOrder.customerName} onChange={(event) => setNewOrder((current) => ({ ...current, customerName: event.target.value }))} className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm outline-none" />
-            </label>
-            <label className="text-sm font-medium text-slate-700">
+            </label>}
+            {!editingOrderId && <label className="text-sm font-medium text-slate-700">
               Phone <span className="font-normal text-slate-400">(optional)</span>
               <input type="tel" value={newOrder.customerPhone} onChange={(event) => setNewOrder((current) => ({ ...current, customerPhone: event.target.value }))} className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm outline-none" />
-            </label>
+            </label>}
           </div>
 
           <div>
@@ -680,6 +860,168 @@ export default function Orders() {
               disabled={createLoading || !newOrder.restaurantId}
               className="mb-2 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm outline-none"
             />
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setOpenFoodVisible((visible) => !visible)}
+                disabled={!newOrder.restaurantId || createLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+              >
+                <HiOutlinePlus size={14} /> Open food
+              </button>
+            </div>
+            {openFoodVisible && (
+              <section className="mb-3 space-y-3 rounded-lg border border-stroke bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">This creates a food item and saves it to this restaurant's menu.</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-medium text-slate-600">
+                    Item name
+                    <input
+                      value={openFoodForm.name}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, name: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Description
+                    <textarea
+                      rows={2}
+                      value={openFoodForm.description}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, description: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Ingredients
+                    <textarea
+                      rows={2}
+                      value={openFoodForm.ingredients}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, ingredients: event.target.value }))}
+                      placeholder="List the ingredients"
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Price
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={openFoodForm.price}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, price: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Discount / Price Drop
+                    <select
+                      value={openFoodForm.discountType}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, discountType: event.target.value, discountValue: event.target.value ? current.discountValue : '' }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    >
+                      <option value="">No discount</option>
+                      <option value="percentage">Percentage off</option>
+                      <option value="fixed">Fixed amount off</option>
+                    </select>
+                    {openFoodForm.discountType && (
+                      <input
+                        type="number"
+                        min="0.01"
+                        max={openFoodForm.discountType === 'percentage' ? 100 : undefined}
+                        step="0.01"
+                        required
+                        value={openFoodForm.discountValue}
+                        onChange={(event) => setOpenFoodForm((current) => ({ ...current, discountValue: event.target.value }))}
+                        className="mt-2 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                      />
+                    )}
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Prep Time (min)
+                    <input
+                      type="number"
+                      min="1"
+                      value={openFoodForm.preparationTime}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, preparationTime: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Item Type
+                    <select
+                      value={openFoodForm.itemType}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, itemType: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                    >
+                      <option value="food">Food</option>
+                      <option value="liquor">Liquor</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+                    Category
+                    <SearchSelect
+                      options={[
+                        { value: '__new__', label: '+ Create new category' },
+                        ...menuCategories.map((category) => ({ value: category._id, label: category.name })),
+                      ]}
+                      value={openFoodForm.categoryId}
+                      onChange={(categoryId) => setOpenFoodForm((current) => ({ ...current, categoryId }))}
+                      placeholder="Search or create category..."
+                    />
+                  </label>
+                  {openFoodForm.categoryId === '__new__' && (
+                    <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+                      New category name
+                      <input
+                        value={openFoodForm.newCategoryName}
+                        onChange={(event) => setOpenFoodForm((current) => ({ ...current, newCategoryName: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
+                      />
+                    </label>
+                  )}
+                  <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={openFoodForm.isVeg}
+                      onChange={(event) => setOpenFoodForm((current) => ({ ...current, isVeg: event.target.checked }))}
+                      className="accent-primary"
+                    />
+                    Vegetarian
+                  </label>
+                  <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+                    Item Image
+                    <input
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        setOpenFoodForm((current) => ({
+                          ...current,
+                          imageFile: file,
+                          imagePreview: file ? URL.createObjectURL(file) : current.imagePreview,
+                        }));
+                      }}
+                      className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-xs font-normal text-slate-700"
+                    />
+                    {openFoodForm.imagePreview && (
+                      <img src={openFoodForm.imagePreview} alt="Menu item preview" className="mt-2 h-20 w-20 rounded-md object-cover" />
+                    )}
+                  </label>
+                </div>
+                <CustomizationEditor
+                  value={openFoodForm.customization}
+                  onChange={(customization) => setOpenFoodForm((current) => ({ ...current, customization }))}
+                />
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setOpenFoodVisible(false)} className="rounded-lg border border-stroke px-3 py-1.5 text-xs font-medium text-slate-600">
+                    Cancel
+                  </button>
+                  <button type="button" onClick={createOpenFoodItem} disabled={openFoodSubmitting} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                    {openFoodSubmitting ? 'Adding...' : 'Create and add'}
+                  </button>
+                </div>
+              </section>
+            )}
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
               <button type="button" onClick={() => setSelectedCategory('all')} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${selectedCategory === 'all' ? 'border-primary bg-primary text-white' : 'border-stroke text-slate-600'}`}>All categories</button>
               {visibleMenuCategories.map((category) => (
@@ -698,7 +1040,11 @@ export default function Orders() {
                       <div className="flex items-center gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-slate-800">{item.name}</p>
-                          <p className="text-xs text-slate-500">{item.price}{item.itemType === 'liquor' ? ' · Liquor' : ''}</p>
+                          <p className="text-xs text-slate-500">
+                            {item.discountType && <span className="mr-1 line-through">{item.price}</span>}
+                            <span className={item.discountType ? 'font-semibold text-green-700' : ''}>{getMenuItemSalePrice(item).toFixed(2)}</span>
+                            {item.itemType === 'liquor' ? ' · Liquor' : ''}
+                          </p>
                         </div>
                         <button type="button" onClick={() => configureOrAddMenuItem(item)} className="rounded-lg border border-stroke px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                           {hasOptions ? 'Customize' : 'Add'}
@@ -831,8 +1177,8 @@ export default function Orders() {
 
           <div className="flex justify-end gap-2 border-t border-stroke pt-4">
             <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-slate-600">Cancel</button>
-            <button type="submit" disabled={createSubmitting || createLoading || !newOrder.items.length} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
-              {createSubmitting ? 'Creating...' : 'Create order'}
+            <button type="submit" disabled={orderSubmitting || createLoading || !newOrder.items.length} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+              {orderSubmitting ? (editingOrderId ? 'Updating...' : 'Creating...') : (editingOrderId ? 'Update order' : 'Create order')}
             </button>
           </div>
         </form>
@@ -857,6 +1203,15 @@ export default function Orders() {
 
             <div>
               <h4 className="mb-2 text-sm font-semibold text-slate-700">Items</h4>
+              {isOrderEditable(detailModal.order) && (
+                <button
+                  type="button"
+                  onClick={() => startEditingOrder(detailModal.order)}
+                  className="mb-3 rounded-lg border border-stroke px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Edit order
+                </button>
+              )}
               {(() => {
                 const o = detailModal.order;
                 const hasGst = (o.cgstAmount || 0) > 0 || (o.sgstAmount || 0) > 0;

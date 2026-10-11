@@ -38,6 +38,7 @@ export default function Restaurants() {
   const [datePreset, setDatePreset] = useState('');
 
   const getMenuPdfAccess = (restaurant) => {
+    console.log("🚀 ~ getMenuPdfAccess ~ restaurant:", restaurant)
     const organization = restaurant?.organizationId;
     const subscriptionPlan = organization?.subscriptionPlan;
     const subscriptionExpiry = organization?.subscriptionExpiry;
@@ -50,6 +51,8 @@ export default function Restaurants() {
     );
     const hasMenuPdf = Boolean(restaurant?.menuPdf);
 
+      console.log("🚀 ~ getMenuPdfAccess ~ isMenuPdfEnabled:", isMenuPdfEnabled)
+      console.log("🚀 ~ getMenuPdfAccess ~ hasMenuPdf:", hasMenuPdf)
     return {
       isMenuPdfEnabled,
       hasMenuPdf,

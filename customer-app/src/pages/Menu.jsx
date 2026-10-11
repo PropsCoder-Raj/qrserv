@@ -31,6 +31,7 @@ export default function Menu() {
     setCartOrderType,
     setTaxInfo,
     setPaymentGatewayInfo,
+    syncMenuPrices,
   } = useCart();
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +143,7 @@ export default function Menu() {
       const res = await menuService.getFullMenu(restaurantId);
       const data = res.data.data;
       setMenu(data);
+      syncMenuPrices(data.flatMap((category) => category.items || []));
       if (data.length > 0) {
         setActiveCategory(data[0]._id);
       }
