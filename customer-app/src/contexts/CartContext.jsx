@@ -34,7 +34,10 @@ export function CartProvider({ children }) {
   const [restaurantId, setRestaurantId] = useState(() => localStorage.getItem('cartRestaurantId') || '');
   const [tableId, setTableId] = useState(() => localStorage.getItem('cartTableId') || '');
   const [orderType, setOrderType] = useState(() => localStorage.getItem('cartOrderType') || 'takeaway');
-  const [paymentMethod, setPaymentMethod] = useState(() => localStorage.getItem('cartPaymentMethod') || 'cash');
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    const savedMethod = localStorage.getItem('cartPaymentMethod');
+    return savedMethod?.toUpperCase() === 'CARD' ? 'CARD' : 'CASH';
+  });
   const [isPaymentGatewayAllocated, setIsPaymentGatewayAllocated] = useState(false);
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [taxRate, setTaxRate] = useState(0);
@@ -204,20 +207,11 @@ export function CartProvider({ children }) {
   };
 
   const setPaymentGatewayInfo = (enabled) => {
-    const gatewayEnabled = Boolean(enabled);
-    setIsPaymentGatewayAllocated(gatewayEnabled);
-    setPaymentMethod((prev) => {
-      if (!gatewayEnabled) return 'cash';
-      return prev === 'online' || prev === 'cash' ? prev : 'online';
-    });
+    setIsPaymentGatewayAllocated(Boolean(enabled));
   };
 
   const setCartPaymentMethod = (nextPaymentMethod) => {
-    if (!isPaymentGatewayAllocated) {
-      setPaymentMethod('cash');
-      return;
-    }
-    setPaymentMethod(nextPaymentMethod === 'online' ? 'online' : 'cash');
+    setPaymentMethod(nextPaymentMethod === 'CARD' ? 'CARD' : 'CASH');
   };
 
   return (

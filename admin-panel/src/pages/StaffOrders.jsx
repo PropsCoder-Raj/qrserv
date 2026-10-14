@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { HiOutlineRefresh, HiOutlineBell } from 'react-icons/hi';
+import {
+  HiOutlineRefresh,
+  HiOutlineBell,
+  HiCash,
+  HiOutlineCreditCard,
+} from 'react-icons/hi';
 import orderService from '../services/orderService';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrdersSocket } from '../services/socket';
@@ -113,6 +118,16 @@ export default function StaffOrders() {
       loadOrders();
     } catch {
       toast.error('Failed to update payment');
+    }
+  };
+
+  const updatePaymentMethod = async (orderId, paymentMethod) => {
+    try {
+      await orderService.updatePaymentMethod(orderId, paymentMethod);
+      toast.success(`Payment method updated to ${paymentMethod}`);
+      loadOrders();
+    } catch {
+      toast.error('Failed to update payment method');
     }
   };
 
@@ -376,12 +391,53 @@ export default function StaffOrders() {
                 {/* Total & Payment */}
                 <div className="mb-3 flex items-center justify-between border-t border-stroke pt-2">
                   <span className="text-base font-bold text-slate-800">{order.totalAmount}</span>
-                  <button
-                    onClick={() => updatePaymentStatus(order._id, order.paymentStatus === 'paid' ? 'pending' : 'paid')}
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition ${paymentColor(order.paymentStatus)}`}
-                  >
-                    {order.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <fieldset>
+                      <legend className="sr-only">Payment method</legend>
+                      <div className="flex gap-1">
+                        {[
+                          { value: 'CASH', label: 'Cash' },
+                          { value: 'CARD', label: 'Card' },
+                        ].map((option) => {
+                          const isActive =
+                            (order.paymentMethod?.toUpperCase() === 'CARD'
+                              ? 'CARD'
+                              : 'CASH') === option.value;
+                          return (
+                            <label
+                              key={option.value}
+                              className={`flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-xs transition ${
+                                isActive
+                                  ? 'border-primary bg-primary/5 text-slate-800'
+                                  : 'border-stroke text-slate-500'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={`paymentMethod-${order._id}`}
+                                value={option.value}
+                                checked={isActive}
+                                onChange={() => updatePaymentMethod(order._id, option.value)}
+                                className="accent-primary"
+                              />
+                              {option.value === 'CASH' ? (
+                                <HiCash size={14} className="text-green-600" aria-hidden="true" />
+                              ) : (
+                                <HiOutlineCreditCard size={14} className="text-blue-600" aria-hidden="true" />
+                              )}
+                              {option.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                    <button
+                      onClick={() => updatePaymentStatus(order._id, order.paymentStatus === 'paid' ? 'pending' : 'paid')}
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition ${paymentColor(order.paymentStatus)}`}
+                    >
+                      {order.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Status Actions */}

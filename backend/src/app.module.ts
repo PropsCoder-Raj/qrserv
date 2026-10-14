@@ -19,6 +19,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { ContactModule } from './modules/contact/contact.module';
 import { WithdrawRequestsModule } from './modules/withdraw-requests/withdraw-requests.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
     ContactModule,
     WithdrawRequestsModule,
     CouponsModule,
+    AnalyticsModule,
   ],
   providers: [
     {

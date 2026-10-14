@@ -17,6 +17,12 @@ export enum PaymentStatus {
   FAILED = 'failed',
 }
 
+export enum PaymentMethod {
+  CASH = 'CASH',
+  CARD = 'CARD',
+  ONLINE = 'online',
+}
+
 export enum OrderItemStatus {
   ACTIVE = 'active',
   CANCELLED = 'cancelled',
@@ -103,9 +109,9 @@ export class Order {
   @Prop({ default: 'dine_in' })
   orderType: string;
 
-  @ApiProperty()
-  @Prop({ default: 'cash' })
-  paymentMethod: string;
+  @ApiProperty({ enum: [PaymentMethod.CASH, PaymentMethod.CARD] })
+  @Prop({ enum: PaymentMethod, default: PaymentMethod.CASH })
+  paymentMethod: PaymentMethod;
 
   @ApiProperty({ type: [OrderItem] })
   @Prop({

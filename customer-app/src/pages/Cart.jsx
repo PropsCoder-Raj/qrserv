@@ -1,27 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiArrowLeft, HiPlus, HiMinus, HiTrash } from 'react-icons/hi';
+import {
+  HiArrowLeft,
+  HiPlus,
+  HiMinus,
+  HiTrash,
+  HiCash,
+  HiOutlineCreditCard,
+} from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import orderService from '../services/orderService';
-import paymentService from '../services/paymentService';
 import couponService from '../services/couponService';
-
-function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -32,7 +23,6 @@ export default function Cart() {
     orderType,
     setCartOrderType,
     paymentMethod: cartPaymentMethod,
-    isPaymentGatewayAllocated,
     setCartPaymentMethod,
     updateQuantity,
     clearCart,
@@ -52,7 +42,7 @@ export default function Cart() {
     liquorSubtotal,
   } = useCart();
   const hasTable = Boolean(tableId);
-  const paymentMethod = hasTable ? 'cash' : cartPaymentMethod;
+  const paymentMethod = cartPaymentMethod;
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -72,8 +62,8 @@ export default function Cart() {
     { value: 'dine_in', label: 'Dine In' },
   ];
   const paymentMethodOptions = [
-    { value: 'cash', label: 'Cash' },
-    { value: 'online', label: 'Online' },
+    { value: 'CASH', label: 'Cash' },
+    { value: 'CARD', label: 'Card' },
   ];
 
   const handleApplyCoupon = async () => {
@@ -122,15 +112,12 @@ export default function Cart() {
       return;
     }
     setPlacing(true);
-    let orderForRollback = null;
-    let razorpayOrderIdForRollback = '';
-    let rollbackDone = false;
     try {
       const orderData = {
         restaurantId,
         ...(tableId ? { tableId } : {}),
         orderType,
-        paymentMethod: hasTable ? 'cash' : paymentMethod,
+        paymentMethod,
         couponCode: appliedCoupon?.couponCode || undefined,
         items: items.map((i) => ({
           menuItemId: i.menuItemId,
@@ -149,107 +136,15 @@ export default function Cart() {
       const res = await orderService.createForCustomer(orderData);
       const payload = res.data?.data || {};
       const order = payload.order || payload;
-      const paymentRequired = Boolean(payload.paymentRequired);
-      orderForRollback = order;
 
       if (customerPhone) {
         localStorage.setItem('customerPhone', customerPhone);
       }
 
-      if (!paymentRequired) {
-        clearCart();
-        toast.success('Order placed successfully!');
-        navigate(`/order/${order._id}`, { replace: true });
-        return;
-      }
-
-      const payment = payload.payment;
-      if (!payment?.razorpayOrderId || !payment?.keyId) {
-        throw new Error('Payment details are missing for this order');
-      }
-      razorpayOrderIdForRollback = payment.razorpayOrderId;
-
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        await orderService.rollbackFailedPaymentOrder(
-          order._id,
-          payment.razorpayOrderId,
-        );
-        rollbackDone = true;
-        toast.error('Payment gateway failed to load. Order was not created.');
-        return;
-      }
-
-      let completed = false;
-      const options = {
-        key: payment.keyId,
-        amount: payment.amount,
-        currency: payment.currency || 'INR',
-        name: 'QR Order',
-        description: `Order ${order.orderNumber || ''}`,
-        order_id: payment.razorpayOrderId,
-        handler: async (response) => {
-          try {
-            await paymentService.verify({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            completed = true;
-            clearCart();
-            toast.success('Payment successful! Order placed.');
-            navigate(`/order/${order._id}`, { replace: true });
-          } catch (verifyErr) {
-            try {
-              await orderService.rollbackFailedPaymentOrder(
-                order._id,
-                payment.razorpayOrderId,
-              );
-              rollbackDone = true;
-            } catch {
-              // ignore rollback errors in UI path
-            }
-            toast.error(
-              verifyErr.response?.data?.message ||
-                'Payment failed. Order was not created.',
-            );
-          }
-        },
-        prefill: {
-          name: customerName || '',
-          contact: customerPhone || '',
-        },
-        theme: { color: '#3c50e0' },
-        modal: {
-          ondismiss: () => {
-            if (completed) return;
-            orderService
-              .rollbackFailedPaymentOrder(order._id, payment.razorpayOrderId)
-              .finally(() => {
-                rollbackDone = true;
-                toast.error('Payment cancelled. Order was not created.');
-              });
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      clearCart();
+      toast.success('Order placed successfully!');
+      navigate(`/order/${order._id}`, { replace: true });
     } catch (err) {
-      if (
-        !rollbackDone &&
-        orderForRollback?._id &&
-        razorpayOrderIdForRollback
-      ) {
-        try {
-          await orderService.rollbackFailedPaymentOrder(
-            orderForRollback._id,
-            razorpayOrderIdForRollback,
-          );
-        } catch {
-          // ignore rollback errors
-        }
-      }
       toast.error(err.response?.data?.message || 'Failed to place order');
     } finally {
       setPlacing(false);
@@ -269,23 +164,6 @@ export default function Cart() {
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-text">Your Cart</h1>
-            {/* <p className="text-xs text-text-light">
-              {totalItems} {totalItems === 1 ? 'item' : 'items'}
-              <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                orderType === 'takeaway'
-                  ? 'bg-orange-100 text-orange-700'
-                  : 'bg-teal-100 text-teal-700'
-              }`}>
-                {orderType === 'dine_in' ? 'Dine In' : 'Takeaway'}
-              </span>
-              <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                paymentMethod === 'online'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-slate-100 text-slate-700'
-              }`}>
-                {paymentMethod === 'online' ? 'Online Payment' : 'Cash Payment'}
-              </span>
-            </p> */}
           </div>
           {!hasTable && (
             <div className="inline-flex rounded-full bg-surface-cool p-1">
@@ -463,35 +341,44 @@ export default function Cart() {
               </div>
             </div>
 
-            {isPaymentGatewayAllocated && !hasTable && (
-                  <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
+            <fieldset className="mt-6 rounded-2xl border border-border bg-surface p-4">
                 <h3 className="mb-3 text-sm font-semibold text-text">
                   Payment Method
                 </h3>
-                <div className="inline-flex rounded-full bg-surface-cool p-1">
+                <div className="grid grid-cols-2 gap-3">
                   {paymentMethodOptions.map((option) => {
                     const isActive = paymentMethod === option.value;
                     return (
-                      <button
+                      <label
                         key={option.value}
-                        type="button"
-                        onClick={() => setCartPaymentMethod(option.value)}
-                        className={`rounded-full px-4 py-2 text-xs font-medium transition ${
+                        className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
                           isActive
-                            ? 'bg-surface text-text shadow-sm'
-                            : 'text-text-light'
+                            ? 'border-primary bg-primary/5 text-text'
+                            : 'border-border text-text-light'
                         }`}
                       >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={option.value}
+                          checked={isActive}
+                          onChange={() => setCartPaymentMethod(option.value)}
+                          className="accent-primary"
+                        />
+                        {option.value === 'CASH' ? (
+                          <HiCash size={18} className="text-green-600" aria-hidden="true" />
+                        ) : (
+                          <HiOutlineCreditCard size={18} className="text-blue-600" aria-hidden="true" />
+                        )}
                         {option.label}
-                      </button>
+                      </label>
                     );
                   })}
                 </div>
                 <p className="mt-2 text-xs text-text-light">
-                  Choose cash payment or pay online with Razorpay.
+                  Pay by cash or card at the restaurant.
                 </p>
-              </div>
-                )}
+              </fieldset>
 
                 {/* Bill Summary */}
                 <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
@@ -620,7 +507,7 @@ export default function Cart() {
                     Placing Order...
                   </span>
                 ) : (
-                  `${paymentMethod === 'online' ? 'Pay Online' : 'Place Order'}  •  ₹${finalTotal.toFixed(2)}`
+                  `Place Order  •  ₹${finalTotal.toFixed(2)}`
                 )}
               </motion.button>
             </div>

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -9,6 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaymentMethod, PaymentStatus } from '../../../schemas/order.schema';
 
 export class SelectedAddOnDto {
   @ApiProperty()
@@ -107,10 +109,18 @@ export class CreateOrderDto {
   @IsString()
   orderType?: string;
 
-  @ApiPropertyOptional({ example: 'cash' })
+  @ApiPropertyOptional({
+    enum: [PaymentMethod.CASH, PaymentMethod.CARD],
+    default: PaymentMethod.CASH,
+  })
   @IsOptional()
-  @IsString()
-  paymentMethod?: string;
+  @IsIn([PaymentMethod.CASH, PaymentMethod.CARD])
+  paymentMethod?: PaymentMethod;
+
+  @ApiPropertyOptional({ enum: [PaymentStatus.PENDING, PaymentStatus.PAID] })
+  @IsOptional()
+  @IsIn([PaymentStatus.PENDING, PaymentStatus.PAID])
+  paymentStatus?: PaymentStatus;
 
   @ApiPropertyOptional({ example: 'SAVE10' })
   @IsOptional()

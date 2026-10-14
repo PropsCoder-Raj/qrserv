@@ -12,6 +12,7 @@ import {
   HiOutlineCollection,
   HiOutlineCog,
   HiOutlineX,
+  HiOutlineChartBar,
 } from 'react-icons/hi';
 import useSubscription from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +26,7 @@ const allMenuItems = [
   { path: '/coupons', label: 'Coupons', icon: HiOutlineTag, roles: ['super_admin', 'org_admin', 'restaurant_owner'] },
   { path: '/tables', label: 'Tables', icon: HiOutlineQrcode,  },
   { path: '/orders', label: 'Orders', icon: HiOutlineClipboardList },
+  { path: '/order-analytics', label: 'Order Analytics', icon: HiOutlineChartBar, roles: ['super_admin', 'org_admin', 'restaurant_owner'] },
   { path: '/users', label: 'Users', icon: HiOutlineUsers },
   { path: '/subscriptions', label: 'Subscriptions', icon: HiOutlineCreditCard, roles: ['super_admin'] },
   { path: '/subscription-histories', label: 'Sub. Histories', icon: HiOutlineCollection, roles: ['super_admin'] },

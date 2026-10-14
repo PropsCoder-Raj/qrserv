@@ -167,10 +167,10 @@ export default function Coupons() {
       key: 'discount',
       label: 'Discount',
       render: (coupon) => coupon.discountType === 'percentage'
-        ? `${coupon.discountValue}%${coupon.maxDiscount != null ? ` (max ₹${coupon.maxDiscount})` : ''}`
-        : `₹${coupon.discountValue}`,
+        ? `${coupon.discountValue}%${coupon.maxDiscount != null ? ` (max ${coupon.maxDiscount})` : ''}`
+        : `${coupon.discountValue}`,
     },
-    { key: 'minOrderAmount', label: 'Minimum Order', render: (coupon) => `₹${coupon.minOrderAmount}` },
+    { key: 'minOrderAmount', label: 'Minimum Order', render: (coupon) => `${coupon.minOrderAmount}` },
     {
       key: 'usageCount',
       label: 'Usage',

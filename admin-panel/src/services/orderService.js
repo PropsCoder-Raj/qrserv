@@ -33,6 +33,7 @@ const orderService = {
   },
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
   updatePaymentStatus: (id, paymentStatus) => api.patch(`/orders/${id}/payment-status`, { paymentStatus }),
+  updatePaymentMethod: (id, paymentMethod) => api.patch(`/orders/${id}/payment-method`, { paymentMethod }),
   cancelOrderItem: (id, { itemIndex, cancelQuantity, reason }) =>
     api.patch(`/orders/${id}/items/cancel`, {
       itemIndex,
