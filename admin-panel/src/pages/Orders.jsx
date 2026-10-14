@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { HiOutlineEye, HiOutlinePencil, HiOutlinePlus, HiOutlinePrinter } from 'react-icons/hi';
+import {
+  HiOutlineEye,
+  HiOutlinePencil,
+  HiOutlinePlus,
+  HiOutlinePrinter,
+  HiCash,
+  HiOutlineCreditCard,
+} from 'react-icons/hi';
 import orderService from '../services/orderService';
 import generateBillPdf from '../utils/generateBillPdf';
 import restaurantService from '../services/restaurantService';
@@ -19,6 +26,7 @@ import DatePresetFilter from '../components/DatePresetFilter';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+const CREATE_PAYMENT_STATUSES = ['pending', 'paid'];
 const EMPTY_OPEN_FOOD_FORM = {
   name: '',
   description: '',
@@ -78,6 +86,8 @@ export default function Orders() {
     tableId: '',
     customerName: '',
     customerPhone: '',
+    paymentMethod: 'CASH',
+    paymentStatus: 'pending',
     items: [],
   });
   // Cancel item state (within detail modal)
@@ -231,6 +241,17 @@ export default function Orders() {
         setDetailModal((prev) => ({ ...prev, order: { ...prev.order, paymentStatus } }));
       }
     } catch { toast.error('Failed to update payment status'); }
+  };
+
+  const updatePaymentMethod = async (orderId, paymentMethod) => {
+    try {
+      await orderService.updatePaymentMethod(orderId, paymentMethod);
+      toast.success(`Payment method updated to ${paymentMethod}`);
+      loadOrders();
+      if (detailModal.order?._id === orderId) {
+        setDetailModal((prev) => ({ ...prev, order: { ...prev.order, paymentMethod } }));
+      }
+    } catch { toast.error('Failed to update payment method'); }
   };
 
   const cancelOrderItem = async (orderId) => {
@@ -507,7 +528,8 @@ export default function Orders() {
           restaurantId: newOrder.restaurantId,
           tableId: newOrder.orderType === 'dine_in' ? newOrder.tableId : null,
           orderType: newOrder.orderType,
-          paymentMethod: 'cash',
+          paymentMethod: newOrder.paymentMethod,
+          paymentStatus: newOrder.paymentStatus,
           customerName: newOrder.customerName.trim() || undefined,
           customerPhone: newOrder.customerPhone.trim() || undefined,
           couponCode: appliedCoupon?.code,
@@ -526,6 +548,8 @@ export default function Orders() {
         tableId: '',
         customerName: '',
         customerPhone: '',
+        paymentMethod: 'CASH',
+        paymentStatus: 'pending',
         items: [],
       }));
       setCouponCode('');
@@ -593,11 +617,17 @@ export default function Orders() {
 
   const renderPaymentMethod = (paymentMethod) => (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-      paymentMethod === 'online'
+      paymentMethod?.toLowerCase() === 'online'
         ? 'bg-blue-100 text-blue-700'
-        : 'bg-slate-100 text-slate-700'
+        : paymentMethod?.toUpperCase() === 'CARD'
+          ? 'bg-indigo-100 text-indigo-700'
+          : 'bg-slate-100 text-slate-700'
     }`}>
-      {paymentMethod === 'online' ? 'Online' : 'Cash'}
+      {paymentMethod?.toLowerCase() === 'online'
+        ? 'Online'
+        : paymentMethod?.toUpperCase() === 'CARD'
+          ? 'Card'
+          : 'Cash'}
     </span>
   );
 
@@ -720,6 +750,8 @@ export default function Orders() {
                 tableId: '',
                 customerName: '',
                 customerPhone: '',
+                paymentMethod: 'CASH',
+                paymentStatus: 'pending',
                 items: [],
               });
               setOpenFoodVisible(false);
@@ -844,6 +876,56 @@ export default function Orders() {
             {!editingOrderId && <label className="text-sm font-medium text-slate-700">
               Phone <span className="font-normal text-slate-400">(optional)</span>
               <input type="tel" value={newOrder.customerPhone} onChange={(event) => setNewOrder((current) => ({ ...current, customerPhone: event.target.value }))} className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm outline-none" />
+            </label>}
+            {!editingOrderId && (
+              <fieldset className="text-sm font-medium text-slate-700">
+                <legend className="mb-1">Payment method</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'CASH', label: 'Cash' },
+                    { value: 'CARD', label: 'Card' },
+                  ].map((option) => {
+                    const isActive = newOrder.paymentMethod === option.value;
+                    return (
+                      <label
+                        key={option.value}
+                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition ${
+                          isActive
+                            ? 'border-primary bg-primary/5 text-slate-800'
+                            : 'border-stroke text-slate-500'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="newOrderPaymentMethod"
+                          value={option.value}
+                          checked={isActive}
+                          onChange={() => setNewOrder((current) => ({ ...current, paymentMethod: option.value }))}
+                          className="accent-primary"
+                        />
+                        {option.value === 'CASH' ? (
+                          <HiCash size={16} className="text-green-600" aria-hidden="true" />
+                        ) : (
+                          <HiOutlineCreditCard size={16} className="text-blue-600" aria-hidden="true" />
+                        )}
+                        {option.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+            {!editingOrderId && <label className="text-sm font-medium text-slate-700">
+              Payment status
+              <select
+                value={newOrder.paymentStatus}
+                onChange={(event) => setNewOrder((current) => ({ ...current, paymentStatus: event.target.value }))}
+                className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm outline-none"
+              >
+                {CREATE_PAYMENT_STATUSES.map((status) => (
+                  <option key={status} value={status}>{status === 'paid' ? 'Paid' : 'Pending'}</option>
+                ))}
+              </select>
             </label>}
           </div>
 
@@ -1196,7 +1278,45 @@ export default function Orders() {
               {hasCustomerData && <div><span className="text-slate-500">Customer:</span> <span className="font-medium">{displayCustomerField(detailModal.order.customerName)}</span></div>}
               {hasCustomerData && <div><span className="text-slate-500">Phone:</span> <span className="font-medium">{displayCustomerField(detailModal.order.customerPhone)}</span></div>}
               <div><span className="text-slate-500">Type:</span> <span className="ml-1">{renderOrderType(detailModal.order.orderType)}</span></div>
-              <div><span className="text-slate-500">Payment Type:</span> <span className="ml-1">{renderPaymentMethod(detailModal.order.paymentMethod)}</span></div>
+              <fieldset className="text-slate-500">
+                <legend>Payment Method</legend>
+                <div className="mt-1 flex gap-2">
+                  {[
+                    { value: 'CASH', label: 'Cash' },
+                    { value: 'CARD', label: 'Card' },
+                  ].map((option) => {
+                    const isActive =
+                      (detailModal.order.paymentMethod?.toUpperCase() === 'CARD'
+                        ? 'CARD'
+                        : 'CASH') === option.value;
+                    return (
+                      <label
+                        key={option.value}
+                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition ${
+                          isActive
+                            ? 'border-primary bg-primary/5 text-slate-800'
+                            : 'border-stroke text-slate-500'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`detailPaymentMethod-${detailModal.order._id}`}
+                          value={option.value}
+                          checked={isActive}
+                          onChange={() => updatePaymentMethod(detailModal.order._id, option.value)}
+                          className="accent-primary"
+                        />
+                        {option.value === 'CASH' ? (
+                          <HiCash size={14} className="text-green-600" aria-hidden="true" />
+                        ) : (
+                          <HiOutlineCreditCard size={14} className="text-blue-600" aria-hidden="true" />
+                        )}
+                        {option.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
               <div><span className="text-slate-500">Status:</span> <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(detailModal.order.status)}`}>{detailModal.order.status}</span></div>
               <div><span className="text-slate-500">Payment:</span> <select value={detailModal.order.paymentStatus} onChange={(e) => updatePaymentStatus(detailModal.order._id, e.target.value)} className={`ml-1 rounded-full border-0 px-2 py-0.5 text-xs font-medium outline-none cursor-pointer ${paymentColor(detailModal.order.paymentStatus)}`}>{PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
             </div>

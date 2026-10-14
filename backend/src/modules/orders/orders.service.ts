@@ -11,6 +11,7 @@ import {
   OrderDocument,
   OrderItemStatus,
   OrderStatus,
+  PaymentMethod,
   PaymentStatus,
 } from '../../schemas/order.schema';
 import {
@@ -30,6 +31,7 @@ import { OrderItemDto } from './dto/create-order.dto';
 import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { getDateRangeFromQuery } from '../../common/utils/date-range';
@@ -316,11 +318,8 @@ export class OrdersService {
       : tableId
         ? 'dine_in'
         : 'takeaway';
-    const paymentMethod = tableId
-      ? 'cash'
-      : isPaymentGatewayAllocated && dto.paymentMethod === 'online'
-        ? 'online'
-        : 'cash';
+    const paymentMethod = dto.paymentMethod || PaymentMethod.CASH;
+    const paymentStatus = dto.paymentStatus || PaymentStatus.PENDING;
 
     const restaurantObjectId = new Types.ObjectId(dto.restaurantId);
     const tableObjectId = tableId ? new Types.ObjectId(tableId) : null;
@@ -379,6 +378,7 @@ export class OrdersService {
         orderNumber,
         orderType,
         paymentMethod,
+        paymentStatus,
         subtotalAmount,
         taxAmount,
         taxRate,
@@ -418,6 +418,7 @@ export class OrdersService {
         orderNumber: await this.generateOrderNumber(restaurantObjectId),
         orderType,
         paymentMethod,
+        paymentStatus,
         subtotalAmount,
         taxAmount,
         taxRate,
@@ -468,7 +469,10 @@ export class OrdersService {
   }
 
   async createForCustomerApp(dto: CreateOrderDto) {
-    const order = await this.create(dto);
+    const order = await this.create({
+      ...dto,
+      paymentStatus: PaymentStatus.PENDING,
+    });
 
     if (
       order.tableId ||
@@ -1162,6 +1166,16 @@ export class OrdersService {
       );
     }
 
+    return order;
+  }
+
+  async updatePaymentMethod(id: string, dto: UpdatePaymentMethodDto) {
+    const order = await this.orderModel.findByIdAndUpdate(
+      id,
+      { paymentMethod: dto.paymentMethod },
+      { new: true, runValidators: true },
+    );
+    if (!order) throw new NotFoundException('Order not found');
     return order;
   }
 

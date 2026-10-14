@@ -16,7 +16,6 @@ import {
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import orderService from '../services/orderService';
-import paymentService from '../services/paymentService';
 import menuService from '../services/menuService';
 import Loader from '../components/Loader';
 import generateBillPdf from '../utils/generateBillPdf';
@@ -29,27 +28,11 @@ const STATUS_STEPS = [
   { key: 'served', label: 'Served', icon: HiOutlineCheckCircle, color: '#008080' },
 ];
 
-function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
 export default function OrderStatus() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
   const [menuCategories, setMenuCategories] = useState([]);
   const [itemSearch, setItemSearch] = useState('');
   const [editingItems, setEditingItems] = useState(false);
@@ -131,11 +114,6 @@ export default function OrderStatus() {
 
   const isCancelled = order.status === 'cancelled';
   const currentStepIndex = STATUS_STEPS.findIndex((s) => s.key === order.status);
-  const canPayOnline =
-    Boolean(order.tableId) &&
-    Boolean(order.isPaymentGatewayAllocated) &&
-    order.paymentStatus !== 'paid' &&
-    !isCancelled;
   const canEditItems =
     Boolean(order.tableId) &&
     order.paymentStatus !== 'paid' &&
@@ -205,55 +183,6 @@ export default function OrderStatus() {
       toast.error(err.response?.data?.message || 'Failed to update order');
     } finally {
       setUpdatingItems(false);
-    }
-  };
-
-  const handlePayOnline = async () => {
-    if (!canPayOnline || paying) return;
-
-    setPaying(true);
-    try {
-      const paymentRes = await paymentService.createOrder(order._id);
-      const payment = paymentRes.data?.data || paymentRes.data;
-      if (!payment?.razorpayOrderId || !payment?.keyId) {
-        throw new Error('Payment details are missing for this order');
-      }
-
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        toast.error('Payment gateway failed to load');
-        return;
-      }
-
-      const rzp = new window.Razorpay({
-        key: payment.keyId,
-        amount: payment.amount,
-        currency: payment.currency || 'INR',
-        name: 'QR Order',
-        description: `Order ${order.orderNumber || ''}`,
-        order_id: payment.razorpayOrderId,
-        handler: async (response) => {
-          try {
-            await paymentService.verify({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            toast.success('Payment successful');
-            await loadStatus();
-          } catch (err) {
-            toast.error(
-              err.response?.data?.message || 'Payment verification failed',
-            );
-          }
-        },
-        theme: { color: '#3c50e0' },
-      });
-      rzp.open();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to start payment');
-    } finally {
-      setPaying(false);
     }
   };
 
@@ -638,56 +567,32 @@ export default function OrderStatus() {
             </span>
           </div>
 
-          {/* Payment Status */}
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-            <span className="text-sm text-text-secondary">Payment</span>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                order.paymentStatus === 'paid'
-                  ? 'bg-green-100 text-green-700'
-                  : order.paymentStatus === 'failed'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-yellow-100 text-yellow-700'
-              }`}
-            >
-              {order.paymentStatus}
-            </span>
-          </div>
-
-          {Boolean(order.tableId) && order.paymentStatus !== 'paid' && !isCancelled && (
-            <div className="mt-3 rounded-xl bg-surface-cool p-4">
-              <h3 className="text-sm font-semibold text-text">
-                Payment Method
-              </h3>
-              <p className="mt-1 text-xs text-text-light">
-                Pay at the counter, or pay online from this order page.
+          <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-surface-cool p-4">
+            <div>
+              <p className="text-xs text-text-light">Payment Method</p>
+              <p className="mt-1 text-sm font-semibold text-text">
+                {order.paymentMethod?.toUpperCase() === 'CARD'
+                  ? 'Card'
+                  : order.paymentMethod?.toLowerCase() === 'online'
+                    ? 'Online'
+                    : 'Cash'}
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border bg-surface px-3 py-2 text-center">
-                  <p className="text-xs text-text-light">Cash</p>
-                  <p className="text-sm font-semibold text-text">
-                    Pay at counter
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handlePayOnline}
-                  disabled={!canPayOnline || paying}
-                  className="rounded-xl bg-primary px-3 py-2 text-center text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  <p className="text-xs text-white/80">Online</p>
-                  <p className="text-sm font-semibold">
-                    {paying ? 'Starting...' : 'Pay Now'}
-                  </p>
-                </button>
-              </div>
-              {!order.isPaymentGatewayAllocated && (
-                <p className="mt-2 text-xs text-text-light">
-                  Online payment is not available for this restaurant.
-                </p>
-              )}
             </div>
-          )}
+            <div>
+              <p className="text-xs text-text-light">Payment Status</p>
+              <span
+                className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                  order.paymentStatus === 'paid'
+                    ? 'bg-green-100 text-green-700'
+                    : order.paymentStatus === 'failed'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                }`}
+              >
+                {order.paymentStatus || 'pending'}
+              </span>
+            </div>
+          </div>
 
           {order.status === 'served' && (
             <button

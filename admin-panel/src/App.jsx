@@ -23,6 +23,7 @@ import StaffOrders from './pages/StaffOrders';
 import WithdrawRequests from './pages/WithdrawRequests';
 import Settings from './pages/Settings';
 import OrderStatistics from './pages/OrderStatistics';
+import OrderAnalytics from './pages/OrderAnalytics';
 import Coupons from './pages/Coupons';
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/coupons" element={<Coupons />} />
             <Route path="/tables" element={<Tables />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/order-analytics" element={<OrderAnalytics />} />
             <Route path="/users" element={<Users />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/subscription-histories" element={<SubscriptionHistories />} />

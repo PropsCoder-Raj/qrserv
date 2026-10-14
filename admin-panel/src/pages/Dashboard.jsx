@@ -5,6 +5,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineCreditCard,
   HiOutlineDownload,
+  HiCash
 } from 'react-icons/hi';
 import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
@@ -646,7 +647,7 @@ export default function Dashboard() {
                 value={`${Number(
                   subSummary.totalRevenue || 0,
                 ).toLocaleString('en-IN')}`}
-                icon={HiOutlineCurrencyRupee}
+                icon={HiCash}
                 color="cyan"
               />
               <StatsCard

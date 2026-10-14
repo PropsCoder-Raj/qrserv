@@ -12,6 +12,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { RollbackFailedOrderDto } from './dto/rollback-failed-order.dto';
 import { UpdateCustomerOrderItemsDto } from './dto/update-customer-order-items.dto';
@@ -25,9 +26,15 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Public()
   @Post()
-  @ApiOperation({ summary: 'Place a new order (public, no auth)' })
+  @ApiBearerAuth()
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ORG_ADMIN,
+    Role.RESTAURANT_OWNER,
+    Role.MANAGER,
+  )
+  @ApiOperation({ summary: 'Create an order from the admin panel' })
   create(@Body() dto: CreateOrderDto) {
     return this.ordersService.create(dto);
   }
@@ -205,6 +212,17 @@ export class OrdersController {
     @Body() dto: UpdatePaymentStatusDto,
   ) {
     return this.ordersService.updatePaymentStatus(id, dto);
+  }
+
+  @Patch(':id/payment-method')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER, Role.STAFF)
+  @ApiOperation({ summary: 'Update payment method' })
+  updatePaymentMethod(
+    @Param('id') id: string,
+    @Body() dto: UpdatePaymentMethodDto,
+  ) {
+    return this.ordersService.updatePaymentMethod(id, dto);
   }
 
   @Patch(':id/items')
