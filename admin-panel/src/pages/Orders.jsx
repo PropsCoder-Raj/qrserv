@@ -7,6 +7,7 @@ import {
   HiOutlinePrinter,
   HiCash,
   HiOutlineCreditCard,
+  HiGlobeAlt
 } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import generateBillPdf from '../utils/generateBillPdf';
@@ -616,13 +617,12 @@ export default function Orders() {
   );
 
   const renderPaymentMethod = (paymentMethod) => (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-      paymentMethod?.toLowerCase() === 'online'
-        ? 'bg-blue-100 text-blue-700'
-        : paymentMethod?.toUpperCase() === 'CARD'
-          ? 'bg-indigo-100 text-indigo-700'
-          : 'bg-slate-100 text-slate-700'
-    }`}>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${paymentMethod?.toLowerCase() === 'online'
+      ? 'bg-blue-100 text-blue-700'
+      : paymentMethod?.toUpperCase() === 'CARD'
+        ? 'bg-indigo-100 text-indigo-700'
+        : 'bg-slate-100 text-slate-700'
+      }`}>
       {paymentMethod?.toLowerCase() === 'online'
         ? 'Online'
         : paymentMethod?.toUpperCase() === 'CARD'
@@ -880,33 +880,39 @@ export default function Orders() {
             {!editingOrderId && (
               <fieldset className="text-sm font-medium text-slate-700">
                 <legend className="mb-1">Payment method</legend>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {[
                     { value: 'CASH', label: 'Cash' },
                     { value: 'CARD', label: 'Card' },
+                    { value: 'ONLINE', label: 'Online' },
                   ].map((option) => {
                     const isActive = newOrder.paymentMethod === option.value;
                     return (
                       <label
                         key={option.value}
-                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition ${
-                          isActive
+                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition ${isActive
                             ? 'border-primary bg-primary/5 text-slate-800'
                             : 'border-stroke text-slate-500'
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
                           name="newOrderPaymentMethod"
                           value={option.value}
                           checked={isActive}
-                          onChange={() => setNewOrder((current) => ({ ...current, paymentMethod: option.value }))}
+                          onChange={() =>
+                            setNewOrder((current) => ({ ...current, paymentMethod: option.value }))
+                          }
                           className="accent-primary"
                         />
-                        {option.value === 'CASH' ? (
+                        {option.value === 'CASH' && (
                           <HiCash size={16} className="text-green-600" aria-hidden="true" />
-                        ) : (
+                        )}
+                        {option.value === 'CARD' && (
                           <HiOutlineCreditCard size={16} className="text-blue-600" aria-hidden="true" />
+                        )}
+                        {option.value === 'ONLINE' && (
+                          <HiGlobeAlt size={16} className="text-purple-600" aria-hidden="true" />
                         )}
                         {option.label}
                       </label>
@@ -1284,19 +1290,23 @@ export default function Orders() {
                   {[
                     { value: 'CASH', label: 'Cash' },
                     { value: 'CARD', label: 'Card' },
+                    { value: 'ONLINE', label: 'Online' },
                   ].map((option) => {
+                    // Standardize the payment method value for exact comparison
+                    const currentPaymentMethod = detailModal.order.paymentMethod?.toUpperCase();
+
+                    // Check if current option matches or fallback to CASH if unrecognized
                     const isActive =
-                      (detailModal.order.paymentMethod?.toUpperCase() === 'CARD'
-                        ? 'CARD'
-                        : 'CASH') === option.value;
+                      currentPaymentMethod === option.value ||
+                      (!['CARD', 'ONLINE'].includes(currentPaymentMethod) && option.value === 'CASH');
+
                     return (
                       <label
                         key={option.value}
-                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition ${
-                          isActive
-                            ? 'border-primary bg-primary/5 text-slate-800'
-                            : 'border-stroke text-slate-500'
-                        }`}
+                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition ${isActive
+                          ? 'border-primary bg-primary/5 text-slate-800'
+                          : 'border-stroke text-slate-500'
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1306,10 +1316,14 @@ export default function Orders() {
                           onChange={() => updatePaymentMethod(detailModal.order._id, option.value)}
                           className="accent-primary"
                         />
-                        {option.value === 'CASH' ? (
+                        {option.value === 'CASH' && (
                           <HiCash size={14} className="text-green-600" aria-hidden="true" />
-                        ) : (
+                        )}
+                        {option.value === 'CARD' && (
                           <HiOutlineCreditCard size={14} className="text-blue-600" aria-hidden="true" />
+                        )}
+                        {option.value === 'ONLINE' && (
+                          <HiGlobeAlt size={14} className="text-purple-600" aria-hidden="true" />
                         )}
                         {option.label}
                       </label>

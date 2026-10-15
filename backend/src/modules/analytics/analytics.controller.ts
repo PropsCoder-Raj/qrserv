@@ -18,7 +18,7 @@ export class AnalyticsController {
   @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER)
   @ApiOperation({
     summary:
-      'Order analytics by payment method (CASH vs CARD), with restaurant and date-range filters. ' +
+      'Order analytics by payment method (CASH, CARD, ONLINE), with restaurant and date-range filters. ' +
       'Super admin can view any/all restaurants, org admin is scoped to their organization, ' +
       'and restaurant owner is always scoped to their own restaurant.',
   })

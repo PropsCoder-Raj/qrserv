@@ -4,6 +4,7 @@ import {
   HiOutlineClipboardList,
   HiCash,
   HiOutlineCreditCard,
+  HiOutlineGlobe
 } from 'react-icons/hi';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -116,7 +117,7 @@ export default function OrderAnalytics() {
   const totalOrders = analytics?.totalOrders || 0;
   const cash = analytics?.cash || { count: 0, percentage: 0 };
   const card = analytics?.card || { count: 0, percentage: 0 };
-
+  const online = analytics?.online || { count: 0, percentage: 0 };
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -125,7 +126,7 @@ export default function OrderAnalytics() {
             Order Analytics
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Total orders split by payment method (Cash vs. Card).
+            Total orders split by payment method (Cash, Card, Online).
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -173,7 +174,7 @@ export default function OrderAnalytics() {
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatsCard
             title="Total Orders"
             value={totalOrders.toLocaleString('en-IN')}
@@ -191,6 +192,12 @@ export default function OrderAnalytics() {
             value={`${card.count.toLocaleString('en-IN')} (${card.percentage}%)`}
             icon={HiOutlineCreditCard}
             color="purple"
+          />
+          <StatsCard
+            title="Online Orders"
+            value={`${online.count.toLocaleString('en-IN')} (${online.percentage}%)`}
+            icon={HiOutlineGlobe}
+            color="teal"
           />
         </div>
       )}

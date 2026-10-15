@@ -211,7 +211,13 @@ export function CartProvider({ children }) {
   };
 
   const setCartPaymentMethod = (nextPaymentMethod) => {
-    setPaymentMethod(nextPaymentMethod === 'CARD' ? 'CARD' : 'CASH');
+    const normalizedMethod = nextPaymentMethod?.toUpperCase();
+
+    if (['CARD', 'ONLINE'].includes(normalizedMethod)) {
+      setPaymentMethod(normalizedMethod);
+    } else {
+      setPaymentMethod('CASH'); // Fallback default
+    }
   };
 
   return (

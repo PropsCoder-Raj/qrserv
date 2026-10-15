@@ -477,7 +477,7 @@ export class OrdersService {
     if (
       order.tableId ||
       !order?.isPaymentGatewayAllocated ||
-      order.paymentMethod !== 'online'
+      order.paymentMethod !== PaymentMethod.ONLINE
     ) {
       return {
         order,
@@ -504,7 +504,7 @@ export class OrdersService {
     if (!order.isPaymentGatewayAllocated) {
       throw new BadRequestException('Rollback is only allowed for paid orders');
     }
-    if (order.paymentStatus === 'paid') {
+    if (order.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException(
         'Cannot rollback an order with successful payment',
       );

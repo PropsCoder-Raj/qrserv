@@ -8,6 +8,7 @@ import {
   HiTrash,
   HiCash,
   HiOutlineCreditCard,
+  HiGlobeAlt
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
@@ -64,6 +65,7 @@ export default function Cart() {
   const paymentMethodOptions = [
     { value: 'CASH', label: 'Cash' },
     { value: 'CARD', label: 'Card' },
+    { value: 'ONLINE', label: 'Online' },
   ];
 
   const handleApplyCoupon = async () => {
@@ -174,11 +176,10 @@ export default function Cart() {
                     key={option.value}
                     type="button"
                     onClick={() => setCartOrderType(option.value)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                      isActive
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${isActive
                         ? 'bg-surface text-text shadow-sm'
                         : 'text-text-light'
-                    }`}
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -314,7 +315,7 @@ export default function Cart() {
 
             {/* Customer Info */}
             {grandTotal < 0 && (
-                    <span className="text-base font-bold text-primary">{grandTotal}</span>
+              <span className="text-base font-bold text-primary">{grandTotal}</span>
             )}
             <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
               <h3 className="mb-3 text-sm font-semibold text-text">
@@ -342,46 +343,49 @@ export default function Cart() {
             </div>
 
             <fieldset className="mt-6 rounded-2xl border border-border bg-surface p-4">
-                <h3 className="mb-3 text-sm font-semibold text-text">
-                  Payment Method
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {paymentMethodOptions.map((option) => {
-                    const isActive = paymentMethod === option.value;
-                    return (
-                      <label
-                        key={option.value}
-                        className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
-                          isActive
-                            ? 'border-primary bg-primary/5 text-text'
-                            : 'border-border text-text-light'
+              <h3 className="mb-3 text-sm font-semibold text-text">
+                Payment Method
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                {paymentMethodOptions.map((option) => {
+                  const isActive = paymentMethod === option.value;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${isActive
+                          ? 'border-primary bg-primary/5 text-text'
+                          : 'border-border text-text-light'
                         }`}
-                      >
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value={option.value}
-                          checked={isActive}
-                          onChange={() => setCartPaymentMethod(option.value)}
-                          className="accent-primary"
-                        />
-                        {option.value === 'CASH' ? (
-                          <HiCash size={18} className="text-green-600" aria-hidden="true" />
-                        ) : (
-                          <HiOutlineCreditCard size={18} className="text-blue-600" aria-hidden="true" />
-                        )}
-                        {option.label}
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="mt-2 text-xs text-text-light">
-                  Pay by cash or card at the restaurant.
-                </p>
-              </fieldset>
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={option.value}
+                        checked={isActive}
+                        onChange={() => setCartPaymentMethod(option.value)}
+                        className="accent-primary"
+                      />
+                      {option.value === 'CASH' && (
+                        <HiCash size={18} className="text-green-600" aria-hidden="true" />
+                      )}
+                      {option.value === 'CARD' && (
+                        <HiOutlineCreditCard size={18} className="text-blue-600" aria-hidden="true" />
+                      )}
+                      {option.value === 'ONLINE' && (
+                        <HiGlobeAlt size={18} className="text-purple-600" aria-hidden="true" />
+                      )}
+                      {option.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-text-light">
+                Pay by {paymentMethod.toLowerCase()} at the restaurant.
+              </p>
+            </fieldset>
 
-                {/* Bill Summary */}
-                <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
+            {/* Bill Summary */}
+            <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
               <h3 className="mb-3 text-sm font-semibold text-text">
                 Bill Summary
               </h3>
@@ -493,8 +497,8 @@ export default function Cart() {
               </div>
             </div>
 
-                {/* Place Order Button */}
-                <div className="mt-6 pb-6">
+            {/* Place Order Button */}
+            <div className="mt-6 pb-6">
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handlePlaceOrder}

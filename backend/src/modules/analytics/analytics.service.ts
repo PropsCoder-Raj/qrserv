@@ -5,6 +5,7 @@ import {
   Order,
   OrderDocument,
   PaymentMethod,
+  OrderStatus,
 } from '../../schemas/order.schema';
 import {
   Restaurant,
@@ -22,6 +23,7 @@ export interface OrderAnalyticsResult {
   totalOrders: number;
   cash: OrderAnalyticsBreakdown;
   card: OrderAnalyticsBreakdown;
+  online: OrderAnalyticsBreakdown;
   others: OrderAnalyticsBreakdown;
   filters: {
     restaurantId: string | null;
@@ -50,11 +52,12 @@ export class AnalyticsService {
   ): OrderAnalyticsResult {
     const cashCount = counts[PaymentMethod.CASH] || 0;
     const cardCount = counts[PaymentMethod.CARD] || 0;
+    const onlineCount = counts[PaymentMethod.ONLINE] || 0;
     const totalOrders = Object.values(counts).reduce(
       (sum, count) => sum + count,
       0,
     );
-    const othersCount = totalOrders - cashCount - cardCount;
+    const othersCount = totalOrders - cashCount - cardCount - onlineCount;
 
     return {
       totalOrders,
@@ -65,6 +68,10 @@ export class AnalyticsService {
       card: {
         count: cardCount,
         percentage: this.toPercentage(cardCount, totalOrders),
+      },
+      online: {
+        count: onlineCount,
+        percentage: this.toPercentage(onlineCount, totalOrders),
       },
       others: {
         count: othersCount,
@@ -95,6 +102,8 @@ export class AnalyticsService {
     restaurantScope?: Types.ObjectId | Types.ObjectId[],
   ) {
     const match: Record<string, unknown> = {};
+
+    match.status = OrderStatus.SERVED;
 
     if (Array.isArray(restaurantScope)) {
       match.restaurantId = { $in: restaurantScope };
