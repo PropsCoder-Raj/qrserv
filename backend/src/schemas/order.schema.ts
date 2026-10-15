@@ -20,7 +20,7 @@ export enum PaymentStatus {
 export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
-  ONLINE = 'online',
+  ONLINE = 'ONLINE',
 }
 
 export enum OrderItemStatus {
@@ -109,7 +109,7 @@ export class Order {
   @Prop({ default: 'dine_in' })
   orderType: string;
 
-  @ApiProperty({ enum: [PaymentMethod.CASH, PaymentMethod.CARD] })
+  @ApiProperty({ enum: [PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.ONLINE] })
   @Prop({ enum: PaymentMethod, default: PaymentMethod.CASH })
   paymentMethod: PaymentMethod;
 

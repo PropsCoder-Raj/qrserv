@@ -110,11 +110,11 @@ export class CreateOrderDto {
   orderType?: string;
 
   @ApiPropertyOptional({
-    enum: [PaymentMethod.CASH, PaymentMethod.CARD],
+    enum: [PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.ONLINE],
     default: PaymentMethod.CASH,
   })
   @IsOptional()
-  @IsIn([PaymentMethod.CASH, PaymentMethod.CARD])
+  @IsIn([PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.ONLINE])
   paymentMethod?: PaymentMethod;
 
   @ApiPropertyOptional({ enum: [PaymentStatus.PENDING, PaymentStatus.PAID] })
