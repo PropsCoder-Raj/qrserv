@@ -51,7 +51,7 @@ export class CouponsService {
     if (!restaurant) throw new NotFoundException('Restaurant not found');
     if (
       role === Role.ORG_ADMIN &&
-      (!organizationId || restaurant.organizationId?.toString() !== organizationId)
+      (!organizationId || restaurant.organizationId?.toString() !== organizationId.toString())
     ) {
       throw new ForbiddenException('Restaurant does not belong to your organization');
     }

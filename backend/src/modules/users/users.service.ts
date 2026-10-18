@@ -88,9 +88,15 @@ export class UsersService implements OnModuleInit {
     const restaurant = await this.restaurantModel
       .findById(restaurantObjectId)
       .select('organizationId');
+    const restaurantOrgId =
+      (restaurant?.organizationId as any)?._id?.toString?.() ??
+      restaurant?.organizationId?.toString?.() ??
+      (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+
     if (
       !restaurant ||
-      !restaurant.organizationId?.equals(organizationObjectId)
+      !restaurantOrgId ||
+      restaurantOrgId !== organizationObjectId.toString()
     ) {
       throw new ForbiddenException(
         'Restaurant does not belong to your organization',
@@ -112,14 +118,23 @@ export class UsersService implements OnModuleInit {
       .findById(userObjectId)
       .select('organizationId restaurantId');
     if (!targetUser) throw new NotFoundException('User not found');
-    if (targetUser.organizationId?.equals(organizationObjectId)) return;
+    const userOrgId =
+      (targetUser.organizationId as any)?._id?.toString?.() ??
+      targetUser.organizationId?.toString?.() ??
+      (targetUser.organizationId ? String(targetUser.organizationId) : undefined);
+    if (userOrgId && userOrgId === organizationObjectId.toString()) return;
     if (targetUser.restaurantId) {
       const restaurant = await this.restaurantModel
         .findById(targetUser.restaurantId)
         .select('organizationId');
+      const restOrgId =
+        (restaurant?.organizationId as any)?._id?.toString?.() ??
+        restaurant?.organizationId?.toString?.() ??
+        (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
       if (
         restaurant &&
-        restaurant.organizationId?.equals(organizationObjectId)
+        restOrgId &&
+        restOrgId === organizationObjectId.toString()
       )
         return;
     }

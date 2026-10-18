@@ -115,9 +115,15 @@ export class OrdersService {
     const restaurant = await this.restaurantModel
       .findById(restaurantObjectId)
       .select('organizationId');
+    const restaurantOrgId =
+      (restaurant?.organizationId as any)?._id?.toString?.() ??
+      restaurant?.organizationId?.toString?.() ??
+      (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+
     if (
       !restaurant ||
-      !restaurant.organizationId?.equals(organizationObjectId)
+      !restaurantOrgId ||
+      restaurantOrgId !== organizationObjectId.toString()
     ) {
       throw new ForbiddenException(
         'Restaurant does not belong to your organization',

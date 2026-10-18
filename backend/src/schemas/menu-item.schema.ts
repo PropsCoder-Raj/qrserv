@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
@@ -79,11 +79,11 @@ export class MenuItem {
   image: string;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Category', required: true })
   categoryId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Restaurant', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Restaurant', required: true })
   restaurantId: Types.ObjectId;
 
   @ApiProperty()

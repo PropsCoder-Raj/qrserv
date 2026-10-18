@@ -1,15 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Schema({ timestamps: true })
 export class SubscriptionHistory {
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Organization', required: true })
   organizationId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Subscription', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Subscription', required: true })
   subscriptionId: Types.ObjectId;
 
   @ApiProperty()
@@ -51,7 +51,7 @@ export class SubscriptionHistory {
   expiresAt: Date;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   purchasedBy: Types.ObjectId;
 
   @ApiProperty()

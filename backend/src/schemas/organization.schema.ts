@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Schema({ timestamps: true })
@@ -33,11 +33,11 @@ export class Organization {
   email: string;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   ownerId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Subscription', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Subscription', default: null })
   subscriptionPlan: Types.ObjectId;
 
   @ApiProperty({

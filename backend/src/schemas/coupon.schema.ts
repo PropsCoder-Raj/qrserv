@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum CouponDiscountType {
@@ -9,7 +9,7 @@ export enum CouponDiscountType {
 
 @Schema({ timestamps: true })
 export class Coupon {
-  @Prop({ type: Types.ObjectId, ref: 'Restaurant', required: true, index: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Restaurant', required: true, index: true })
   restaurantId: Types.ObjectId;
 
   @Prop({ required: true, uppercase: true, trim: true })

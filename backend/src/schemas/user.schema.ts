@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum UserRole {
@@ -35,11 +35,11 @@ export class User {
   role: UserRole;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Organization', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Organization', default: null })
   organizationId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Restaurant', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Restaurant', default: null })
   restaurantId: Types.ObjectId;
 
   @ApiProperty()
