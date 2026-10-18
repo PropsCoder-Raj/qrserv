@@ -22,6 +22,8 @@ api.interceptors.response.use(
     const url = originalRequest?.url || '';
     const isAuthRequest =
       url.includes('/auth/login') ||
+      url.includes('/auth/login-captain') ||
+      url.includes('/auth/login-kitchen') ||
       url.includes('/auth/login-manager') ||
       url.includes('/auth/login-staff') ||
       url.includes('/auth/refresh');

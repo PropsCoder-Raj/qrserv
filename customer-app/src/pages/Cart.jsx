@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import orderService from '../services/orderService';
 import couponService from '../services/couponService';
+import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function Cart() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const finalTotal = Math.max(0, grandTotal - (appliedCoupon?.discountAmount || 0));
+  const finalTotal = Math.max(0, roundTo3(grandTotal - (appliedCoupon?.discountAmount || 0)));
 
   useEffect(() => {
     setAppliedCoupon(null);
@@ -241,8 +242,8 @@ export default function Cart() {
                         </div>
                       )}
                       <p className="mt-0.5 flex items-baseline gap-2 text-sm font-medium text-primary">
-                        {item.originalPrice > item.price && <del className="text-xs font-normal text-text-light">{(item.originalPrice * item.quantity).toFixed(2)}</del>}
-                        <span>{(item.price * item.quantity).toFixed(2)}</span>
+                        {item.originalPrice > item.price && <del className="text-xs font-normal text-text-light">{formatCurrency(item.originalPrice * item.quantity)}</del>}
+                        <span>{formatCurrency(item.price * item.quantity)}</span>
                       </p>
                     </div>
 
@@ -401,31 +402,31 @@ export default function Cart() {
                   if (hasGst) {
                     const rate = taxRate || 0;
                     if (gstIncl) {
-                      base = Math.round(lineTotal / (1 + rate / 100) * 100) / 100;
-                      const tax = Math.round((lineTotal - base) * 100) / 100;
-                      itemCgst = Math.round(tax / 2 * 100) / 100;
-                      itemSgst = Math.round((tax - itemCgst) * 100) / 100;
+                      base = roundTo3(lineTotal / (1 + rate / 100));
+                      const tax = roundTo3(lineTotal - base);
+                      itemCgst = roundTo3(tax / 2);
+                      itemSgst = roundTo3(tax - itemCgst);
                     } else {
                       base = lineTotal;
-                      itemCgst = Math.round(base * cgstRate / 100 * 100) / 100;
-                      itemSgst = Math.round(base * sgstRate / 100 * 100) / 100;
+                      itemCgst = roundTo3(base * cgstRate / 100);
+                      itemSgst = roundTo3(base * sgstRate / 100);
                     }
                   }
                   if (hasItemVat) {
                     const vr = vatRate || 0;
                     if (vatIncl) {
-                      base = Math.round(lineTotal / (1 + vr / 100) * 100) / 100;
-                      itemVat = Math.round((lineTotal - base) * 100) / 100;
+                      base = roundTo3(lineTotal / (1 + vr / 100));
+                      itemVat = roundTo3(lineTotal - base);
                     } else {
                       base = lineTotal;
-                      itemVat = Math.round(base * vr / 100 * 100) / 100;
+                      itemVat = roundTo3(base * vr / 100);
                     }
                   }
                   return (
                     <div key={item.cartItemId}>
                       <div className="flex justify-between text-text-secondary">
                         <span>{item.name}{isLiquor ? ' [L]' : ''} x {item.quantity}</span>
-                        <span>{lineTotal}</span>
+                        <span>{formatCurrency(lineTotal)}</span>
                       </div>
                       {(item.spiceLevel?.name || item.addOns?.length > 0) && (
                         <div className="text-[11px] text-text-light ml-1">
@@ -436,15 +437,15 @@ export default function Cart() {
                       )}
                       {hasGst && (
                         <div className="text-[11px] text-text-light ml-1 mt-0.5 space-x-2">
-                          <span>Base: {base.toFixed(2)}</span>
-                          <span>CGST: {itemCgst.toFixed(2)}</span>
-                          <span>SGST: {itemSgst.toFixed(2)}</span>
+                          <span>Base: {formatCurrency(base)}</span>
+                          <span>CGST: {formatCurrency(itemCgst)}</span>
+                          <span>SGST: {formatCurrency(itemSgst)}</span>
                         </div>
                       )}
                       {hasItemVat && (
                         <div className="text-[11px] text-text-light ml-1 mt-0.5 space-x-2">
-                          <span>Base: {base.toFixed(2)}</span>
-                          <span>VAT: {itemVat.toFixed(2)}</span>
+                          <span>Base: {formatCurrency(base)}</span>
+                          <span>VAT: {formatCurrency(itemVat)}</span>
                         </div>
                       )}
                     </div>
@@ -453,27 +454,27 @@ export default function Cart() {
                 <div className="border-t border-border pt-2 space-y-1">
                   <div className="flex justify-between text-text-secondary">
                     <span>Subtotal</span>
-                    <span>₹{grandTotal.toFixed(2)}</span>
+                    <span>{formatCurrency(grandTotal)}</span>
                   </div>
                   {appliedCoupon && (
                     <div className="flex justify-between text-green-700">
                       <span>Coupon {appliedCoupon.couponCode}</span>
-                      <span>-₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                      <span>-{formatCurrency(appliedCoupon.discountAmount)}</span>
                     </div>
                   )}
                   {(cgstAmount + sgstAmount) > 0 && (
                     <>
                       <div className="flex justify-between text-text-secondary">
                         <span>Food Subtotal</span>
-                        <span>{foodSubtotal.toFixed(2)}</span>
+                        <span>{formatCurrency(foodSubtotal)}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>CGST ({cgstRate}%)</span>
-                        <span>{cgstAmount}</span>
+                        <span>{formatCurrency(cgstAmount)}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>SGST ({sgstRate}%)</span>
-                        <span>{sgstAmount}</span>
+                        <span>{formatCurrency(sgstAmount)}</span>
                       </div>
                     </>
                   )}
@@ -481,17 +482,17 @@ export default function Cart() {
                     <>
                       <div className="flex justify-between text-text-secondary">
                         <span>Liquor Subtotal</span>
-                        <span>{liquorSubtotal.toFixed(2)}</span>
+                        <span>{formatCurrency(liquorSubtotal)}</span>
                       </div>
                       <div className="flex justify-between text-text-secondary">
                         <span>VAT ({vatRate}%)</span>
-                        <span>{vatAmount}</span>
+                        <span>{formatCurrency(vatAmount)}</span>
                       </div>
                     </>
                   )}
                   <div className="flex justify-between font-bold text-text">
                     <span>Total</span>
-                    <span className="text-primary">₹{finalTotal.toFixed(2)}</span>
+                    <span className="text-primary">{formatCurrency(finalTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -511,7 +512,7 @@ export default function Cart() {
                     Placing Order...
                   </span>
                 ) : (
-                  `Place Order  •  ₹${finalTotal.toFixed(2)}`
+                  `Place Order  •  ${formatCurrency(finalTotal)}`
                 )}
               </motion.button>
             </div>

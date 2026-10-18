@@ -19,6 +19,7 @@ import orderService from '../services/orderService';
 import menuService from '../services/menuService';
 import Loader from '../components/Loader';
 import generateBillPdf from '../utils/generateBillPdf';
+import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 
 const STATUS_STEPS = [
   { key: 'pending', label: 'Order Placed', icon: HiOutlineClock, color: '#f59e0b' },
@@ -352,14 +353,14 @@ export default function OrderStatus() {
                   let base, itemCgst, itemSgst;
                   if (hasTax) {
                     if (isInclusive) {
-                      base = Math.round(lineTotal / (1 + rate / 100) * 100) / 100;
-                      const tax = Math.round((lineTotal - base) * 100) / 100;
-                      itemCgst = Math.round(tax / 2 * 100) / 100;
-                      itemSgst = Math.round((tax - itemCgst) * 100) / 100;
+                      base = roundTo3(lineTotal / (1 + rate / 100));
+                      const tax = roundTo3(lineTotal - base);
+                      itemCgst = roundTo3(tax / 2);
+                      itemSgst = roundTo3(tax - itemCgst);
                     } else {
                       base = lineTotal;
-                      itemCgst = Math.round(base * cgstR / 100 * 100) / 100;
-                      itemSgst = Math.round(base * sgstR / 100 * 100) / 100;
+                      itemCgst = roundTo3((base * cgstR) / 100);
+                      itemSgst = roundTo3((base * sgstR) / 100);
                     }
                   }
                   return (
@@ -395,13 +396,13 @@ export default function OrderStatus() {
                         )}
                         {hasTax && (
                           <div className="text-[11px] text-text-light space-x-2">
-                            <span>Base: {base.toFixed(2)}</span>
-                            <span>CGST: {itemCgst.toFixed(2)}</span>
-                            <span>SGST: {itemSgst.toFixed(2)}</span>
+                            <span>Base: {formatCurrency(base)}</span>
+                            <span>CGST: {formatCurrency(itemCgst)}</span>
+                            <span>SGST: {formatCurrency(itemSgst)}</span>
                           </div>
                         )}
                       </div>
-                      <span className="text-sm font-medium text-text">{lineTotal}</span>
+                      <span className="text-sm font-medium text-text">{formatCurrency(lineTotal)}</span>
                     </div>
                   );
                 })}
@@ -458,7 +459,7 @@ export default function OrderStatus() {
                                 {item.name}
                               </p>
                               <p className="text-xs text-text-light">
-                               {item.price}
+                               {formatCurrency(item.price)}
                               </p>
                             </div>
                             <div className="flex items-center gap-1 rounded-lg bg-primary px-1 py-0.5">
@@ -521,19 +522,19 @@ export default function OrderStatus() {
                       Food Subtotal
                     </span>
                     <span className="text-sm font-medium text-text">
-                      {Number(order.foodSubtotal ?? order.subtotalAmount).toFixed(2)}
+                      {formatCurrency(order.foodSubtotal ?? order.subtotalAmount)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">CGST ({order.cgstRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      {Number(order.cgstAmount || 0).toFixed(2)}
+                      {formatCurrency(order.cgstAmount || 0)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">SGST ({order.sgstRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      {Number(order.sgstAmount || 0).toFixed(2)}
+                      {formatCurrency(order.sgstAmount || 0)}
                     </span>
                   </div>
                 </>
@@ -547,23 +548,33 @@ export default function OrderStatus() {
                       Liquor Subtotal
                     </span>
                     <span className="text-sm font-medium text-text">
-                      {Number(order.liquorSubtotal || 0).toFixed(2)}
+                      {formatCurrency(order.liquorSubtotal || 0)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
                     <span className="text-sm text-text-secondary">VAT ({order.vatRate}%)</span>
                     <span className="text-sm font-medium text-text">
-                      {Number(order.vatAmount || 0).toFixed(2)}
+                      {formatCurrency(order.vatAmount || 0)}
                     </span>
                   </div>
                 </>
               )}
             </>
           )}
-          <div className={`${order.taxAmount > 0 ? 'mt-2' : 'mt-4'} flex items-center justify-between rounded-xl bg-surface-cool p-4`}>
+          {order.discountAmount > 0 && (
+            <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
+              <span className="text-sm text-green-700">
+                Coupon Discount {order.couponCode ? `(${order.couponCode})` : ''}
+              </span>
+              <span className="text-sm font-medium text-green-700">
+                -{formatCurrency(order.discountAmount)}
+              </span>
+            </div>
+          )}
+          <div className={`${order.taxAmount > 0 || order.discountAmount > 0 ? 'mt-2' : 'mt-4'} flex items-center justify-between rounded-xl bg-surface-cool p-4`}>
             <span className="text-sm text-text-secondary">Total Amount</span>
             <span className="text-lg font-bold text-text">
-              {order.totalAmount}
+              {formatCurrency(order.totalAmount)}
             </span>
           </div>
 

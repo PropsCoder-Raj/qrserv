@@ -13,7 +13,7 @@ export default function StaffLogin() {
   const [restaurantName, setRestaurantName] = useState('');
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
   const [invalidRestaurant, setInvalidRestaurant] = useState(false);
-  const { loginStaff } = useAuth();
+  const { loginKitchen, loginStaff } = useAuth();
   const navigate = useNavigate();
   const { restaurantId } = useParams();
 
@@ -35,9 +35,10 @@ export default function StaffLogin() {
     if (pin.length < 4) return;
     setIsLoading(true);
     try {
-      const result = await loginStaff(pin, restaurantId);
-      if (result.user.role !== 'staff') {
-        toast.error('This login is for staff only');
+      const loginFn = loginKitchen || loginStaff;
+      const result = await loginFn(pin, restaurantId);
+      if (result.user.role !== 'kitchen' && result.user.role !== 'staff') {
+        toast.error('This login is for kitchen staff only');
         localStorage.clear();
         window.location.reload();
         return;
@@ -103,7 +104,7 @@ export default function StaffLogin() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-800">Staff Login</h1>
+            <h1 className="text-2xl font-bold text-slate-800">Kitchen Login</h1>
             <p className="mt-1 text-sm font-medium text-green-600">{restaurantName}</p>
             <p className="mt-1 text-sm text-slate-500">Enter your passcode to continue</p>
           </div>
@@ -173,7 +174,7 @@ export default function StaffLogin() {
           <div className="mt-6 flex items-center justify-center gap-4 text-sm">
             <Link to="/login" className="text-primary hover:underline">Admin Login</Link>
             <span className="text-slate-300">|</span>
-            <Link to={`/manager-login/${restaurantId}`} className="text-primary hover:underline">Manager Login</Link>
+            <Link to={`/captain-login/${restaurantId}`} className="text-primary hover:underline">Captain Login</Link>
           </div>
         </div>
       </div>

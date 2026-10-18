@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export class SubscriptionOffer {
   @ApiProperty({ example: 3, description: 'Offer applies for X months' })
@@ -20,7 +21,7 @@ export class Subscription {
   name: string;
 
   @ApiProperty()
-  @Prop({ required: true })
+  @Prop({ required: true, type: Number, set: mongoose3DecimalSetter })
   price: number;
 
   @ApiProperty({ enum: ['none', 'flat', 'percentage'], default: 'none' })
@@ -35,7 +36,7 @@ export class Subscription {
     description: 'Flat amount or percentage (%) based on discountType',
     default: 0,
   })
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   discountValue: number;
 
   @ApiProperty({

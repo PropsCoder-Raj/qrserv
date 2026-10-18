@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PopulateOptions, Types } from 'mongoose';
 import {
+  ManualDiscountType,
   Order,
   OrderDocument,
   OrderItemStatus,
@@ -48,6 +49,7 @@ import {
 import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { Role } from '../../common/decorators';
+import { roundTo3 } from '../../common/utils/precision';
 
 @Injectable()
 export class OrdersService {
@@ -55,7 +57,7 @@ export class OrdersService {
     {
       path: 'restaurantId',
       select:
-        'name slug owner_name restaurant_type description logo address phone email gst_no vat_no taxEnabled taxRate taxType vatEnabled vatRate vatType isActive menuPdf organizationId',
+        'name slug owner_name restaurant_type description logo address phone email gst_no vat_no cr_number receipt_header_note taxEnabled taxRate taxType vatEnabled vatRate vatType isActive menuPdf organizationId',
     },
     {
       path: 'tableId',
@@ -243,8 +245,8 @@ export class OrdersService {
       0,
     );
 
-    let foodBase = foodTotal;
-    let liquorBase = liquorTotal;
+    let foodBase = roundTo3(foodTotal);
+    let liquorBase = roundTo3(liquorTotal);
     let taxRate = 0;
     let taxType = 'exclusive';
     let cgstRate = 0;
@@ -259,18 +261,18 @@ export class OrdersService {
     if (restaurant?.taxEnabled && restaurant.taxRate > 0 && foodTotal > 0) {
       taxRate = restaurant.taxRate;
       taxType = restaurant.taxType || 'inclusive';
-      cgstRate = Math.round((taxRate / 2) * 100) / 100;
-      sgstRate = Math.round((taxRate / 2) * 100) / 100;
+      cgstRate = roundTo3(taxRate / 2);
+      sgstRate = roundTo3(taxRate / 2);
 
       if (taxType === 'inclusive') {
-        foodBase = Math.round((foodTotal / (1 + taxRate / 100)) * 100) / 100;
-        const gstTax = Math.round((foodTotal - foodBase) * 100) / 100;
-        cgstAmount = Math.round((gstTax / 2) * 100) / 100;
-        sgstAmount = Math.round((gstTax - cgstAmount) * 100) / 100;
+        foodBase = roundTo3(foodTotal / (1 + taxRate / 100));
+        const gstTax = roundTo3(foodTotal - foodBase);
+        cgstAmount = roundTo3(gstTax / 2);
+        sgstAmount = roundTo3(gstTax - cgstAmount);
       } else {
-        foodBase = foodTotal;
-        cgstAmount = Math.round(((foodBase * cgstRate) / 100) * 100) / 100;
-        sgstAmount = Math.round(((foodBase * sgstRate) / 100) * 100) / 100;
+        foodBase = roundTo3(foodTotal);
+        cgstAmount = roundTo3((foodBase * cgstRate) / 100);
+        sgstAmount = roundTo3((foodBase * sgstRate) / 100);
       }
     } else if (restaurant?.taxEnabled) {
       taxRate = restaurant.taxRate;
@@ -283,12 +285,11 @@ export class OrdersService {
       vatType = restaurant.vatType || 'inclusive';
 
       if (vatType === 'inclusive') {
-        liquorBase =
-          Math.round((liquorTotal / (1 + vatRate / 100)) * 100) / 100;
-        vatAmount = Math.round((liquorTotal - liquorBase) * 100) / 100;
+        liquorBase = roundTo3(liquorTotal / (1 + vatRate / 100));
+        vatAmount = roundTo3(liquorTotal - liquorBase);
       } else {
-        liquorBase = liquorTotal;
-        vatAmount = Math.round(((liquorBase * vatRate) / 100) * 100) / 100;
+        liquorBase = roundTo3(liquorTotal);
+        vatAmount = roundTo3((liquorBase * vatRate) / 100);
       }
     } else if (restaurant?.vatEnabled) {
       vatRate = restaurant.vatRate;
@@ -296,10 +297,10 @@ export class OrdersService {
     }
 
     // Combined totals
-    const subtotalAmount = foodBase + liquorBase;
-    const taxAmount = cgstAmount + sgstAmount + vatAmount;
-    const orderSubtotal = foodTotal + liquorTotal;
-    const preDiscountTotal = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+    const subtotalAmount = roundTo3(foodBase + liquorBase);
+    const taxAmount = roundTo3(cgstAmount + sgstAmount + vatAmount);
+    const orderSubtotal = roundTo3(foodTotal + liquorTotal);
+    const preDiscountTotal = roundTo3(subtotalAmount + taxAmount);
     const coupon = dto.couponCode
       ? await this.couponsService.validateCoupon(
           dto.restaurantId,
@@ -307,10 +308,26 @@ export class OrdersService {
           orderSubtotal,
         )
       : null;
-    const discountAmount = coupon?.discountAmount || 0;
+    const couponDiscount = roundTo3(coupon?.discountAmount || 0);
+
+    const rawManualType = dto.manualDiscountType || dto.manual_discount_type;
+    const rawManualValue = dto.manualDiscountValue ?? dto.manual_discount_value;
+    const rawManualReason = dto.manualDiscountReason ?? dto.manual_discount_reason;
+
+    const manualDiscountInfo = this.calculateManualDiscount(
+      rawManualType,
+      rawManualValue,
+      rawManualReason,
+      orderSubtotal,
+      couponDiscount,
+    );
+
+    const discountAmount = roundTo3(
+      couponDiscount + manualDiscountInfo.manualDiscountAmount,
+    );
     const totalAmount = Math.max(
       0,
-      Math.round((preDiscountTotal - discountAmount) * 100) / 100,
+      roundTo3(preDiscountTotal - discountAmount),
     );
 
     const orderType = dto.orderType
@@ -318,8 +335,16 @@ export class OrdersService {
       : tableId
         ? 'dine_in'
         : 'takeaway';
-    const paymentMethod = dto.paymentMethod || PaymentMethod.CASH;
-    const paymentStatus = dto.paymentStatus || PaymentStatus.PENDING;
+    const paymentMethod = (
+      dto.paymentMethod
+        ? String(dto.paymentMethod).toUpperCase()
+        : PaymentMethod.CASH
+    ) as PaymentMethod;
+    const paymentStatus = (
+      dto.paymentStatus
+        ? String(dto.paymentStatus).toLowerCase()
+        : PaymentStatus.PENDING
+    ) as PaymentStatus;
 
     const restaurantObjectId = new Types.ObjectId(dto.restaurantId);
     const tableObjectId = tableId ? new Types.ObjectId(tableId) : null;
@@ -395,6 +420,14 @@ export class OrdersService {
         couponId: coupon?.coupon._id,
         couponCode: coupon?.coupon.code,
         discountAmount,
+        manualDiscountType: manualDiscountInfo.manualDiscountType,
+        manualDiscountValue: manualDiscountInfo.manualDiscountValue,
+        manualDiscountAmount: manualDiscountInfo.manualDiscountAmount,
+        manualDiscountReason: manualDiscountInfo.manualDiscountReason,
+        manual_discount_type: manualDiscountInfo.manualDiscountType,
+        manual_discount_value: manualDiscountInfo.manualDiscountValue,
+        manual_discount_amount: manualDiscountInfo.manualDiscountAmount,
+        manual_discount_reason: manualDiscountInfo.manualDiscountReason,
         totalAmount,
         status: OrderStatus.PENDING,
         isPaymentGatewayAllocated,
@@ -435,6 +468,14 @@ export class OrdersService {
         couponId: coupon?.coupon._id,
         couponCode: coupon?.coupon.code,
         discountAmount,
+        manualDiscountType: manualDiscountInfo.manualDiscountType,
+        manualDiscountValue: manualDiscountInfo.manualDiscountValue,
+        manualDiscountAmount: manualDiscountInfo.manualDiscountAmount,
+        manualDiscountReason: manualDiscountInfo.manualDiscountReason,
+        manual_discount_type: manualDiscountInfo.manualDiscountType,
+        manual_discount_value: manualDiscountInfo.manualDiscountValue,
+        manual_discount_amount: manualDiscountInfo.manualDiscountAmount,
+        manual_discount_reason: manualDiscountInfo.manualDiscountReason,
         totalAmount,
         status: OrderStatus.PENDING,
         isPaymentGatewayAllocated,
@@ -446,7 +487,7 @@ export class OrdersService {
         await this.couponsService.recordUsage(
           coupon.coupon._id,
           order._id,
-          discountAmount,
+          couponDiscount,
         );
       } catch (error) {
         await this.orderModel.findByIdAndDelete(order._id);
@@ -606,6 +647,13 @@ export class OrdersService {
       order.paymentStatus = PaymentStatus.PENDING;
     }
 
+    if (order.paymentMethod && typeof order.paymentMethod === 'string') {
+      order.paymentMethod = (order.paymentMethod as string).toUpperCase() as PaymentMethod;
+    }
+    if (order.paymentStatus && typeof order.paymentStatus === 'string') {
+      order.paymentStatus = (order.paymentStatus as string).toLowerCase() as PaymentStatus;
+    }
+
     await order.save();
     return this.getStatus(id);
   }
@@ -675,12 +723,36 @@ export class OrdersService {
           order._id,
         )
       : null;
-    const discountAmount = coupon?.discountAmount || 0;
+    const couponDiscount = roundTo3(coupon?.discountAmount || 0);
 
     await this.couponsService.replaceUsage(
       order._id,
       coupon?.coupon._id || null,
-      discountAmount,
+      couponDiscount,
+    );
+
+    const hasManualTypeInDto =
+      dto.manualDiscountType !== undefined || dto.manual_discount_type !== undefined;
+    const rawManualType = hasManualTypeInDto
+      ? dto.manualDiscountType || dto.manual_discount_type
+      : (order as any).manualDiscountType || (order as any).manual_discount_type;
+    const rawManualValue = hasManualTypeInDto
+      ? (dto.manualDiscountValue ?? dto.manual_discount_value)
+      : ((order as any).manualDiscountValue ?? (order as any).manual_discount_value);
+    const rawManualReason = hasManualTypeInDto
+      ? (dto.manualDiscountReason ?? dto.manual_discount_reason)
+      : ((order as any).manualDiscountReason ?? (order as any).manual_discount_reason);
+
+    const manualDiscountInfo = this.calculateManualDiscount(
+      rawManualType,
+      rawManualValue,
+      rawManualReason,
+      orderSubtotal,
+      couponDiscount,
+    );
+
+    const totalDiscountAmount = roundTo3(
+      couponDiscount + manualDiscountInfo.manualDiscountAmount,
     );
 
     order.items = pricedItems.map((item) => ({
@@ -705,10 +777,18 @@ export class OrdersService {
     (order as any).liquorSubtotal = totals.liquorSubtotal;
     (order as any).couponId = coupon?.coupon._id;
     (order as any).couponCode = coupon?.coupon.code || '';
-    (order as any).discountAmount = discountAmount;
+    (order as any).manualDiscountType = manualDiscountInfo.manualDiscountType;
+    (order as any).manualDiscountValue = manualDiscountInfo.manualDiscountValue;
+    (order as any).manualDiscountAmount = manualDiscountInfo.manualDiscountAmount;
+    (order as any).manualDiscountReason = manualDiscountInfo.manualDiscountReason;
+    (order as any).manual_discount_type = manualDiscountInfo.manualDiscountType;
+    (order as any).manual_discount_value = manualDiscountInfo.manualDiscountValue;
+    (order as any).manual_discount_amount = manualDiscountInfo.manualDiscountAmount;
+    (order as any).manual_discount_reason = manualDiscountInfo.manualDiscountReason;
+    (order as any).discountAmount = totalDiscountAmount;
     (order as any).totalAmount = Math.max(
       0,
-      Math.round((totals.totalAmount - discountAmount) * 100) / 100,
+      roundTo3(totals.totalAmount - totalDiscountAmount),
     );
     if (order.razorpayOrderId) {
       await this.paymentModel.deleteMany({ orderId: order._id });
@@ -718,8 +798,88 @@ export class OrdersService {
       order.paymentStatus = PaymentStatus.PENDING;
     }
 
+    if (order.paymentMethod && typeof order.paymentMethod === 'string') {
+      order.paymentMethod = (order.paymentMethod as string).toUpperCase() as PaymentMethod;
+    }
+    if (order.paymentStatus && typeof order.paymentStatus === 'string') {
+      order.paymentStatus = (order.paymentStatus as string).toLowerCase() as PaymentStatus;
+    }
+
     await order.save();
     return this.findOne(id);
+  }
+
+  private calculateManualDiscount(
+    rawType: any,
+    rawValue: any,
+    rawReason: any,
+    orderSubtotal: number,
+    couponDiscount: number = 0,
+  ): {
+    manualDiscountType: ManualDiscountType | null;
+    manualDiscountValue: number;
+    manualDiscountAmount: number;
+    manualDiscountReason: string;
+  } {
+    if (!rawType) {
+      return {
+        manualDiscountType: null,
+        manualDiscountValue: 0,
+        manualDiscountAmount: 0,
+        manualDiscountReason: '',
+      };
+    }
+
+    const typeStr = String(rawType).toUpperCase().trim();
+    if (
+      typeStr !== ManualDiscountType.PERCENTAGE &&
+      typeStr !== ManualDiscountType.FIXED
+    ) {
+      return {
+        manualDiscountType: null,
+        manualDiscountValue: 0,
+        manualDiscountAmount: 0,
+        manualDiscountReason: '',
+      };
+    }
+
+    const type = typeStr as ManualDiscountType;
+    const value = roundTo3(Math.max(0, Number(rawValue) || 0));
+    const reason = typeof rawReason === 'string' ? rawReason.trim() : '';
+
+    if (type === ManualDiscountType.PERCENTAGE && value > 100) {
+      throw new BadRequestException(
+        'Manual discount percentage cannot exceed 100%',
+      );
+    }
+    if (type === ManualDiscountType.FIXED && value > orderSubtotal) {
+      throw new BadRequestException(
+        'Manual discount fixed amount cannot exceed order subtotal',
+      );
+    }
+
+    let rawCalculatedAmount = 0;
+    if (type === ManualDiscountType.PERCENTAGE) {
+      rawCalculatedAmount = roundTo3((orderSubtotal * value) / 100);
+    } else {
+      rawCalculatedAmount = roundTo3(Math.min(value, orderSubtotal));
+    }
+
+    // Cap manual discount against remaining subtotal after coupon discount
+    const remainingSubtotal = Math.max(
+      0,
+      roundTo3(orderSubtotal - couponDiscount),
+    );
+    const manualDiscountAmount = roundTo3(
+      Math.min(rawCalculatedAmount, remainingSubtotal),
+    );
+
+    return {
+      manualDiscountType: type,
+      manualDiscountValue: value,
+      manualDiscountAmount,
+      manualDiscountReason: reason,
+    };
   }
 
   private computeTotalsForItems(
@@ -732,13 +892,17 @@ export class OrdersService {
       (i) => (i.itemType || 'food') === 'liquor',
     );
 
-    const foodTotal = foodItems.reduce(
-      (sum, i) => sum + i.price * i.quantity,
-      0,
+    const foodTotal = roundTo3(
+      foodItems.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      ),
     );
-    const liquorTotal = liquorItems.reduce(
-      (sum, i) => sum + i.price * i.quantity,
-      0,
+    const liquorTotal = roundTo3(
+      liquorItems.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      ),
     );
 
     let foodBase = foodTotal;
@@ -757,18 +921,18 @@ export class OrdersService {
     if (restaurant?.taxEnabled && restaurant.taxRate > 0 && foodTotal > 0) {
       taxRate = restaurant.taxRate;
       taxType = restaurant.taxType || 'inclusive';
-      cgstRate = Math.round((taxRate / 2) * 100) / 100;
-      sgstRate = Math.round((taxRate / 2) * 100) / 100;
+      cgstRate = roundTo3(taxRate / 2);
+      sgstRate = roundTo3(taxRate / 2);
 
       if (taxType === 'inclusive') {
-        foodBase = Math.round((foodTotal / (1 + taxRate / 100)) * 100) / 100;
-        const gstTax = Math.round((foodTotal - foodBase) * 100) / 100;
-        cgstAmount = Math.round((gstTax / 2) * 100) / 100;
-        sgstAmount = Math.round((gstTax - cgstAmount) * 100) / 100;
+        foodBase = roundTo3(foodTotal / (1 + taxRate / 100));
+        const gstTax = roundTo3(foodTotal - foodBase);
+        cgstAmount = roundTo3(gstTax / 2);
+        sgstAmount = roundTo3(gstTax - cgstAmount);
       } else {
         foodBase = foodTotal;
-        cgstAmount = Math.round(((foodBase * cgstRate) / 100) * 100) / 100;
-        sgstAmount = Math.round(((foodBase * sgstRate) / 100) * 100) / 100;
+        cgstAmount = roundTo3((foodBase * cgstRate) / 100);
+        sgstAmount = roundTo3((foodBase * sgstRate) / 100);
       }
     } else if (restaurant?.taxEnabled) {
       taxRate = restaurant.taxRate;
@@ -781,12 +945,11 @@ export class OrdersService {
       vatType = restaurant.vatType || 'inclusive';
 
       if (vatType === 'inclusive') {
-        liquorBase =
-          Math.round((liquorTotal / (1 + vatRate / 100)) * 100) / 100;
-        vatAmount = Math.round((liquorTotal - liquorBase) * 100) / 100;
+        liquorBase = roundTo3(liquorTotal / (1 + vatRate / 100));
+        vatAmount = roundTo3(liquorTotal - liquorBase);
       } else {
         liquorBase = liquorTotal;
-        vatAmount = Math.round(((liquorBase * vatRate) / 100) * 100) / 100;
+        vatAmount = roundTo3((liquorBase * vatRate) / 100);
       }
     } else if (restaurant?.vatEnabled) {
       vatRate = restaurant.vatRate;
@@ -794,9 +957,9 @@ export class OrdersService {
     }
 
     // Combined totals
-    const subtotalAmount = foodBase + liquorBase;
-    const taxAmount = cgstAmount + sgstAmount + vatAmount;
-    const totalAmount = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+    const subtotalAmount = roundTo3(foodBase + liquorBase);
+    const taxAmount = roundTo3(cgstAmount + sgstAmount + vatAmount);
+    const totalAmount = roundTo3(subtotalAmount + taxAmount);
 
     return {
       subtotalAmount,
@@ -887,7 +1050,30 @@ export class OrdersService {
     (order as any).vatType = totals.vatType;
     (order as any).foodSubtotal = totals.foodSubtotal;
     (order as any).liquorSubtotal = totals.liquorSubtotal;
-    (order as any).totalAmount = totals.totalAmount;
+    const effectiveOrderSubtotal = roundTo3(totals.foodSubtotal + totals.liquorSubtotal);
+    const existingManualType = (order as any).manualDiscountType || (order as any).manual_discount_type;
+    const existingManualVal = (order as any).manualDiscountValue ?? (order as any).manual_discount_value ?? 0;
+    const existingManualReason = (order as any).manualDiscountReason || (order as any).manual_discount_reason || '';
+    const existingManualAmt = Number((order as any).manualDiscountAmount || (order as any).manual_discount_amount || 0);
+    const couponDiscount = Math.max(0, roundTo3((order.discountAmount || 0) - existingManualAmt));
+
+    let totalDiscountAmount = roundTo3(order.discountAmount || 0);
+    if (existingManualType) {
+      const manualDiscountInfo = this.calculateManualDiscount(
+        existingManualType,
+        existingManualVal,
+        existingManualReason,
+        effectiveOrderSubtotal,
+        couponDiscount,
+      );
+      (order as any).manualDiscountAmount = manualDiscountInfo.manualDiscountAmount;
+      (order as any).manual_discount_amount = manualDiscountInfo.manualDiscountAmount;
+      totalDiscountAmount = roundTo3(couponDiscount + manualDiscountInfo.manualDiscountAmount);
+    } else {
+      totalDiscountAmount = Math.min(totalDiscountAmount, effectiveOrderSubtotal);
+    }
+    (order as any).discountAmount = totalDiscountAmount;
+    (order as any).totalAmount = Math.max(0, roundTo3(totals.totalAmount - totalDiscountAmount));
 
     // If all items fully cancelled, auto-cancel order
     const allCancelled = (order.items || []).every((it: any) => {
@@ -898,6 +1084,13 @@ export class OrdersService {
     const previousStatus = order.status;
     if (allCancelled) {
       order.status = OrderStatus.CANCELLED;
+    }
+
+    if (order.paymentMethod && typeof order.paymentMethod === 'string') {
+      order.paymentMethod = (order.paymentMethod as string).toUpperCase() as PaymentMethod;
+    }
+    if (order.paymentStatus && typeof order.paymentStatus === 'string') {
+      order.paymentStatus = (order.paymentStatus as string).toLowerCase() as PaymentStatus;
     }
 
     await order.save();
@@ -1093,11 +1286,19 @@ export class OrdersService {
     return order;
   }
 
+  async getInvoice(id: string) {
+    const order = await this.orderModel
+      .findById(id)
+      .populate(this.orderRelationPopulate);
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
   async getStatus(id: string) {
     const order = await this.orderModel
       .findById(id)
       .select(
-        'orderNumber status paymentStatus paymentMethod items totalAmount subtotalAmount taxAmount taxRate taxType cgstRate sgstRate cgstAmount sgstAmount vatAmount vatRate vatType foodSubtotal liquorSubtotal orderType restaurantId tableId customerName customerPhone isPaymentGatewayAllocated createdAt',
+        'orderNumber status paymentStatus paymentMethod items totalAmount subtotalAmount taxAmount taxRate taxType cgstRate sgstRate cgstAmount sgstAmount vatAmount vatRate vatType foodSubtotal liquorSubtotal orderType restaurantId tableId customerName customerPhone isPaymentGatewayAllocated couponId couponCode discountAmount manualDiscountType manualDiscountValue manualDiscountAmount manualDiscountReason manual_discount_type manual_discount_value manual_discount_amount manual_discount_reason createdAt',
       )
       .populate(this.orderRelationPopulate);
     if (!order) throw new NotFoundException('Order not found');
@@ -1170,9 +1371,14 @@ export class OrdersService {
   }
 
   async updatePaymentMethod(id: string, dto: UpdatePaymentMethodDto) {
+    const paymentMethod = (
+      dto.paymentMethod
+        ? String(dto.paymentMethod).toUpperCase()
+        : PaymentMethod.CASH
+    ) as PaymentMethod;
     const order = await this.orderModel.findByIdAndUpdate(
       id,
-      { paymentMethod: dto.paymentMethod },
+      { paymentMethod },
       { new: true, runValidators: true },
     );
     if (!order) throw new NotFoundException('Order not found');
@@ -1380,6 +1586,71 @@ export class OrdersService {
         revenue: r.revenue,
         orders: r.orders,
       })),
+    };
+  }
+
+  async remove(
+    id: string,
+    role: string,
+    organizationId?: string,
+    userRestaurantId?: string,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid orderId');
+    }
+
+    const order = await this.orderModel.findById(id);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const allowedRoles: string[] = [
+      Role.SUPER_ADMIN,
+      Role.ORG_ADMIN,
+      Role.RESTAURANT_OWNER,
+      Role.CAPTAIN,
+      Role.MANAGER,
+    ];
+    if (!allowedRoles.includes(role)) {
+      throw new ForbiddenException(
+        'You do not have permission to delete orders',
+      );
+    }
+
+    const isCancelled =
+      order.status === OrderStatus.CANCELLED ||
+      (order.status as string) === 'canceled';
+
+    if (!isCancelled) {
+      throw new BadRequestException(
+        'Only cancelled orders can be permanently deleted',
+      );
+    }
+
+    if (role === Role.ORG_ADMIN) {
+      if (!organizationId) {
+        throw new ForbiddenException('Organization not assigned');
+      }
+      await this.validateOrgRestaurant(order.restaurantId, organizationId);
+    } else if (role !== Role.SUPER_ADMIN) {
+      if (
+        !userRestaurantId ||
+        order.restaurantId.toString() !== userRestaurantId.toString()
+      ) {
+        throw new ForbiddenException('Restaurant access denied');
+      }
+    }
+
+    // Cascade linked records
+    await this.paymentModel.deleteMany({ orderId: order._id });
+    await this.couponsService.revertUsage(order._id);
+
+    // Delete the order
+    await this.orderModel.findByIdAndDelete(order._id);
+
+    return {
+      success: true,
+      message: `Order #${order.orderNumber || id} deleted successfully`,
     };
   }
 }

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { Document, Types } from 'mongoose';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum WithdrawRequestStatus {
   PENDING = 'pending',
@@ -20,31 +21,31 @@ export class WithdrawRequest {
   requestedByUserId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ required: true, min: 1 })
+  @Prop({ required: true, min: 0.001, type: Number, set: mongoose3DecimalSetter })
   amount: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   chargePercentage: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   chargeBaseAmount: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   chargeGstPercentage: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   chargeGstAmount: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   chargeAmount: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   netAmount: number;
 
   @ApiProperty()

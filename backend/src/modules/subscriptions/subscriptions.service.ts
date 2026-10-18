@@ -24,6 +24,7 @@ import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { AssignSubscriptionDto } from './dto/assign-subscription.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { getDateRangeFromQuery } from '../../common/utils/date-range';
+import { roundTo3 } from '../../common/utils/precision';
 
 @Injectable()
 export class SubscriptionsService {
@@ -74,13 +75,13 @@ export class SubscriptionsService {
     if (type === 'none' || value <= 0) return base;
 
     if (type === 'flat') {
-      return Math.max(0, base - value);
+      return roundTo3(Math.max(0, base - value));
     }
 
     // percentage
     const pct = Math.min(100, Math.max(0, value));
     const discount = (base * pct) / 100;
-    return Math.max(0, base - discount);
+    return roundTo3(Math.max(0, base - discount));
   }
 
   private normalizeOffers(
@@ -125,8 +126,8 @@ export class SubscriptionsService {
   private applyPercentDiscount(amount: number, percent: number) {
     const base = Number(amount) || 0;
     const pct = Math.min(100, Math.max(0, Number(percent) || 0));
-    if (base <= 0 || pct <= 0) return base;
-    return Math.max(0, base - (base * pct) / 100);
+    if (base <= 0 || pct <= 0) return roundTo3(base);
+    return roundTo3(Math.max(0, base - (base * pct) / 100));
   }
 
   private getMaxOfferPercent(plan: any): number {
@@ -349,8 +350,8 @@ export class SubscriptionsService {
     return plans.map((plan: any) => {
       const price = Number(plan?.price) || 0;
       const maxOfferPercent = this.getMaxOfferPercent(plan);
-      const perMonthPriceAfterOffer = Number(
-        this.applyPercentDiscount(price, maxOfferPercent).toFixed(2),
+      const perMonthPriceAfterOffer = roundTo3(
+        this.applyPercentDiscount(price, maxOfferPercent),
       );
 
       return {

@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -25,7 +26,7 @@ import { CurrentUser, Roles, Role, Public } from '../../common/decorators';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('Restaurants')
-@Controller('api/restaurants')
+@Controller(['api/restaurants', 'api/admin/restaurants'])
 export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
 
@@ -111,6 +112,19 @@ export class RestaurantsController {
       await this.restaurantsService.validateOrgRestaurant(id, organizationId);
     }
     return this.restaurantsService.update(id, updateRestaurantDto);
+  }
+
+  @Put(':id')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER)
+  @ApiOperation({ summary: 'Update a restaurant (PUT alias)' })
+  async updatePut(
+    @Param('id') id: string,
+    @Body() updateRestaurantDto: UpdateRestaurantDto,
+    @CurrentUser('role') role?: string,
+    @CurrentUser('organizationId') organizationId?: string,
+  ) {
+    return this.update(id, updateRestaurantDto, role, organizationId);
   }
 
   @Delete(':id')

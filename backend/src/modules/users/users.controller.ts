@@ -23,14 +23,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('notification-settings')
-  @Roles(Role.MANAGER, Role.STAFF)
+  @Roles(Role.CAPTAIN, Role.KITCHEN)
   @ApiOperation({ summary: 'Get notification settings for the current user' })
   getNotificationSettings(@CurrentUser('userId') userId: string) {
     return this.usersService.getNotificationSettings(userId);
   }
 
   @Patch('notification-settings')
-  @Roles(Role.MANAGER, Role.STAFF)
+  @Roles(Role.CAPTAIN, Role.KITCHEN)
   @ApiOperation({ summary: 'Update notification settings for the current user' })
   updateNotificationSettings(
     @CurrentUser('userId') userId: string,

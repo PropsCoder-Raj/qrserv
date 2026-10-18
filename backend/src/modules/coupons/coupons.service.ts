@@ -14,6 +14,7 @@ import { Restaurant, RestaurantDocument } from '../../schemas/restaurant.schema'
 import { Role } from '../../common/decorators';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
+import { roundTo3 } from '../../common/utils/precision';
 
 @Injectable()
 export class CouponsService {
@@ -196,10 +197,9 @@ export class CouponsService {
           : 0;
       const discountedPrice = Math.max(
         0,
-        Math.round((menuItem.price - discountAmount) * 100) / 100,
+        roundTo3(menuItem.price - discountAmount),
       );
-      const unitPrice =
-        Math.round((discountedPrice + addOnsTotal + spiceLevelDelta) * 100) / 100;
+      const unitPrice = roundTo3(discountedPrice + addOnsTotal + spiceLevelDelta);
       return {
         menuItemId: item.menuItemId,
         name: menuItem.name,
@@ -268,7 +268,7 @@ export class CouponsService {
     if (coupon.discountType === CouponDiscountType.PERCENTAGE && coupon.maxDiscount != null) {
       discountAmount = Math.min(discountAmount, coupon.maxDiscount);
     }
-    discountAmount = Math.round(Math.min(discountAmount, subtotal) * 100) / 100;
+    discountAmount = roundTo3(Math.min(discountAmount, subtotal));
     if (!Number.isFinite(discountAmount) || discountAmount <= 0) {
       throw new BadRequestException('Coupon discount is invalid');
     }

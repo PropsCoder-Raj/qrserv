@@ -22,7 +22,7 @@ class CouponCustomizationOptionDto {
   emoji?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   priceDelta?: number;
 }

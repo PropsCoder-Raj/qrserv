@@ -14,6 +14,7 @@ import {
 import subscriptionService from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
 import DatePresetFilter from '../components/DatePresetFilter';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -145,7 +146,7 @@ export default function SubscriptionHistories() {
   const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-  const fmtPrice = (p) => (p === 0 ? 'Free' : `${Number(p).toLocaleString('en-IN')}`);
+  const fmtPrice = (p) => (p === 0 ? 'Free' : formatCurrency(p));
 
   return (
     <div className="space-y-5">
@@ -166,7 +167,7 @@ export default function SubscriptionHistories() {
         <StatCard
           icon={HiOutlineCurrencyRupee}
           label="Total Revenue"
-          value={`${Number(summary.totalRevenue).toLocaleString('en-IN')}`}
+          value={formatCurrency(summary.totalRevenue)}
           color="bg-green-50 text-green-600"
         />
         <StatCard

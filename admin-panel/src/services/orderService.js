@@ -40,6 +40,7 @@ const orderService = {
       cancelQuantity,
       reason,
     }),
+  remove: (id) => api.delete(`/orders/${id}`),
 };
 
 export default orderService;

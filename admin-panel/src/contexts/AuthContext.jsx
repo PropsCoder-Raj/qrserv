@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     useState(false);
 
   const fetchNotificationSettings = async (userData) => {
-    if (!['manager', 'staff'].includes(userData?.role)) return;
+    if (!['captain', 'kitchen', 'manager', 'staff'].includes(userData?.role)) return;
     setNotificationSettingsLoading(true);
     try {
       const res = await userService.getNotificationSettings();
@@ -99,8 +99,37 @@ export function AuthProvider({ children }) {
     return result;
   };
 
+  const loginCaptain = async (passcode, restaurantId) => {
+    const fn = authService.loginCaptain || authService.loginManager;
+    const { data } = await fn({ passcode, restaurantId });
+    const result = data.data;
+    localStorage.setItem('accessToken', result.accessToken);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    localStorage.setItem('user', JSON.stringify(result.user));
+    setUser(result.user);
+    await fetchNotificationSettings(result.user);
+    await fetchOrgData(result.user);
+    await fetchRestaurantData(result.user);
+    return result;
+  };
+
+  const loginKitchen = async (passcode, restaurantId) => {
+    const fn = authService.loginKitchen || authService.loginStaff;
+    const { data } = await fn({ passcode, restaurantId });
+    const result = data.data;
+    localStorage.setItem('accessToken', result.accessToken);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    localStorage.setItem('user', JSON.stringify(result.user));
+    setUser(result.user);
+    await fetchNotificationSettings(result.user);
+    await fetchOrgData(result.user);
+    await fetchRestaurantData(result.user);
+    return result;
+  };
+
   const loginManager = async (passcode, restaurantId) => {
-    const { data } = await authService.loginManager({ passcode, restaurantId });
+    const fn = authService.loginCaptain || authService.loginManager;
+    const { data } = await fn({ passcode, restaurantId });
     const result = data.data;
     localStorage.setItem('accessToken', result.accessToken);
     localStorage.setItem('refreshToken', result.refreshToken);
@@ -113,7 +142,8 @@ export function AuthProvider({ children }) {
   };
 
   const loginStaff = async (passcode, restaurantId) => {
-    const { data } = await authService.loginStaff({ passcode, restaurantId });
+    const fn = authService.loginKitchen || authService.loginStaff;
+    const { data } = await fn({ passcode, restaurantId });
     const result = data.data;
     localStorage.setItem('accessToken', result.accessToken);
     localStorage.setItem('refreshToken', result.refreshToken);
@@ -155,6 +185,8 @@ export function AuthProvider({ children }) {
         notificationSettingsLoading,
         updateNotificationSettings,
         login,
+        loginCaptain,
+        loginKitchen,
         loginManager,
         loginStaff,
         logout,

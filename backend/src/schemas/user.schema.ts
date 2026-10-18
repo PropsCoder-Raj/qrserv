@@ -6,8 +6,8 @@ export enum UserRole {
   SUPER_ADMIN = 'super_admin',
   ORG_ADMIN = 'org_admin',
   RESTAURANT_OWNER = 'restaurant_owner',
-  MANAGER = 'manager',
-  STAFF = 'staff',
+  CAPTAIN = 'captain',
+  KITCHEN = 'kitchen',
 }
 
 @Schema({ timestamps: true })
@@ -31,7 +31,7 @@ export class User {
   phone: string;
 
   @ApiProperty({ enum: UserRole })
-  @Prop({ required: true, enum: UserRole, default: UserRole.STAFF })
+  @Prop({ required: true, enum: UserRole, default: UserRole.KITCHEN })
   role: UserRole;
 
   @ApiProperty()

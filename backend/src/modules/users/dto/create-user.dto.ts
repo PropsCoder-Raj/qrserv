@@ -24,14 +24,22 @@ export class CreateUserDto {
   email: string;
 
   @ApiPropertyOptional({ example: 'password123' })
-  @ValidateIf((o) => o.role !== UserRole.MANAGER && o.role !== UserRole.STAFF)
+  @ValidateIf(
+    (o) =>
+      o.role !== UserRole.CAPTAIN &&
+      o.role !== UserRole.KITCHEN,
+  )
   @IsNotEmpty()
   @IsString()
   @MinLength(6)
   password?: string;
 
   @ApiPropertyOptional({ example: '1234' })
-  @ValidateIf((o) => o.role === UserRole.MANAGER || o.role === UserRole.STAFF)
+  @ValidateIf(
+    (o) =>
+      o.role === UserRole.CAPTAIN ||
+      o.role === UserRole.KITCHEN,
+  )
   @IsNotEmpty()
   @IsString()
   @Length(4, 6)

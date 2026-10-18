@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Delete,
   Param,
   Query,
 } from '@nestjs/common';
@@ -32,6 +33,7 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
   )
   @ApiOperation({ summary: 'Create an order from the admin panel' })
@@ -81,7 +83,9 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({ summary: 'Get orders (filtered by restaurant/status)' })
@@ -114,7 +118,7 @@ export class OrdersController {
         query,
       );
     }
-    // restaurant_owner, manager, staff — always scope to their restaurant
+    // restaurant_owner, captain, kitchen, manager, staff — always scope to their restaurant
     const effectiveRestaurantId = userRestaurantId || restaurantId;
     return this.ordersService.findAll(effectiveRestaurantId, status, query);
   }
@@ -125,7 +129,9 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({ summary: 'Get order statistics and revenue data' })
@@ -168,6 +174,13 @@ export class OrdersController {
     return this.ordersService.findByPhone(phone);
   }
 
+  @Public()
+  @Get(':id/invoice')
+  @ApiOperation({ summary: 'Get order invoice payload (public)' })
+  getInvoice(@Param('id') id: string) {
+    return this.ordersService.getInvoice(id);
+  }
+
   // Parameterized routes MUST come after all static routes
   @Public()
   @Get(':id/status')
@@ -189,7 +202,9 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({ summary: 'Update order status' })
@@ -203,7 +218,9 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({ summary: 'Update payment status' })
@@ -216,7 +233,15 @@ export class OrdersController {
 
   @Patch(':id/payment-method')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER, Role.STAFF)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ORG_ADMIN,
+    Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
+    Role.MANAGER,
+    Role.KITCHEN,
+    Role.STAFF,
+  )
   @ApiOperation({ summary: 'Update payment method' })
   updatePaymentMethod(
     @Param('id') id: string,
@@ -231,6 +256,7 @@ export class OrdersController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
   )
   @ApiOperation({ summary: 'Update order items and coupon code' })
@@ -252,9 +278,9 @@ export class OrdersController {
 
   @Patch(':id/items/cancel')
   @ApiBearerAuth()
-  @Roles(Role.MANAGER, Role.STAFF)
+  @Roles(Role.CAPTAIN, Role.MANAGER, Role.KITCHEN, Role.STAFF)
   @ApiOperation({
-    summary: 'Cancel single order item quantity (manager/staff)',
+    summary: 'Cancel single order item quantity (captain/kitchen/manager/staff)',
   })
   cancelOrderItem(
     @Param('id') id: string,
@@ -262,5 +288,24 @@ export class OrdersController {
     @CurrentUser('userId') userId: string,
   ) {
     return this.ordersService.cancelOrderItem(id, dto, userId);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ORG_ADMIN,
+    Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
+    Role.MANAGER,
+  )
+  @ApiOperation({ summary: 'Delete a cancelled order (admin/captain/manager)' })
+  remove(
+    @Param('id') id: string,
+    @CurrentUser('role') role: string,
+    @CurrentUser('organizationId') organizationId?: string,
+    @CurrentUser('restaurantId') restaurantId?: string,
+  ) {
+    return this.ordersService.remove(id, role, organizationId, restaurantId);
   }
 }

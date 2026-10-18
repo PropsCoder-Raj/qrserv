@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum RestaurantType {
   SMALL_CART_STALL = 'small cart stall',
@@ -63,12 +64,20 @@ export class Restaurant {
   @Prop()
   vat_no: string;
 
+  @ApiProperty({ required: false })
+  @Prop({ maxlength: 100 })
+  cr_number?: string;
+
+  @ApiProperty({ required: false })
+  @Prop({ maxlength: 255 })
+  receipt_header_note?: string;
+
   @ApiProperty()
   @Prop({ default: false })
   taxEnabled: boolean;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   taxRate: number;
 
   @ApiProperty({ enum: TaxType })
@@ -80,7 +89,7 @@ export class Restaurant {
   vatEnabled: boolean;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   vatRate: number;
 
   @ApiProperty({ enum: TaxType })

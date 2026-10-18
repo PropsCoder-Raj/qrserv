@@ -1,7 +1,17 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { HiOutlineClipboardList } from 'react-icons/hi';
+import { HiOutlineClipboardList, HiOutlineOfficeBuilding } from 'react-icons/hi';
 
 const settingsGroups = [
+  {
+    label: 'Restaurant Management',
+    items: [
+      {
+        path: '/settings/restaurant-profile',
+        label: 'Restaurant Profile',
+        icon: HiOutlineOfficeBuilding,
+      },
+    ],
+  },
   {
     label: 'Order Management',
     items: [

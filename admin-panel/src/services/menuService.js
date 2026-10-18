@@ -46,6 +46,7 @@ const menuService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  deleteMenuItemImage: (id) => api.delete(`/menu-items/${id}/image`),
   deleteMenuItem: (id) => api.delete(`/menu-items/${id}`),
 };
 

@@ -28,18 +28,18 @@ export class CreateCouponDto {
   discountType: CouponDiscountType;
 
   @ApiProperty()
-  @IsNumber()
-  @Min(0.01)
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
   discountValue: number;
 
   @ApiProperty({ default: 0 })
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   minOrderAmount: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   maxDiscount?: number | null;
 

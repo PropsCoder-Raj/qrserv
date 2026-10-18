@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum ItemType {
   FOOD = 'food',
@@ -23,7 +24,7 @@ export class CustomizationOption {
   emoji: string;
 
   @ApiPropertyOptional({ default: 0 })
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   priceDelta: number;
 }
 export const CustomizationOptionSchema =
@@ -62,7 +63,7 @@ export class MenuItem {
   ingredients: string;
 
   @ApiProperty()
-  @Prop({ required: true })
+  @Prop({ required: true, type: Number, set: mongoose3DecimalSetter })
   price: number;
 
   @ApiPropertyOptional({ enum: PriceDropType })
@@ -70,7 +71,7 @@ export class MenuItem {
   discountType?: PriceDropType;
 
   @ApiPropertyOptional({ default: 0 })
-  @Prop({ min: 0, default: 0 })
+  @Prop({ min: 0, default: 0, type: Number, set: mongoose3DecimalSetter })
   discountValue: number;
 
   @ApiProperty()

@@ -11,6 +11,7 @@ import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import couponService from '../services/couponService';
 import restaurantService from '../services/restaurantService';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const emptyForm = {
   code: '',
@@ -167,10 +168,10 @@ export default function Coupons() {
       key: 'discount',
       label: 'Discount',
       render: (coupon) => coupon.discountType === 'percentage'
-        ? `${coupon.discountValue}%${coupon.maxDiscount != null ? ` (max ${coupon.maxDiscount})` : ''}`
-        : `${coupon.discountValue}`,
+        ? `${coupon.discountValue}%${coupon.maxDiscount != null ? ` (max ${formatCurrency(coupon.maxDiscount)})` : ''}`
+        : `${formatCurrency(coupon.discountValue)}`,
     },
-    { key: 'minOrderAmount', label: 'Minimum Order', render: (coupon) => `${coupon.minOrderAmount}` },
+    { key: 'minOrderAmount', label: 'Minimum Order', render: (coupon) => `${formatCurrency(coupon.minOrderAmount)}` },
     {
       key: 'usageCount',
       label: 'Usage',
@@ -264,16 +265,16 @@ export default function Coupons() {
             </label>
             <label className="text-sm font-medium text-slate-700">
               Discount Value *
-              <input type="number" min="0.01" step="0.01" max={form.discountType === 'percentage' ? 100 : undefined} value={form.discountValue} onChange={(event) => setField('discountValue', event.target.value)} required className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
+              <input type="number" min="0.001" step="0.001" max={form.discountType === 'percentage' ? 100 : undefined} value={form.discountValue} onChange={(event) => setField('discountValue', event.target.value)} required className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
             </label>
             <label className="text-sm font-medium text-slate-700">
               Minimum Order Amount
-              <input type="number" min="0" step="0.01" value={form.minOrderAmount} onChange={(event) => setField('minOrderAmount', event.target.value)} className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
+              <input type="number" min="0" step="0.001" value={form.minOrderAmount} onChange={(event) => setField('minOrderAmount', event.target.value)} className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
             </label>
             {form.discountType === 'percentage' && (
               <label className="text-sm font-medium text-slate-700">
                 Maximum Discount
-                <input type="number" min="0" step="0.01" value={form.maxDiscount} onChange={(event) => setField('maxDiscount', event.target.value)} className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
+                <input type="number" min="0" step="0.001" value={form.maxDiscount} onChange={(event) => setField('maxDiscount', event.target.value)} className="mt-1.5 w-full rounded-lg border border-stroke px-3 py-2.5 outline-none focus:border-primary" />
               </label>
             )}
             <label className="text-sm font-medium text-slate-700">

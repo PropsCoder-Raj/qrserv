@@ -36,7 +36,7 @@ export class CreateSubscriptionDto {
 
   @ApiProperty({ example: 999 })
   @IsNotEmpty()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   price: number;
 
   @ApiPropertyOptional({
@@ -54,7 +54,7 @@ export class CreateSubscriptionDto {
       'Discount value. When discountType=flat =>  amount. When percentage => 0-100.',
   })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   discountValue?: number;
 
   @ApiPropertyOptional({

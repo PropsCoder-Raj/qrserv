@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import orderService from '../services/orderService';
 import Loader from '../components/Loader';
 import generateBillPdf from '../utils/generateBillPdf';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -176,7 +177,7 @@ export default function OrderHistory() {
                       </button>
                     )}
                     <span className="text-sm font-bold text-primary">
-                    {order.totalAmount}
+                    {formatCurrency(order.totalAmount)}
                     </span>
                   </div>
                 </div>

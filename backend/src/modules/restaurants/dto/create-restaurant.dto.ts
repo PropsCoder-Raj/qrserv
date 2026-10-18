@@ -10,6 +10,7 @@ import {
   IsString,
   Matches,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
@@ -76,6 +77,21 @@ export class CreateRestaurantDto {
   @IsString()
   vat_no?: string;
 
+  @ApiPropertyOptional({ example: '1002345678' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  cr_number?: string;
+
+  @ApiPropertyOptional({
+    example:
+      'TRN: 100203040500003 | Authentic Mediterranean Cuisine | Welcome!',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  receipt_header_note?: string;
+
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
@@ -83,7 +99,7 @@ export class CreateRestaurantDto {
 
   @ApiPropertyOptional({ example: 5 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   @Max(100)
   taxRate?: number;
@@ -100,7 +116,7 @@ export class CreateRestaurantDto {
 
   @ApiPropertyOptional({ example: 20 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   @Max(100)
   vatRate?: number;

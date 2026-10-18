@@ -32,6 +32,7 @@ import orderService from '../services/orderService';
 import subscriptionService from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const PIE_COLORS = [
   '#3c50e0',
@@ -644,9 +645,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Subscription Revenue"
-                value={`${Number(
-                  subSummary.totalRevenue || 0,
-                ).toLocaleString('en-IN')}`}
+                value={formatCurrency(subSummary.totalRevenue || 0)}
                 icon={HiCash}
                 color="cyan"
               />
@@ -873,7 +872,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Served Sales"
-                value={`${stats.totalServedSales.toLocaleString()}`}
+                value={formatCurrency(stats.totalServedSales)}
                 icon={HiOutlineCurrencyRupee}
                 color="green"
               />
@@ -943,7 +942,7 @@ export default function Dashboard() {
                   <Tooltip
                     formatter={(value, name) => [
                       name === 'revenue'
-                        ? `${Number(value).toLocaleString()}`
+                        ? formatCurrency(value)
                         : value,
                       name === 'revenue' ? 'Revenue' : 'Orders',
                     ]}
@@ -1092,7 +1091,7 @@ export default function Dashboard() {
                             {order.customerName || '-'}
                           </td>
                           <td className="px-4 py-3">
-                           {order.totalAmount}
+                            {formatCurrency(order.totalAmount)}
                           </td>
                           <td className="px-4 py-3">
                             <StatusBadge status={order.status} />

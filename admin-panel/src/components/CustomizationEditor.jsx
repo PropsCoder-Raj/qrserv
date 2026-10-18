@@ -75,7 +75,7 @@ function OptionGroupEditor({ title, hint, options, presets, onChange, showPrice 
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.001"
                   value={opt.priceDelta ?? 0}
                   onChange={(e) => updateOption(idx, { priceDelta: Number(e.target.value) })}
                   placeholder="+Price"

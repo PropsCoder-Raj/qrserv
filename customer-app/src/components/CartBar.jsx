@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineShoppingBag } from 'react-icons/hi';
 import { useCart } from '../contexts/CartContext';
+import { formatCurrency } from '../utils/formatCurrency';
 
 export default function CartBar() {
   const { totalItems, grandTotal } = useCart();
@@ -35,7 +36,7 @@ export default function CartBar() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold text-white">
-                {grandTotal}
+                {formatCurrency(grandTotal)}
               </span>
               <span className="text-xs font-medium text-white/70">
                 View Cart →

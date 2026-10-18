@@ -9,6 +9,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import DatePresetFilter from '../components/DatePresetFilter';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const CUSTOMER_DATA_OPTIONS = [
   { value: 'none', label: 'No' },
@@ -221,13 +222,13 @@ export default function Subscriptions() {
 
   const columns = [
     { key: 'name', label: 'Plan Name', sortable: true, render: (s) => <span className="font-medium">{s.name}</span> },
-    { key: 'price', label: 'Price', sortable: true, render: (s) => s.price === 0 ? 'Free' : `${s.price}` },
+    { key: 'price', label: 'Price', sortable: true, render: (s) => s.price === 0 ? 'Free' : `${formatCurrency(s.price)}` },
     {
       key: 'discount',
       label: 'Discount',
       render: (s) => {
         if (!s.discountType || s.discountType === 'none' || !s.discountValue) return '—';
-        return s.discountType === 'flat' ? `${s.discountValue}` : `${s.discountValue}%`;
+        return s.discountType === 'flat' ? `${formatCurrency(s.discountValue)}` : `${s.discountValue}%`;
       },
     },
     { key: 'duration', label: 'Duration', sortable: true, render: (s) => `${s.duration} days` },
@@ -407,7 +408,7 @@ export default function Subscriptions() {
                         </td>
                         <td className="px-5 py-4 font-medium text-slate-800">{record.planName}</td>
                         <td className="px-5 py-4 text-slate-600">
-                          {record.price === 0 ? 'Free' : `${record.price.toLocaleString()}`}
+                          {record.price === 0 ? 'Free' : `${formatCurrency(record.price)}`}
                         </td>
                         <td className="px-5 py-4 text-slate-600">{record.duration} days</td>
                         <td className="px-5 py-4 text-slate-600">
@@ -495,8 +496,8 @@ export default function Subscriptions() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Price () *</label>
-              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Price *</label>
+              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" step="0.001" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Duration (days) *</label>
@@ -658,6 +659,7 @@ export default function Subscriptions() {
                 onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
                 disabled={form.discountType === 'none'}
                 min="0"
+                step="0.001"
                 max={form.discountType === 'percentage' ? 100 : undefined}
                 className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary disabled:bg-slate-50"
                 placeholder={
@@ -779,7 +781,7 @@ export default function Subscriptions() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Plan *</label>
             <SearchSelect
-              options={subs.map((s) => ({ value: s._id, label: `${s.name} - ${s.price}/${s.duration}d` }))}
+              options={subs.map((s) => ({ value: s._id, label: `${s.name} - ${formatCurrency(s.price)}/${s.duration}d` }))}
               value={assignForm.subscriptionId}
               onChange={(val) => setAssignForm({ ...assignForm, subscriptionId: val })}
               placeholder="Search plan..."
