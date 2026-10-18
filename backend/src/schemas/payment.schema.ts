@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
@@ -12,11 +12,11 @@ export enum PaymentSchemaStatus {
 @Schema({ timestamps: true })
 export class Payment {
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Order', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Order', required: true })
   orderId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Restaurant', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Restaurant', required: true })
   restaurantId: Types.ObjectId;
 
   @ApiProperty()

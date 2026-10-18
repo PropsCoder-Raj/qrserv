@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { MenusService } from './menus.service';
 
 describe('MenusService - subscription limits', () => {
@@ -169,5 +170,95 @@ describe('MenusService - subscription limits', () => {
       expect(result.image).toBe('/uploads/menu_items/item1.png');
     });
   });
+
+  describe('validateOrgRestaurant', () => {
+    const validRestId = new Types.ObjectId().toString();
+    const validOrgId = new Types.ObjectId().toString();
+    const otherOrgId = new Types.ObjectId().toString();
+
+    it('should pass when restaurant.organizationId is a string matching organizationId', async () => {
+      const service = {
+        restaurantModel: {
+          findById: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue({
+              _id: new Types.ObjectId(validRestId),
+              organizationId: validOrgId, // string representation
+            }),
+          }),
+        },
+        validateOrgRestaurant: (MenusService.prototype as any).validateOrgRestaurant,
+      } as any;
+
+      await expect(
+        service.validateOrgRestaurant(validRestId, validOrgId),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should pass when restaurant.organizationId is an ObjectId matching organizationId', async () => {
+      const service = {
+        restaurantModel: {
+          findById: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue({
+              _id: new Types.ObjectId(validRestId),
+              organizationId: new Types.ObjectId(validOrgId), // ObjectId representation
+            }),
+          }),
+        },
+        validateOrgRestaurant: (MenusService.prototype as any).validateOrgRestaurant,
+      } as any;
+
+      await expect(
+        service.validateOrgRestaurant(validRestId, validOrgId),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should throw ForbiddenException when organizationId does not match', async () => {
+      const service = {
+        restaurantModel: {
+          findById: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue({
+              _id: new Types.ObjectId(validRestId),
+              organizationId: otherOrgId,
+            }),
+          }),
+        },
+        validateOrgRestaurant: (MenusService.prototype as any).validateOrgRestaurant,
+      } as any;
+
+      await expect(
+        service.validateOrgRestaurant(validRestId, validOrgId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException when restaurant is not found', async () => {
+      const service = {
+        restaurantModel: {
+          findById: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue(null),
+          }),
+        },
+        validateOrgRestaurant: (MenusService.prototype as any).validateOrgRestaurant,
+      } as any;
+
+      await expect(
+        service.validateOrgRestaurant(validRestId, validOrgId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('should throw BadRequestException when IDs are invalid', async () => {
+      const service = {
+        validateOrgRestaurant: (MenusService.prototype as any).validateOrgRestaurant,
+      } as any;
+
+      await expect(
+        service.validateOrgRestaurant('invalid', validOrgId),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        service.validateOrgRestaurant(validRestId, 'invalid'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
 });
+
 

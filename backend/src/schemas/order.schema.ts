@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
@@ -104,11 +104,11 @@ export class Order {
   orderNumber: string;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Restaurant', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Restaurant', required: true })
   restaurantId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Table', required: false })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Table', required: false })
   tableId: Types.ObjectId;
 
   @ApiProperty()
@@ -135,14 +135,14 @@ export class Order {
   @Prop({
     type: [
       {
-        menuItemId: { type: Types.ObjectId, ref: 'MenuItem' },
+        menuItemId: { type: MongooseSchema.Types.ObjectId, ref: 'MenuItem' },
         name: String,
         price: { type: Number, set: mongoose3DecimalSetter },
         quantity: Number,
         status: { type: String, default: OrderItemStatus.ACTIVE },
         cancelledQuantity: { type: Number, default: 0 },
         cancelReason: { type: String, default: '' },
-        cancelledBy: { type: Types.ObjectId, ref: 'User', required: false },
+        cancelledBy: { type: MongooseSchema.Types.ObjectId, ref: 'User', required: false },
         cancelledAt: { type: Date, required: false },
         itemType: { type: String, default: 'food' },
         spiceLevel: {
@@ -229,7 +229,7 @@ export class Order {
   liquorSubtotal: number;
 
   @ApiProperty({ required: false })
-  @Prop({ type: Types.ObjectId, ref: 'Coupon', required: false })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Coupon', required: false })
   couponId?: Types.ObjectId;
 
   @ApiProperty({ required: false })

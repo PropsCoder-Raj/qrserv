@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
@@ -7,7 +7,7 @@ import { mongoose3DecimalSetter } from '../common/utils/precision';
 export class OrderStatistics {
   @ApiProperty()
   @Prop({
-    type: Types.ObjectId,
+    type: MongooseSchema.Types.ObjectId,
     ref: 'Organization',
     required: true,
     index: true,
@@ -16,7 +16,7 @@ export class OrderStatistics {
 
   @ApiProperty()
   @Prop({
-    type: Types.ObjectId,
+    type: MongooseSchema.Types.ObjectId,
     ref: 'Restaurant',
     required: true,
     index: true,

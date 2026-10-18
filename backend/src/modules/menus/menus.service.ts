@@ -65,14 +65,15 @@ export class MenusService {
     }
 
     const restaurantObjectId = new Types.ObjectId(restaurantId);
-    const organizationObjectId = new Types.ObjectId(organizationId);
     const restaurant = await this.restaurantModel
       .findById(restaurantObjectId)
       .select('organizationId');
-    if (
-      !restaurant ||
-      !restaurant.organizationId?.equals(organizationObjectId)
-    ) {
+    const restaurantOrgId =
+      (restaurant?.organizationId as any)?._id?.toString?.() ??
+      restaurant?.organizationId?.toString?.() ??
+      (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+
+    if (!restaurant || !restaurantOrgId || restaurantOrgId !== organizationId.toString()) {
       throw new ForbiddenException(
         'Restaurant does not belong to your organization',
       );

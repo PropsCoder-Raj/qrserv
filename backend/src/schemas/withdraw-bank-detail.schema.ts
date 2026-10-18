@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export enum WithdrawBankDetailType {
   PERSONAL = 'personal',
@@ -10,11 +10,11 @@ export enum WithdrawBankDetailType {
 @Schema({ timestamps: true })
 export class WithdrawBankDetail {
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Organization', required: true })
   organizationId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
   @ApiProperty({ enum: WithdrawBankDetailType, default: WithdrawBankDetailType.PERSONAL })

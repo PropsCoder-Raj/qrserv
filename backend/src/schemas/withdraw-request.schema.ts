@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum WithdrawRequestStatus {
@@ -13,11 +13,11 @@ export enum WithdrawRequestStatus {
 @Schema({ timestamps: true })
 export class WithdrawRequest {
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Organization', required: true })
   organizationId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   requestedByUserId: Types.ObjectId;
 
   @ApiProperty()
@@ -53,7 +53,7 @@ export class WithdrawRequest {
   note: string;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'WithdrawBankDetail', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'WithdrawBankDetail', default: null })
   bankDetailId: Types.ObjectId;
 
   @ApiProperty()
@@ -80,7 +80,7 @@ export class WithdrawRequest {
   status: WithdrawRequestStatus;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
   approvedByUserId: Types.ObjectId;
 
   @ApiProperty()
@@ -92,7 +92,7 @@ export class WithdrawRequest {
   approvalNote: string;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
   paidByUserId: Types.ObjectId;
 
   @ApiProperty()
