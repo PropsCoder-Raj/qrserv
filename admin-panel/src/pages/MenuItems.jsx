@@ -1,6 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineUpload } from 'react-icons/hi';
+import {
+  HiOutlinePlus,
+  HiOutlinePencil,
+  HiOutlineTrash,
+  HiOutlineUpload,
+  HiOutlinePhotograph,
+  HiOutlineX,
+  HiOutlineRefresh,
+  HiOutlineCheck,
+} from 'react-icons/hi';
 import menuService from '../services/menuService';
 import restaurantService from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +20,7 @@ import ExcelImportModal from '../components/ExcelImportModal';
 import DatePresetFilter from '../components/DatePresetFilter';
 import CustomizationEditor from '../components/CustomizationEditor';
 import { getMenuItemSalePrice } from '../utils/menuItemPricing';
+import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 
 export default function MenuItems() {
   const { user } = useAuth();
@@ -21,8 +31,28 @@ export default function MenuItems() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const fileInputRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const defaultCustomization = { spiceLevels: [], addOns: [], allowSpecialInstructions: true };
-  const [form, setForm] = useState({ name: '', description: '', ingredients: '', price: '', discountType: '', discountValue: '', categoryId: '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
+  const initialFormState = {
+    name: '',
+    description: '',
+    ingredients: '',
+    price: '',
+    discountType: '',
+    discountValue: '',
+    categoryId: '',
+    isVeg: false,
+    preparationTime: 15,
+    itemType: 'food',
+    imageFile: null,
+    imagePreview: '',
+    removeImage: false,
+    originalImage: '',
+    customization: defaultCustomization,
+  };
+  const [form, setForm] = useState(initialFormState);
   const [importOpen, setImportOpen] = useState(false);
 
   // Pagination, search, sort state
@@ -83,7 +113,11 @@ export default function MenuItems() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', description: '', ingredients: '', price: '', discountType: '', discountValue: '', categoryId: categories[0]?._id || '', isVeg: false, preparationTime: 15, itemType: 'food', imageFile: null, imagePreview: '', customization: defaultCustomization });
+    setForm({
+      ...initialFormState,
+      categoryId: categories[0]?._id || '',
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setModalOpen(true);
   };
 
@@ -102,13 +136,60 @@ export default function MenuItems() {
       itemType: item.itemType || 'food',
       imageFile: null,
       imagePreview: item.image || '',
+      removeImage: false,
+      originalImage: item.image || '',
       customization: {
         spiceLevels: item.customization?.spiceLevels || [],
         addOns: item.customization?.addOns || [],
         allowSpecialInstructions: item.customization?.allowSpecialInstructions !== false,
       },
     });
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setModalOpen(true);
+  };
+
+  const handleFileSelect = (file) => {
+    if (!file) return;
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only PNG, JPG, JPEG, and WEBP files are allowed');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setForm((prev) => ({
+      ...prev,
+      imageFile: file,
+      imagePreview: previewUrl,
+      removeImage: false,
+    }));
+  };
+
+  const handleRemoveImage = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setForm((prev) => ({
+      ...prev,
+      imageFile: null,
+      imagePreview: '',
+      removeImage: Boolean(prev.originalImage),
+    }));
+  };
+
+  const handleUndoRemoveImage = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setForm((prev) => ({
+      ...prev,
+      imageFile: null,
+      imagePreview: prev.originalImage,
+      removeImage: false,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -137,8 +218,15 @@ export default function MenuItems() {
         itemType: form.itemType,
         customization: form.customization,
       };
+
       if (editing) {
+        if (form.removeImage) {
+          payload.remove_image = true;
+          payload.image = null;
+        }
+
         await menuService.updateMenuItem(editing._id, payload);
+
         if (form.imageFile) {
           await menuService.uploadMenuItemImage(editing._id, form.imageFile);
         }
@@ -199,10 +287,10 @@ export default function MenuItems() {
     { key: 'price', label: 'Price', sortable: true, render: (r) => (
       r.discountType ? (
         <div>
-          <span className="mr-2 text-xs text-slate-400 line-through">{r.price}</span>
-          <span className="font-semibold text-green-700">{getMenuItemSalePrice(r).toFixed(2)}</span>
+          <span className="mr-2 text-xs text-slate-400 line-through">{formatCurrency(r.price)}</span>
+          <span className="font-semibold text-green-700">{formatCurrency(getMenuItemSalePrice(r))}</span>
         </div>
-      ) : `${r.price}`
+      ) : `${formatCurrency(r.price)}`
     ) },
     { key: 'categoryId', label: 'Category', render: (r) => getCategoryName(r.categoryId) },
     { key: 'isVeg', label: 'Veg/Non-Veg', render: (r) => (
@@ -299,7 +387,7 @@ export default function MenuItems() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Price *</label>
-              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" step="0.01" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" step="0.001" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
               <div className="mt-3">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Discount / Price Drop</label>
                 <select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: e.target.value, discountValue: e.target.value ? form.discountValue : '' })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary">
@@ -314,15 +402,15 @@ export default function MenuItems() {
                     </label>
                     <input
                       type="number"
-                      min="0.01"
+                      min="0.001"
                       max={form.discountType === 'percentage' ? 100 : undefined}
-                      step="0.01"
+                      step="0.001"
                       required
                       value={form.discountValue}
                       onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
                       className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
                     />
-                    <p className="mt-1 text-xs text-green-700">Price after discount: {getMenuItemSalePrice({ price: form.price, discountType: form.discountType, discountValue: form.discountValue }).toFixed(2)}</p>
+                    <p className="mt-1 text-xs text-green-700">Price after discount: {formatCurrency(getMenuItemSalePrice({ price: form.price, discountType: form.discountType, discountValue: form.discountValue }))}</p>
                   </div>
                 )}
               </div>
@@ -338,21 +426,21 @@ export default function MenuItems() {
                   let basePrice, vat, total;
                   if (vatType === 'inclusive') {
                     total = price;
-                    basePrice = Math.round(price / (1 + vatR / 100) * 100) / 100;
-                    vat = Math.round((total - basePrice) * 100) / 100;
+                    basePrice = roundTo3(price / (1 + vatR / 100));
+                    vat = roundTo3(total - basePrice);
                   } else {
                     basePrice = price;
-                    vat = Math.round(basePrice * vatR / 100 * 100) / 100;
-                    total = basePrice + vat;
+                    vat = roundTo3(basePrice * vatR / 100);
+                    total = roundTo3(basePrice + vat);
                   }
                   return (
                     <div className="mt-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-2.5 text-xs text-slate-600 space-y-1">
                       <p className="font-medium text-amber-700">
                         {vatType === 'inclusive' ? 'Price breakdown (VAT inclusive)' : 'Price breakdown (VAT exclusive)'}
                       </p>
-                      <div className="flex justify-between"><span>Base Price</span><span>{basePrice.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>VAT ({vatR}%)</span><span>{vat.toFixed(2)}</span></div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-amber-300 pt-1"><span>Customer Pays</span><span>{total.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Base Price</span><span>{formatCurrency(basePrice)}</span></div>
+                      <div className="flex justify-between"><span>VAT ({vatR}%)</span><span>{formatCurrency(vat)}</span></div>
+                      <div className="flex justify-between font-semibold text-slate-800 border-t border-amber-300 pt-1"><span>Customer Pays</span><span>{formatCurrency(total)}</span></div>
                     </div>
                   );
                 }
@@ -371,30 +459,30 @@ export default function MenuItems() {
                 if (!isLiquor && rest?.taxEnabled && rest.taxRate > 0 && price > 0) {
                   const taxType = rest.taxType || 'inclusive';
                   const rate = rest.taxRate;
-                  const cgstRate = Math.round(rate / 2 * 100) / 100;
-                  const sgstRate = Math.round(rate / 2 * 100) / 100;
+                  const cgstRate = roundTo3(rate / 2);
+                  const sgstRate = roundTo3(rate / 2);
                   let basePrice, cgst, sgst, total;
                   if (taxType === 'inclusive') {
                     total = price;
-                    basePrice = Math.round(price / (1 + rate / 100) * 100) / 100;
-                    const tax = Math.round((total - basePrice) * 100) / 100;
-                    cgst = Math.round(tax / 2 * 100) / 100;
-                    sgst = Math.round((tax - cgst) * 100) / 100;
+                    basePrice = roundTo3(price / (1 + rate / 100));
+                    const tax = roundTo3(total - basePrice);
+                    cgst = roundTo3(tax / 2);
+                    sgst = roundTo3(tax - cgst);
                   } else {
                     basePrice = price;
-                    cgst = Math.round(basePrice * cgstRate / 100 * 100) / 100;
-                    sgst = Math.round(basePrice * sgstRate / 100 * 100) / 100;
-                    total = basePrice + cgst + sgst;
+                    cgst = roundTo3(basePrice * cgstRate / 100);
+                    sgst = roundTo3(basePrice * sgstRate / 100);
+                    total = roundTo3(basePrice + cgst + sgst);
                   }
                   return (
                     <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-2.5 text-xs text-slate-600 space-y-1">
                       <p className="font-medium text-slate-700">
                         {taxType === 'inclusive' ? 'Price breakdown (GST inclusive)' : 'Price breakdown (GST exclusive)'}
                       </p>
-                      <div className="flex justify-between"><span>Base Price</span><span>{basePrice.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>CGST ({cgstRate}%)</span><span>{cgst.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>SGST ({sgstRate}%)</span><span>{sgst.toFixed(2)}</span></div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1"><span>Customer Pays</span><span>{total.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Base Price</span><span>{formatCurrency(basePrice)}</span></div>
+                      <div className="flex justify-between"><span>CGST ({cgstRate}%)</span><span>{formatCurrency(cgst)}</span></div>
+                      <div className="flex justify-between"><span>SGST ({sgstRate}%)</span><span>{formatCurrency(sgst)}</span></div>
+                      <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1"><span>Customer Pays</span><span>{formatCurrency(total)}</span></div>
                     </div>
                   );
                 }
@@ -446,33 +534,139 @@ export default function MenuItems() {
             onChange={(customization) => setForm({ ...form, customization })}
           />
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Item Image</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-slate-700">Item Image</label>
+              {form.imageFile && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  <HiOutlineCheck size={13} /> New image ready
+                </span>
+              )}
+            </div>
+
+            {/* Hidden file input */}
             <input
+              ref={fileInputRef}
               type="file"
               accept=".png,.jpg,.jpeg,.webp"
+              className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0] || null;
-                setForm({
-                  ...form,
-                  imageFile: file,
-                  imagePreview: file ? URL.createObjectURL(file) : form.imagePreview,
-                });
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file);
               }}
-              className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm"
             />
-            <p className="mt-1 text-xs text-slate-500">
-              PNG, JPG, JPEG, or WEBP. If an image already exists, it will be replaced.
-            </p>
-            {form.imagePreview && (
-              <img
-                src={
-                  form.imagePreview.startsWith('/uploads')
-                    ? `${import.meta.env.VITE_API_URL || ''}${form.imagePreview}`
-                    : form.imagePreview
-                }
-                alt="Menu item preview"
-                className="mt-3 h-24 w-24 rounded-lg object-cover"
-              />
+
+            {form.imagePreview ? (
+              <div className="relative overflow-hidden rounded-xl border border-stroke bg-slate-50/60 p-3.5 transition">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Thumbnail Preview with top-right remove button */}
+                  <div className="relative group shrink-0">
+                    <img
+                      src={
+                        form.imagePreview.startsWith('/uploads')
+                          ? `${import.meta.env.VITE_API_URL || ''}${form.imagePreview}`
+                          : form.imagePreview
+                      }
+                      alt="Menu item preview"
+                      className="h-28 w-28 rounded-lg object-cover border border-slate-200 bg-white shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      title="Remove image"
+                      aria-label="Remove image"
+                      className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-md hover:bg-red-700 focus:outline-none transition cursor-pointer"
+                    >
+                      <HiOutlineX size={16} />
+                    </button>
+                  </div>
+
+                  {/* Actions & details */}
+                  <div className="flex-1 text-center sm:text-left space-y-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        {form.imageFile ? form.imageFile.name : (editing?.name ? `${editing.name} Image` : 'Uploaded Image')}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {form.imageFile
+                          ? `${(form.imageFile.size / 1024).toFixed(1)} KB • Ready to save`
+                          : 'Currently active on menu & customer application'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
+                      >
+                        <HiOutlineRefresh size={14} className="text-slate-500" />
+                        Change / Replace
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/70 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 hover:text-red-700 transition cursor-pointer"
+                      >
+                        <HiOutlineTrash size={14} />
+                        Remove Image
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Subtle indicator when existing image is marked for removal */}
+                {form.removeImage && (
+                  <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+                    <div className="flex items-center gap-2">
+                      <HiOutlineTrash size={16} className="text-amber-600 shrink-0" />
+                      <span>Image marked for removal. Save changes to confirm.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleUndoRemoveImage}
+                      className="font-semibold underline hover:text-amber-950 transition cursor-pointer"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                )}
+
+                {/* Dropzone */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition ${
+                    isDragging
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-300 bg-slate-50/50 hover:border-primary/60 hover:bg-slate-100/50'
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 mb-2">
+                    <HiOutlinePhotograph size={22} />
+                  </div>
+                  <p className="text-sm font-medium text-slate-700">
+                    <span className="text-primary hover:underline font-semibold">Click or drag image to upload</span>
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    PNG, JPG, JPEG, or WEBP up to 5MB
+                  </p>
+                </div>
+              </div>
             )}
           </div>
           <div className="flex justify-end gap-3 pt-2">

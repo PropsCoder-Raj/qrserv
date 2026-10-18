@@ -20,7 +20,7 @@ export default function Layout() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role === 'manager' || user.role === 'staff') {
+  if (['captain', 'kitchen', 'manager', 'staff'].includes(user.role)) {
     return <Navigate to="/staff/orders" replace />;
   }
 

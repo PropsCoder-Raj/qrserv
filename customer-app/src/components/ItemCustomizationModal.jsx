@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HiX, HiPlus, HiMinus } from 'react-icons/hi';
 import { SPICE_EMOJI_FALLBACK, ADD_ON_EMOJI_FALLBACK } from '../utils/customizationPresets';
 import { getMenuItemSalePrice, getMenuItemDiscountLabel } from '../utils/menuItemPricing';
+import { roundTo3, formatCurrency } from '../utils/formatCurrency';
 
 export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
   const customization = item.customization || {};
@@ -26,8 +27,8 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
   const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + (Number(a.priceDelta) || 0), 0);
   const spiceDelta = Number(spiceLevel?.priceDelta) || 0;
   const saleBasePrice = getMenuItemSalePrice(item);
-  const originalUnitPrice = Math.round((Number(item.price) + addOnsTotal + spiceDelta) * 100) / 100;
-  const unitPrice = Math.round((saleBasePrice + addOnsTotal + spiceDelta) * 100) / 100;
+  const originalUnitPrice = roundTo3(Number(item.price) + addOnsTotal + spiceDelta);
+  const unitPrice = roundTo3(saleBasePrice + addOnsTotal + spiceDelta);
 
   const handleConfirm = () => {
     onConfirm(
@@ -69,8 +70,8 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
               <p className="text-xs text-text-light">Customize your order</p>
               {unitPrice < originalUnitPrice && (
                 <p className="mt-1 text-xs text-green-700">
-                  <del className="mr-1 text-text-light">{originalUnitPrice.toFixed(2)}</del>
-                  {unitPrice.toFixed(2)} · {getMenuItemDiscountLabel(item)}
+                  <del className="mr-1 text-text-light">{formatCurrency(originalUnitPrice)}</del>
+                  {formatCurrency(unitPrice)} · {getMenuItemDiscountLabel(item)}
                 </p>
               )}
             </div>
@@ -127,7 +128,7 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
                     >
                       <span>{addOn.emoji || ADD_ON_EMOJI_FALLBACK}</span>
                       <span>{addOn.name}</span>
-                      {addOn.priceDelta > 0 && <span>+{addOn.priceDelta}</span>}
+                      {addOn.priceDelta > 0 && <span>+{formatCurrency(addOn.priceDelta)}</span>}
                     </button>
                   );
                 })}
@@ -171,7 +172,7 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
             onClick={handleConfirm}
             className="w-full rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/25 active:bg-primary-dark"
           >
-            Add to Cart • {(unitPrice * quantity).toFixed(2)}
+            Add to Cart • {formatCurrency(unitPrice * quantity)}
           </button>
         </motion.div>
       </motion.div>

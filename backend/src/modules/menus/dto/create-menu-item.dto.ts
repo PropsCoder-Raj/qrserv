@@ -27,7 +27,7 @@ export class CustomizationOptionDto {
 
   @ApiPropertyOptional({ example: 20, default: 0 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   priceDelta?: number;
 }
@@ -71,7 +71,7 @@ export class CreateMenuItemDto {
 
   @ApiProperty({ example: 250 })
   @IsNotEmpty()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   price: number;
 
@@ -82,14 +82,14 @@ export class CreateMenuItemDto {
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   discountValue?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
-  image?: string;
+  image?: string | null;
 
   @ApiProperty()
   @IsNotEmpty()

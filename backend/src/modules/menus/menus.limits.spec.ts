@@ -48,4 +48,126 @@ describe('MenusService - subscription limits', () => {
       restaurantId: 'r1',
     });
   });
+
+  describe('image removal and cleanup', () => {
+    it('should remove image and unlink file when remove_image is true in updateMenuItem', async () => {
+      const mockExisting = {
+        _id: 'item1',
+        restaurantId: 'r1',
+        name: 'Burger',
+        image: '/uploads/menu_items/item1.png',
+      };
+      const mockUpdated = {
+        ...mockExisting,
+        image: null,
+      };
+
+      const removeFileSpy = jest.fn().mockResolvedValue(undefined);
+      const cleanupSpy = jest.fn().mockResolvedValue(undefined);
+
+      const service = {
+        menuItemModel: {
+          findById: jest.fn().mockResolvedValue(mockExisting),
+          findByIdAndUpdate: jest.fn().mockResolvedValue(mockUpdated),
+        },
+        cacheService: {
+          delByPrefix: jest.fn(),
+        },
+        validatePriceDrop: jest.fn(),
+        getMenuItemUploadsDir: jest.fn().mockResolvedValue('/tmp/uploads'),
+        removeMenuItemImageFile: removeFileSpy,
+        cleanupOrphanFilesByPrefix: cleanupSpy,
+        updateMenuItem: (MenusService.prototype as any).updateMenuItem,
+      } as any;
+
+      const result = await service.updateMenuItem.call(service, 'item1', {
+        remove_image: true,
+      });
+
+      expect(removeFileSpy).toHaveBeenCalledWith('/uploads/menu_items/item1.png');
+      expect(cleanupSpy).toHaveBeenCalledWith('/tmp/uploads', 'item1');
+      expect(service.menuItemModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'item1',
+        expect.objectContaining({ image: null }),
+        { new: true },
+      );
+      expect(service.cacheService.delByPrefix).toHaveBeenCalledWith('menu:r1');
+      expect(result.image).toBeNull();
+    });
+
+    it('should remove image and unlink file when removeMenuItemImage is called', async () => {
+      const mockExisting = {
+        _id: 'item1',
+        restaurantId: 'r1',
+        name: 'Burger',
+        image: '/uploads/menu_items/item1.png',
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      const removeFileSpy = jest.fn().mockResolvedValue(undefined);
+      const cleanupSpy = jest.fn().mockResolvedValue(undefined);
+
+      const service = {
+        menuItemModel: {
+          findById: jest.fn().mockResolvedValue(mockExisting),
+        },
+        cacheService: {
+          delByPrefix: jest.fn(),
+        },
+        getMenuItemUploadsDir: jest.fn().mockResolvedValue('/tmp/uploads'),
+        removeMenuItemImageFile: removeFileSpy,
+        cleanupOrphanFilesByPrefix: cleanupSpy,
+        removeMenuItemImage: (MenusService.prototype as any).removeMenuItemImage,
+      } as any;
+
+      const result = await service.removeMenuItemImage.call(service, 'item1');
+
+      expect(removeFileSpy).toHaveBeenCalledWith('/uploads/menu_items/item1.png');
+      expect(cleanupSpy).toHaveBeenCalledWith('/tmp/uploads', 'item1');
+      expect(mockExisting.image).toBeNull();
+      expect(mockExisting.save).toHaveBeenCalled();
+      expect(service.cacheService.delByPrefix).toHaveBeenCalledWith('menu:r1');
+      expect(result).toEqual({
+        message: 'Menu item image removed successfully',
+        image: null,
+      });
+    });
+
+    it('should retain image when remove_image is not provided in updateMenuItem', async () => {
+      const mockExisting = {
+        _id: 'item1',
+        restaurantId: 'r1',
+        name: 'Burger',
+        image: '/uploads/menu_items/item1.png',
+      };
+      const mockUpdated = {
+        ...mockExisting,
+        name: 'Cheeseburger',
+      };
+
+      const removeFileSpy = jest.fn();
+
+      const service = {
+        menuItemModel: {
+          findById: jest.fn().mockResolvedValue(mockExisting),
+          findByIdAndUpdate: jest.fn().mockResolvedValue(mockUpdated),
+        },
+        cacheService: {
+          delByPrefix: jest.fn(),
+        },
+        validatePriceDrop: jest.fn(),
+        removeMenuItemImageFile: removeFileSpy,
+        updateMenuItem: (MenusService.prototype as any).updateMenuItem,
+      } as any;
+
+      const result = await service.updateMenuItem.call(service, 'item1', {
+        name: 'Cheeseburger',
+      });
+
+      expect(removeFileSpy).not.toHaveBeenCalled();
+      expect(result.name).toBe('Cheeseburger');
+      expect(result.image).toBe('/uploads/menu_items/item1.png');
+    });
+  });
 });
+

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -27,7 +28,7 @@ import { CurrentUser, Roles, Role, Public } from '../../common/decorators';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('Menus')
-@Controller('api')
+@Controller(['api', 'api/admin'])
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 
@@ -44,7 +45,7 @@ export class MenusController {
 
   @Post('categories')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Create a category' })
   async createCategory(
     @Body() dto: CreateCategoryDto,
@@ -93,7 +94,7 @@ export class MenusController {
 
   @Patch('categories/:id')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Update a category' })
   updateCategory(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
     return this.menusService.updateCategory(id, dto);
@@ -101,7 +102,7 @@ export class MenusController {
 
   @Delete('categories/:id')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Delete a category' })
   removeCategory(@Param('id') id: string) {
     return this.menusService.removeCategory(id);
@@ -111,7 +112,7 @@ export class MenusController {
 
   @Post('menu-items')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Create a menu item' })
   async createMenuItem(
     @Body() dto: CreateMenuItemDto,
@@ -162,15 +163,23 @@ export class MenusController {
 
   @Patch('menu-items/:id')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Update a menu item' })
   updateMenuItem(@Param('id') id: string, @Body() dto: UpdateMenuItemDto) {
     return this.menusService.updateMenuItem(id, dto);
   }
 
+  @Put('menu-items/:id')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Update a menu item (PUT alias)' })
+  updateMenuItemPut(@Param('id') id: string, @Body() dto: UpdateMenuItemDto) {
+    return this.menusService.updateMenuItem(id, dto);
+  }
+
   @Post('menu-items/:id/image')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Upload or replace a menu item image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -205,9 +214,17 @@ export class MenusController {
     return this.menusService.uploadMenuItemImage(id, file);
   }
 
+  @Delete('menu-items/:id/image')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Remove a menu item image' })
+  removeMenuItemImage(@Param('id') id: string) {
+    return this.menusService.removeMenuItemImage(id);
+  }
+
   @Delete('menu-items/:id')
   @ApiBearerAuth()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Delete a menu item' })
   removeMenuItem(@Param('id') id: string) {
     return this.menusService.removeMenuItem(id);

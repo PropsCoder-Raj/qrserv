@@ -102,21 +102,33 @@ export class AuthService {
     };
   }
 
+  async loginCaptain(dto: PasscodeLoginDto) {
+    return this.loginWithRole(dto, UserRole.CAPTAIN);
+  }
+
+  async loginKitchen(dto: PasscodeLoginDto) {
+    return this.loginWithRole(dto, UserRole.KITCHEN);
+  }
+
   async loginManager(dto: PasscodeLoginDto) {
-    return this.loginWithRole(dto, UserRole.MANAGER);
+    return this.loginWithRole(dto, UserRole.CAPTAIN);
   }
 
   async loginStaff(dto: PasscodeLoginDto) {
-    return this.loginWithRole(dto, UserRole.STAFF);
+    return this.loginWithRole(dto, UserRole.KITCHEN);
   }
 
-  private async loginWithRole(dto: PasscodeLoginDto, role: UserRole) {
+  private async loginWithRole(
+    dto: PasscodeLoginDto,
+    role: UserRole | UserRole[],
+  ) {
     const restaurantObjectId = this.toObjectId(
       dto.restaurantId,
       'restaurantId',
     );
+    const roles = Array.isArray(role) ? role : [role];
     const query: any = {
-      role,
+      role: { $in: roles },
       isActive: true,
       restaurantId: restaurantObjectId,
       passcode: { $exists: true, $ne: null },

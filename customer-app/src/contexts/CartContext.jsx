@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getMenuItemSalePrice } from '../utils/menuItemPricing';
+import { roundTo3 } from '../utils/formatCurrency';
 
 const CartContext = createContext(null);
 
@@ -110,8 +111,8 @@ export function CartProvider({ children }) {
         ...cartItem,
         name: menuItem.name,
         itemType: menuItem.itemType || 'food',
-        price: Math.round((getMenuItemSalePrice(menuItem) + optionsPrice) * 100) / 100,
-        originalPrice: Math.round((Number(menuItem.price) + optionsPrice) * 100) / 100,
+        price: roundTo3(getMenuItemSalePrice(menuItem) + optionsPrice),
+        originalPrice: roundTo3(Number(menuItem.price) + optionsPrice),
         discountType: menuItem.discountType || '',
         discountValue: Number(menuItem.discountValue) || 0,
       };
@@ -151,37 +152,37 @@ export function CartProvider({ children }) {
 
   // Food items — GST (CGST + SGST)
   if (taxEnabled && taxRate > 0 && foodTotal > 0) {
-    cgstRate = Math.round(taxRate / 2 * 100) / 100;
-    sgstRate = Math.round(taxRate / 2 * 100) / 100;
+    cgstRate = roundTo3(taxRate / 2);
+    sgstRate = roundTo3(taxRate / 2);
 
     if (taxType === 'inclusive') {
-      foodSubtotal = Math.round(foodTotal / (1 + taxRate / 100) * 100) / 100;
-      const gstTax = Math.round((foodTotal - foodSubtotal) * 100) / 100;
-      cgstAmount = Math.round(gstTax / 2 * 100) / 100;
-      sgstAmount = Math.round((gstTax - cgstAmount) * 100) / 100;
+      foodSubtotal = roundTo3(foodTotal / (1 + taxRate / 100));
+      const gstTax = roundTo3(foodTotal - foodSubtotal);
+      cgstAmount = roundTo3(gstTax / 2);
+      sgstAmount = roundTo3(gstTax - cgstAmount);
     } else {
-      foodSubtotal = foodTotal;
-      cgstAmount = Math.round(foodSubtotal * cgstRate / 100 * 100) / 100;
-      sgstAmount = Math.round(foodSubtotal * sgstRate / 100 * 100) / 100;
+      foodSubtotal = roundTo3(foodTotal);
+      cgstAmount = roundTo3((foodSubtotal * cgstRate) / 100);
+      sgstAmount = roundTo3((foodSubtotal * sgstRate) / 100);
     }
   }
 
   // Liquor items — VAT (single tax)
   if (vatEnabled && vatRate > 0 && liquorTotal > 0) {
     if (vatType === 'inclusive') {
-      liquorSubtotal = Math.round(liquorTotal / (1 + vatRate / 100) * 100) / 100;
-      vatAmount = Math.round((liquorTotal - liquorSubtotal) * 100) / 100;
+      liquorSubtotal = roundTo3(liquorTotal / (1 + vatRate / 100));
+      vatAmount = roundTo3(liquorTotal - liquorSubtotal);
     } else {
-      liquorSubtotal = liquorTotal;
-      vatAmount = Math.round(liquorSubtotal * vatRate / 100 * 100) / 100;
+      liquorSubtotal = roundTo3(liquorTotal);
+      vatAmount = roundTo3((liquorSubtotal * vatRate) / 100);
     }
   }
 
   // Combined totals
-  subtotalAmount = foodSubtotal + liquorSubtotal;
-  taxAmount = (cgstAmount + sgstAmount) + vatAmount;
-  totalAmount = itemTotal;
-  grandTotal = Math.round((subtotalAmount + taxAmount) * 100) / 100;
+  subtotalAmount = roundTo3(foodSubtotal + liquorSubtotal);
+  taxAmount = roundTo3((cgstAmount + sgstAmount) + vatAmount);
+  totalAmount = roundTo3(itemTotal);
+  grandTotal = roundTo3(subtotalAmount + taxAmount);
 
   const setTableInfo = (rId, tId, nextOrderType) => {
     setRestaurantId(rId);

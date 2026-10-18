@@ -21,7 +21,7 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { getDateRangeFromPreset } from '../../common/utils/date-range';
 
 const isStaffRole = (role: string) =>
-  role === UserRole.MANAGER || role === UserRole.STAFF;
+  role === UserRole.CAPTAIN || role === UserRole.KITCHEN;
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -369,7 +369,12 @@ export class UsersService implements OnModuleInit {
   ) {
     const query: any = {
       restaurantId,
-      role: { $in: [UserRole.MANAGER, UserRole.STAFF] },
+      role: {
+        $in: [
+          UserRole.CAPTAIN,
+          UserRole.KITCHEN,
+        ],
+      },
       passcode: { $exists: true, $ne: null },
     };
     if (excludeUserId) {

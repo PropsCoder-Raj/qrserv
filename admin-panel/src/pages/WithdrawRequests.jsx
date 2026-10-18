@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import withdrawRequestService from '../services/withdrawRequestService';
+import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 
 const STATUS_OPTIONS = ['pending', 'approved', 'paid'];
 const BANK_DETAIL_TYPES = ['personal', 'other'];
@@ -110,17 +111,17 @@ export default function WithdrawRequests() {
     ? 'Raise a withdraw request'
     : 'Withdraw request is disabled because available request amount is0';
   const requestedAmount = Number(createForm.amount || 0);
-  const withdrawChargeBaseAmount = Number(
-    ((requestedAmount * withdrawChargePercentage) / 100).toFixed(2),
+  const withdrawChargeBaseAmount = roundTo3(
+    (requestedAmount * withdrawChargePercentage) / 100,
   );
-  const withdrawChargeGstAmount = Number(
-    ((withdrawChargeBaseAmount * withdrawChargeGstPercentage) / 100).toFixed(2),
+  const withdrawChargeGstAmount = roundTo3(
+    (withdrawChargeBaseAmount * withdrawChargeGstPercentage) / 100,
   );
-  const withdrawChargeAmount = Number(
-    (withdrawChargeBaseAmount + withdrawChargeGstAmount).toFixed(2),
+  const withdrawChargeAmount = roundTo3(
+    withdrawChargeBaseAmount + withdrawChargeGstAmount,
   );
-  const withdrawNetAmount = Number(
-    Math.max(0, requestedAmount - withdrawChargeAmount).toFixed(2),
+  const withdrawNetAmount = roundTo3(
+    Math.max(0, requestedAmount - withdrawChargeAmount),
   );
 
   const load = useCallback(async () => {
@@ -401,22 +402,22 @@ export default function WithdrawRequests() {
         <div className="space-y-1 rounded-lg bg-slate-50 p-2">
           <div className="text-xs text-slate-500">
             {isOrgAdmin ? 'Requested Amount' : 'Requested Amount'}: Rs{' '}
-            {Number(item.amount || 0).toLocaleString('en-IN')}
+            {formatCurrency(item.amount)}
           </div>
           <div className="text-xs text-slate-500">
             {isOrgAdmin ? 'Total Charge' : 'Charge'}: Rs{' '}
-            {Number(item.chargeAmount || 0).toLocaleString('en-IN')}
+            {formatCurrency(item.chargeAmount)}
           </div>
           {Number(item.chargeBaseAmount || 0) > 0 && (
             <div className="text-xs text-slate-400">
-              Razorpay{Number(item.chargeBaseAmount || 0).toLocaleString('en-IN')}
+              Razorpay Rs {formatCurrency(item.chargeBaseAmount)}
               {' + '}
-              GST{Number(item.chargeGstAmount || 0).toLocaleString('en-IN')}
+              GST Rs {formatCurrency(item.chargeGstAmount)}
             </div>
           )}
           <div className="text-sm font-bold text-slate-800">
             {isOrgAdmin ? 'Net Amount' : 'Payable Amount'}: Rs{' '}
-            {Number(item.netAmount || item.amount || 0).toLocaleString('en-IN')}
+            {formatCurrency(item.netAmount || item.amount)}
           </div>
         </div>
       ),
@@ -568,19 +569,19 @@ export default function WithdrawRequests() {
           <div className="rounded-xl border border-stroke bg-card p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Razorpay Collected</div>
             <div className="mt-2 text-2xl font-bold text-slate-800">
-             {Number(summary.razorpayCollectedAmount || 0).toLocaleString('en-IN')}
+             Rs {formatCurrency(summary.razorpayCollectedAmount)}
             </div>
           </div>
           <div className="rounded-xl border border-stroke bg-card p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Withdraw Paid</div>
             <div className="mt-2 text-2xl font-bold text-slate-800">
-             {Number(summary.paidWithdrawAmount || 0).toLocaleString('en-IN')}
+             Rs {formatCurrency(summary.paidWithdrawAmount)}
             </div>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-wide text-emerald-700">Available Request Amount</div>
             <div className="mt-2 text-2xl font-bold text-emerald-800">
-             {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+             Rs {formatCurrency(summary.availableAmount)}
             </div>
           </div>
         </div>
@@ -616,7 +617,7 @@ export default function WithdrawRequests() {
               Total Available Request Amount
             </div>
             <div className="mt-1 text-2xl font-bold text-emerald-800">
-             {Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+             Rs {formatCurrency(summary.availableAmount)}
             </div>
             <p className="mt-1 text-xs text-emerald-700">
               Calculation: Razorpay paid orders - paid withdraw requests
@@ -626,16 +627,16 @@ export default function WithdrawRequests() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Amount *</label>
             <input
               type="number"
-              min="1"
+              min="0.001"
               max={Number(summary.availableAmount || 0)}
-              step="0.01"
+              step="0.001"
               required
               value={createForm.amount}
               onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
               className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <p className="mt-1 text-xs text-slate-500">
-              You can request up to{Number(summary.availableAmount || 0).toLocaleString('en-IN')}
+              You can request up to Rs {formatCurrency(summary.availableAmount)}
             </p>
           </div>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -643,20 +644,20 @@ export default function WithdrawRequests() {
               Withdraw Calculation
             </div>
             <div className="mt-2 space-y-1 text-sm text-amber-900">
-              <div>Requested Amount:{requestedAmount.toLocaleString('en-IN')}</div>
+              <div>Requested Amount: Rs {formatCurrency(requestedAmount)}</div>
               <div>
                 Razorpay Charge ({withdrawChargePercentage}%): Rs{' '}
-                {withdrawChargeBaseAmount.toLocaleString('en-IN')}
+                {formatCurrency(withdrawChargeBaseAmount)}
               </div>
               <div>
                 GST on Razorpay Charge ({withdrawChargeGstPercentage}%): Rs{' '}
-                {withdrawChargeGstAmount.toLocaleString('en-IN')}
+                {formatCurrency(withdrawChargeGstAmount)}
               </div>
               <div>
-                Total Deduction:{withdrawChargeAmount.toLocaleString('en-IN')}
+                Total Deduction: Rs {formatCurrency(withdrawChargeAmount)}
               </div>
               <div className="font-semibold">
-                Withdraw Amount:{withdrawNetAmount.toLocaleString('en-IN')}
+                Withdraw Amount: Rs {formatCurrency(withdrawNetAmount)}
               </div>
             </div>
             <p className="mt-2 text-xs text-amber-700">
@@ -846,9 +847,9 @@ export default function WithdrawRequests() {
         <form onSubmit={submitApprove} className="space-y-4">
           <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
             Approving payable amount of Rs{' '}
-            {Number(
-              approveModal.request?.netAmount || approveModal.request?.amount || 0,
-            ).toLocaleString('en-IN')}
+            {formatCurrency(
+              approveModal.request?.netAmount || approveModal.request?.amount,
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Approval Note</label>
@@ -886,9 +887,9 @@ export default function WithdrawRequests() {
         <form onSubmit={submitPaid} className="space-y-4">
           <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
             Payment for Rs{' '}
-            {Number(
-              payModal.request?.netAmount || payModal.request?.amount || 0,
-            ).toLocaleString('en-IN')}
+            {formatCurrency(
+              payModal.request?.netAmount || payModal.request?.amount,
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Payment Reference</label>

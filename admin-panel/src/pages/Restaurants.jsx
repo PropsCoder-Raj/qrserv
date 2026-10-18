@@ -22,7 +22,26 @@ export default function Restaurants() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', owner_name: '', restaurant_type: 'dining', description: '', address: '', phone: '', email: '', gst_no: '', vat_no: '', taxEnabled: false, taxRate: 0, taxType: 'inclusive', vatEnabled: false, vatRate: 0, vatType: 'inclusive', organizationId: '' });
+  const [form, setForm] = useState({
+    name: '',
+    owner_name: '',
+    restaurant_type: 'dining',
+    description: '',
+    address: '',
+    phone: '',
+    email: '',
+    cr_number: '',
+    receipt_header_note: '',
+    gst_no: '',
+    vat_no: '',
+    taxEnabled: false,
+    taxRate: 0,
+    taxType: 'inclusive',
+    vatEnabled: false,
+    vatRate: 0,
+    vatType: 'inclusive',
+    organizationId: '',
+  });
   const [qrModal, setQrModal] = useState({ open: false, restaurant: null, managerQr: '', staffQr: '', customerQr: '', pdfQr: '', managerUrl: '', staffUrl: '', customerUrl: '', pdfUrl: '' });
   const [importOpen, setImportOpen] = useState(false);
   const [importOrgId, setImportOrgId] = useState('');
@@ -97,13 +116,51 @@ export default function Restaurants() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', owner_name: '', restaurant_type: 'dining', description: '', address: '', phone: '', email: '', gst_no: '', vat_no: '', taxEnabled: false, taxRate: 0, taxType: 'inclusive', vatEnabled: false, vatRate: 0, vatType: 'inclusive', organizationId: organizations[0]?._id || '' });
+    setForm({
+      name: '',
+      owner_name: '',
+      restaurant_type: 'dining',
+      description: '',
+      address: '',
+      phone: '',
+      email: '',
+      cr_number: '',
+      receipt_header_note: '',
+      gst_no: '',
+      vat_no: '',
+      taxEnabled: false,
+      taxRate: 0,
+      taxType: 'inclusive',
+      vatEnabled: false,
+      vatRate: 0,
+      vatType: 'inclusive',
+      organizationId: organizations[0]?._id || '',
+    });
     setModalOpen(true);
   };
 
   const openEdit = (r) => {
     setEditing(r);
-    setForm({ name: r.name, owner_name: r.owner_name || '', restaurant_type: r.restaurant_type || 'dining', description: r.description || '', address: r.address || '', phone: r.phone || '', email: r.email || '', gst_no: r.gst_no || '', vat_no: r.vat_no || '', taxEnabled: r.taxEnabled || false, taxRate: r.taxRate || 0, taxType: r.taxType || 'inclusive', vatEnabled: r.vatEnabled || false, vatRate: r.vatRate || 0, vatType: r.vatType || 'inclusive', organizationId: r.organizationId?._id || r.organizationId || '' });
+    setForm({
+      name: r.name || '',
+      owner_name: r.owner_name || '',
+      restaurant_type: r.restaurant_type || 'dining',
+      description: r.description || '',
+      address: r.address || '',
+      phone: r.phone || '',
+      email: r.email || '',
+      cr_number: r.cr_number || '',
+      receipt_header_note: r.receipt_header_note || '',
+      gst_no: r.gst_no || '',
+      vat_no: r.vat_no || '',
+      taxEnabled: r.taxEnabled || false,
+      taxRate: r.taxRate || 0,
+      taxType: r.taxType || 'inclusive',
+      vatEnabled: r.vatEnabled || false,
+      vatRate: r.vatRate || 0,
+      vatType: r.vatType || 'inclusive',
+      organizationId: r.organizationId?._id || r.organizationId || '',
+    });
     setModalOpen(true);
   };
 
@@ -147,8 +204,8 @@ export default function Restaurants() {
   const showQrCodes = async (r) => {
     try {
       const origin = window.location.origin;
-      const managerUrl = `${origin}/manager-login/${r._id}`;
-      const staffUrl = `${origin}/staff-login/${r._id}`;
+      const managerUrl = `${origin}/captain-login/${r._id}`;
+      const staffUrl = `${origin}/kitchen-login/${r._id}`;
       const customerUrl = `${CUSTOMER_APP_URL}/restaurant/${r._id}`;
       const pdfUrl = `${CUSTOMER_APP_URL}/restaurant/${r._id}/menu-pdf`;
       const menuPdfAccess = getMenuPdfAccess(r);
@@ -361,6 +418,41 @@ export default function Restaurants() {
             <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
           </div>
           <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">CR Number</label>
+            <input
+              value={form.cr_number}
+              onChange={(e) => setForm({ ...form, cr_number: e.target.value })}
+              placeholder="e.g., 1002345678"
+              maxLength={100}
+              className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-slate-700">
+                Invoice Header Note
+              </label>
+              <span className="text-xs text-slate-400">
+                {(form.receipt_header_note || '').length}/120
+              </span>
+            </div>
+            <input
+              value={form.receipt_header_note}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  receipt_header_note: e.target.value.slice(0, 120),
+                })
+              }
+              maxLength={120}
+              placeholder="e.g., TRN: 100203040500003 | Authentic Mediterranean Cuisine | Welcome!"
+              className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Single-line note displayed directly below the Restaurant Name on invoice & receipt PDFs.
+            </p>
+          </div>
+          <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">GST No.</label>
             <input value={form.gst_no} onChange={(e) => setForm({ ...form, gst_no: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
           </div>
@@ -380,10 +472,10 @@ export default function Restaurants() {
                 <>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">Total GST Rate (%)</label>
-                    <input type="number" min="0" max="100" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="number" min="0" max="100" step="0.001" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: parseFloat(e.target.value) || 0 })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     {form.taxRate > 0 && (
                       <p className="mt-1 text-xs text-slate-500">
-                        CGST: {(form.taxRate / 2).toFixed(2)}% + SGST: {(form.taxRate / 2).toFixed(2)}%
+                        CGST: {(form.taxRate / 2).toFixed(3)}% + SGST: {(form.taxRate / 2).toFixed(3)}%
                       </p>
                     )}
                   </div>
@@ -423,7 +515,7 @@ export default function Restaurants() {
                 <>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">VAT Rate (%)</label>
-                    <input type="number" min="0" max="100" step="0.01" value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: parseFloat(e.target.value) || 0 })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="number" min="0" max="100" step="0.001" value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: parseFloat(e.target.value) || 0 })} className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">VAT Type</label>
@@ -452,21 +544,21 @@ export default function Restaurants() {
       {/* QR Codes Modal */}
       <Modal isOpen={qrModal.open} onClose={() => setQrModal({ open: false, restaurant: null, managerQr: '', staffQr: '', customerQr: '', pdfQr: '', managerUrl: '', staffUrl: '', customerUrl: '', pdfUrl: '' })} title={`QR Codes — ${qrModal.restaurant?.name || ''}`}>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-5">
-          {/* Manager QR */}
+          {/* Captain QR */}
           <div className="flex flex-col items-center gap-3">
-            <h3 className="text-sm font-semibold text-blue-600">Manager Login</h3>
-            {qrModal.managerQr && <img src={qrModal.managerQr} alt="Manager QR" className="h-40 w-40" />}
+            <h3 className="text-sm font-semibold text-blue-600">Captain Login</h3>
+            {qrModal.managerQr && <img src={qrModal.managerQr} alt="Captain QR" className="h-40 w-40" />}
             <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">{qrModal.managerUrl}</p>
-            <button onClick={() => downloadQr(qrModal.managerQr, 'manager-login')} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 cursor-pointer">
+            <button onClick={() => downloadQr(qrModal.managerQr, 'captain-login')} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 cursor-pointer">
               <HiOutlineDownload size={14} /> Download
             </button>
           </div>
-          {/* Staff QR */}
+          {/* Kitchen QR */}
           <div className="flex flex-col items-center gap-3">
-            <h3 className="text-sm font-semibold text-green-600">Staff Login</h3>
-            {qrModal.staffQr && <img src={qrModal.staffQr} alt="Staff QR" className="h-40 w-40" />}
+            <h3 className="text-sm font-semibold text-green-600">Kitchen Login</h3>
+            {qrModal.staffQr && <img src={qrModal.staffQr} alt="Kitchen QR" className="h-40 w-40" />}
             <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">{qrModal.staffUrl}</p>
-            <button onClick={() => downloadQr(qrModal.staffQr, 'staff-login')} className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 cursor-pointer">
+            <button onClick={() => downloadQr(qrModal.staffQr, 'kitchen-login')} className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 cursor-pointer">
               <HiOutlineDownload size={14} /> Download
             </button>
           </div>
@@ -508,7 +600,10 @@ export default function Restaurants() {
           { key: 'address', label: 'Address', required: true },
           { key: 'phone', label: 'Phone' },
           { key: 'email', label: 'Email' },
+          { key: 'cr_number', label: 'CR Number' },
+          { key: 'receipt_header_note', label: 'Invoice Header Note' },
           { key: 'gst_no', label: 'GST No' },
+          { key: 'vat_no', label: 'VAT No' },
         ]}
         onImport={(row) => {
           const type = (row.restaurant_type || '').toLowerCase().trim();

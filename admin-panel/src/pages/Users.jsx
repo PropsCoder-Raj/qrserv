@@ -10,13 +10,13 @@ import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import DatePresetFilter from '../components/DatePresetFilter';
 
-const ALL_ROLES = ['super_admin', 'org_admin', 'restaurant_owner', 'manager', 'staff'];
+const ALL_ROLES = ['super_admin', 'org_admin', 'restaurant_owner', 'captain', 'kitchen'];
 
 function getAllowedRoles(currentRole) {
   if (currentRole === 'super_admin') return ALL_ROLES;
-  if (currentRole === 'org_admin') return ['restaurant_owner', 'manager', 'staff'];
-  if (currentRole === 'restaurant_owner') return ['manager', 'staff'];
-  return ['staff'];
+  if (currentRole === 'org_admin') return ['restaurant_owner', 'captain', 'kitchen'];
+  if (currentRole === 'restaurant_owner') return ['captain', 'kitchen'];
+  return ['kitchen'];
 }
 
 export default function Users() {
@@ -27,7 +27,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', passcode: '', phone: '', role: 'staff', restaurantId: '', organizationId: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', passcode: '', phone: '', role: 'kitchen', restaurantId: '', organizationId: '' });
 
   // Pagination, search, sort state
   const [page, setPage] = useState(1);
@@ -84,7 +84,7 @@ export default function Users() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', email: '', password: '', passcode: '', phone: '', role: 'staff', restaurantId: restaurants[0]?._id || '', organizationId: '' });
+    setForm({ name: '', email: '', password: '', passcode: '', phone: '', role: 'kitchen', restaurantId: restaurants[0]?._id || '', organizationId: '' });
     setModalOpen(true);
   };
 
@@ -107,7 +107,7 @@ export default function Users() {
     e.preventDefault();
     try {
       const payload = { ...form };
-      const isStaffRole = payload.role === 'manager' || payload.role === 'staff';
+      const isStaffRole = ['captain', 'kitchen'].includes(payload.role);
       if (isStaffRole) {
         delete payload.password;
         if (!payload.passcode) delete payload.passcode;
@@ -139,15 +139,26 @@ export default function Users() {
   const handleSearch = (val) => { setSearch(val); setPage(1); };
   const handleSort = (key, order) => { setSortBy(key); setSortOrder(order); setPage(1); };
 
+  const formatRoleLabel = (role) => {
+    const labels = {
+      super_admin: 'Super Admin',
+      org_admin: 'Org Admin',
+      restaurant_owner: 'Restaurant Owner',
+      captain: 'Captain',
+      kitchen: 'Kitchen',
+    };
+    return labels[role] || role?.replace('_', ' ');
+  };
+
   const roleColor = (role) => {
     const map = {
       super_admin: 'bg-red-100 text-red-700',
       org_admin: 'bg-orange-100 text-orange-700',
       restaurant_owner: 'bg-blue-100 text-blue-700',
-      manager: 'bg-purple-100 text-purple-700',
-      staff: 'bg-slate-100 text-slate-700',
+      captain: 'bg-purple-100 text-purple-700',
+      kitchen: 'bg-slate-100 text-slate-700',
     };
-    return map[role] || map.staff;
+    return map[role] || map.kitchen;
   };
 
   const getOrganizationName = (u) => {
@@ -171,7 +182,7 @@ export default function Users() {
     { key: 'restaurantId', label: 'Restaurant Name', render: getRestaurantName },
     { key: 'role', label: 'Role', sortable: true, render: (u) => (
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${roleColor(u.role)}`}>
-        {u.role?.replace('_', ' ')}
+        {formatRoleLabel(u.role)}
       </span>
     )},
     { key: 'isActive', label: 'Status', render: (u) => (
@@ -236,7 +247,7 @@ export default function Users() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Email *</label>
             <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase().trim() })} required pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="Enter a valid email address (e.g. user@example.com)" placeholder="e.g. john@example.com" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
           </div>
-          {form.role === 'manager' || form.role === 'staff' ? (
+          {['captain', 'kitchen'].includes(form.role) ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">{editing ? 'Passcode (leave empty to keep)' : 'Passcode *'}</label>
               <input
@@ -266,7 +277,7 @@ export default function Users() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Role *</label>
               <SearchSelect
-                options={getAllowedRoles(user?.role).map((r) => ({ value: r, label: r.replace('_', ' ') }))}
+                options={getAllowedRoles(user?.role).map((r) => ({ value: r, label: formatRoleLabel(r) }))}
                 value={form.role}
                 onChange={(val) => setForm({ ...form, role: val })}
                 placeholder="Select role..."

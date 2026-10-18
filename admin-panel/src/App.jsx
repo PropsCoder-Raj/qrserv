@@ -22,6 +22,7 @@ import StaffMenuItems from './pages/StaffMenuItems';
 import StaffOrders from './pages/StaffOrders';
 import WithdrawRequests from './pages/WithdrawRequests';
 import Settings from './pages/Settings';
+import RestaurantProfileSettings from './pages/RestaurantProfileSettings';
 import OrderStatistics from './pages/OrderStatistics';
 import OrderAnalytics from './pages/OrderAnalytics';
 import Coupons from './pages/Coupons';
@@ -32,6 +33,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/captain-login/:restaurantId" element={<ManagerLogin />} />
+          <Route path="/kitchen-login/:restaurantId" element={<StaffLogin />} />
           <Route path="/manager-login/:restaurantId" element={<ManagerLogin />} />
           <Route path="/staff-login/:restaurantId" element={<StaffLogin />} />
           <Route element={<Layout />}>
@@ -55,7 +58,8 @@ export default function App() {
             <Route path="/my-subscription" element={<MySubscription />} />
             <Route path="/withdraw-requests" element={<WithdrawRequests />} />
             <Route path="/settings" element={<Settings />}>
-              <Route index element={<Navigate to="order-statistics" replace />} />
+              <Route index element={<Navigate to="restaurant-profile" replace />} />
+              <Route path="restaurant-profile" element={<RestaurantProfileSettings />} />
               <Route path="order-statistics" element={<OrderStatistics />} />
             </Route>
           </Route>

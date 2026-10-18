@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { HiOutlineSearch, HiOutlineClock } from 'react-icons/hi';
 import menuService from '../services/menuService';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCurrency } from '../utils/formatCurrency';
 
 export default function StaffMenuItems() {
   const { user } = useAuth();
@@ -122,7 +123,7 @@ export default function StaffMenuItems() {
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold text-primary">
-                    {item.price}
+                    {formatCurrency(item.price)}
                   </span>
                   <div className="flex items-center gap-3 text-xs text-slate-500">
                     {categoryName && (

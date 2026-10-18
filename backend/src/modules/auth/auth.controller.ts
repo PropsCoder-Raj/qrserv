@@ -27,15 +27,29 @@ export class AuthController {
   }
 
   @Public()
+  @Post('login-captain')
+  @ApiOperation({ summary: 'Login with passcode (captain only)' })
+  loginCaptain(@Body() passcodeLoginDto: PasscodeLoginDto) {
+    return this.authService.loginCaptain(passcodeLoginDto);
+  }
+
+  @Public()
+  @Post('login-kitchen')
+  @ApiOperation({ summary: 'Login with passcode (kitchen only)' })
+  loginKitchen(@Body() passcodeLoginDto: PasscodeLoginDto) {
+    return this.authService.loginKitchen(passcodeLoginDto);
+  }
+
+  @Public()
   @Post('login-manager')
-  @ApiOperation({ summary: 'Login with passcode (manager only)' })
+  @ApiOperation({ summary: 'Login with passcode (captain/manager)' })
   loginManager(@Body() passcodeLoginDto: PasscodeLoginDto) {
     return this.authService.loginManager(passcodeLoginDto);
   }
 
   @Public()
   @Post('login-staff')
-  @ApiOperation({ summary: 'Login with passcode (staff only)' })
+  @ApiOperation({ summary: 'Login with passcode (kitchen/staff)' })
   loginStaff(@Body() passcodeLoginDto: PasscodeLoginDto) {
     return this.authService.loginStaff(passcodeLoginDto);
   }

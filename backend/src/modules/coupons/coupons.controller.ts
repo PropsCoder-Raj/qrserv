@@ -14,6 +14,7 @@ import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { ValidateCouponDto } from './dto/validate-coupon.dto';
 import { CouponsService } from './coupons.service';
+import { roundTo3 } from '../../common/utils/precision';
 
 @ApiTags('Coupons')
 @Controller('api/coupons')
@@ -33,9 +34,9 @@ export class CouponsController {
     );
     return {
       couponCode: coupon.code,
-      subtotalAmount: Math.round(subtotal * 100) / 100,
+      subtotalAmount: roundTo3(subtotal),
       discountAmount,
-      totalAmount: Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100),
+      totalAmount: Math.max(0, roundTo3(subtotal - discountAmount)),
     };
   }
 

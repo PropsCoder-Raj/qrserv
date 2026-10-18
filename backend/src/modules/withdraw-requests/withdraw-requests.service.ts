@@ -27,6 +27,7 @@ import { CreateWithdrawRequestDto } from './dto/create-withdraw-request.dto';
 import { ListWithdrawRequestsDto } from './dto/list-withdraw-requests.dto';
 import { PayWithdrawRequestDto } from './dto/pay-withdraw-request.dto';
 import { UpdateWithdrawBankDetailDto } from './dto/update-withdraw-bank-detail.dto';
+import { roundTo3 } from '../../common/utils/precision';
 
 @Injectable()
 export class WithdrawRequestsService {
@@ -67,19 +68,15 @@ export class WithdrawRequestsService {
   }
 
   private calculateWithdrawAmounts(amount: number) {
-    const requestAmount = Number(amount || 0);
+    const requestAmount = roundTo3(amount || 0);
     const chargePercentage = this.getWithdrawChargePercentage();
     const chargeGstPercentage = this.getWithdrawChargeGstPercentage();
-    const chargeBaseAmount = Number(
-      ((requestAmount * chargePercentage) / 100).toFixed(2),
+    const chargeBaseAmount = roundTo3((requestAmount * chargePercentage) / 100);
+    const chargeGstAmount = roundTo3(
+      (chargeBaseAmount * chargeGstPercentage) / 100,
     );
-    const chargeGstAmount = Number(
-      ((chargeBaseAmount * chargeGstPercentage) / 100).toFixed(2),
-    );
-    const chargeAmount = Number(
-      (chargeBaseAmount + chargeGstAmount).toFixed(2),
-    );
-    const netAmount = Number((requestAmount - chargeAmount).toFixed(2));
+    const chargeAmount = roundTo3(chargeBaseAmount + chargeGstAmount);
+    const netAmount = roundTo3(requestAmount - chargeAmount);
 
     return {
       chargePercentage,

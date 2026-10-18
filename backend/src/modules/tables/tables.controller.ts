@@ -22,7 +22,7 @@ export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Create a table' })
   async create(
     @Body() dto: CreateTableDto,
@@ -78,14 +78,14 @@ export class TablesController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Update a table' })
   update(@Param('id') id: string, @Body() dto: UpdateTableDto) {
     return this.tablesService.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.RESTAURANT_OWNER, Role.CAPTAIN, Role.MANAGER)
   @ApiOperation({ summary: 'Delete a table' })
   remove(@Param('id') id: string) {
     return this.tablesService.remove(id);

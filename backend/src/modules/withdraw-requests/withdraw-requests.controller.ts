@@ -95,7 +95,9 @@ export class WithdrawRequestsController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({
@@ -126,7 +128,9 @@ export class WithdrawRequestsController {
     Role.SUPER_ADMIN,
     Role.ORG_ADMIN,
     Role.RESTAURANT_OWNER,
+    Role.CAPTAIN,
     Role.MANAGER,
+    Role.KITCHEN,
     Role.STAFF,
   )
   @ApiOperation({

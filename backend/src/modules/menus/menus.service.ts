@@ -102,18 +102,102 @@ export class MenusService {
     }
   }
 
+  async getRestaurantOrgWithPlan(restaurantId: string | Types.ObjectId) {
+    const restaurant = await this.restaurantModel
+      .findById(restaurantId)
+      .select('organizationId');
+    if (!restaurant?.organizationId) return null;
+    return this.organizationModel
+      .findById(restaurant.organizationId)
+      .populate('subscriptionPlan');
+  }
+
+  async enforcePlanLimit({
+    restaurantId,
+    field,
+    model,
+    errorMessage,
+  }: {
+    restaurantId: string | Types.ObjectId;
+    field: string;
+    model: any;
+    errorMessage: string;
+  }) {
+    const org = await this.getRestaurantOrgWithPlan(restaurantId);
+    if (!org?.subscriptionPlan) return;
+    const limit = (org.subscriptionPlan as any)[field];
+    if (limit === undefined || limit === null || limit <= 0) return;
+    const currentCount = await model.countDocuments({
+      restaurantId,
+    });
+    if (currentCount >= limit) {
+      throw new BadRequestException(errorMessage);
+    }
+  }
+
+  private async getMenuItemUploadsDir(): Promise<string> {
+    const candidates = [
+      path.resolve(process.cwd(), 'uploads', 'menu_items'),
+      path.resolve(process.cwd(), 'backend', 'uploads', 'menu_items'),
+      path.resolve(__dirname, '../../../uploads/menu_items'),
+      path.resolve(__dirname, '../../../../uploads/menu_items'),
+    ];
+
+    for (const dir of candidates) {
+      try {
+        const parent = path.dirname(dir);
+        await fs.access(parent);
+        await fs.mkdir(dir, { recursive: true });
+        return dir;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    const fallback = candidates[0];
+    await fs.mkdir(fallback, { recursive: true });
+    return fallback;
+  }
+
   private async removeMenuItemImageFile(imagePath?: string) {
     if (!imagePath) return;
 
-    const normalizedPath = imagePath.replace(/^\/+/, '');
-    const diskPath = path.resolve(process.cwd(), normalizedPath);
+    const cleanPath = imagePath.replace(/^https?:\/\/[^/]+/, '');
+    const relativePath = cleanPath
+      .replace(/^\/api\/uploads\//, 'uploads/')
+      .replace(/^\/uploads\//, 'uploads/')
+      .replace(/^\/+/, '');
 
-    try {
-      await fs.unlink(diskPath);
-    } catch {
-      // ignore if file does not exist
+    const candidates = [
+      path.resolve(process.cwd(), relativePath),
+      path.resolve(process.cwd(), 'backend', relativePath),
+      path.resolve(__dirname, '../../../', relativePath),
+      path.resolve(__dirname, '../../../../', relativePath),
+    ];
+
+    for (const diskPath of candidates) {
+      try {
+        await fs.unlink(diskPath);
+        break;
+      } catch {
+        // ignore if not found at this candidate path
+      }
     }
   }
+
+  private async cleanupOrphanFilesByPrefix(dirPath: string, prefix: string) {
+    try {
+      const files = await fs.readdir(dirPath);
+      for (const file of files) {
+        if (file.startsWith(prefix)) {
+          await fs.unlink(path.join(dirPath, file)).catch(() => {});
+        }
+      }
+    } catch {
+      // directory might not exist yet
+    }
+  }
+
 
   // --- Categories ---
 
@@ -351,7 +435,31 @@ export class MenusService {
       ? 0
       : dto.discountValue ?? existing.discountValue;
     this.validatePriceDrop(discountType, discountValue);
-    const item = await this.menuItemModel.findByIdAndUpdate(id, dto, {
+
+    const updatePayload: any = { ...dto };
+    delete updatePayload.remove_image;
+    delete updatePayload.removeImage;
+
+    const shouldRemoveImage =
+      dto.remove_image === true ||
+      dto.removeImage === true ||
+      dto.image === null ||
+      dto.image === '';
+
+    if (shouldRemoveImage) {
+      if (existing.image) {
+        await this.removeMenuItemImageFile(existing.image);
+      }
+      const uploadsDir = await this.getMenuItemUploadsDir();
+      await this.cleanupOrphanFilesByPrefix(uploadsDir, existing._id.toString());
+      updatePayload.image = null;
+    }
+
+    if (dto.categoryId && Types.ObjectId.isValid(dto.categoryId)) {
+      updatePayload.categoryId = new Types.ObjectId(dto.categoryId);
+    }
+
+    const item = await this.menuItemModel.findByIdAndUpdate(id, updatePayload, {
       new: true,
     });
     if (!item) throw new NotFoundException('Menu item not found');
@@ -372,13 +480,15 @@ export class MenusService {
       throw new NotFoundException('Menu item not found');
     }
 
-    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'menu_items');
-    await fs.mkdir(uploadsDir, { recursive: true });
+    const uploadsDir = await this.getMenuItemUploadsDir();
 
-    await this.removeMenuItemImageFile(item.image);
+    if (item.image) {
+      await this.removeMenuItemImageFile(item.image);
+    }
+    await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
 
     const extension = path.extname(file.originalname || '').toLowerCase() || '.png';
-    const filename = `${item._id}${extension}`;
+    const filename = `${item._id}-${Date.now()}${extension}`;
     const diskPath = path.join(uploadsDir, filename);
     await fs.writeFile(diskPath, file.buffer);
 
@@ -392,10 +502,34 @@ export class MenusService {
     };
   }
 
+  async removeMenuItemImage(id: string) {
+    const item = await this.menuItemModel.findById(id);
+    if (!item) throw new NotFoundException('Menu item not found');
+
+    if (item.image) {
+      await this.removeMenuItemImageFile(item.image);
+    }
+    const uploadsDir = await this.getMenuItemUploadsDir();
+    await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
+
+    item.image = null as any;
+    await item.save();
+
+    this.cacheService.delByPrefix(`menu:${item.restaurantId}`);
+    return {
+      message: 'Menu item image removed successfully',
+      image: null,
+    };
+  }
+
   async removeMenuItem(id: string) {
     const item = await this.menuItemModel.findByIdAndDelete(id);
     if (!item) throw new NotFoundException('Menu item not found');
-    await this.removeMenuItemImageFile(item.image);
+    if (item.image) {
+      await this.removeMenuItemImageFile(item.image);
+    }
+    const uploadsDir = await this.getMenuItemUploadsDir();
+    await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
     this.cacheService.delByPrefix(`menu:${item.restaurantId}`);
     return { message: 'Menu item deleted' };
   }

@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getOrdersSocket } from '../services/socket';
 import ringSound from '../assets/music/Ring.mpeg?url';
 import Orders from './Orders';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
@@ -123,8 +124,9 @@ export default function StaffOrders() {
 
   const updatePaymentMethod = async (orderId, paymentMethod) => {
     try {
-      await orderService.updatePaymentMethod(orderId, paymentMethod);
-      toast.success(`Payment method updated to ${paymentMethod}`);
+      const normalizedMethod = String(paymentMethod || 'CASH').toUpperCase();
+      await orderService.updatePaymentMethod(orderId, normalizedMethod);
+      toast.success(`Payment method updated to ${normalizedMethod}`);
       loadOrders();
     } catch {
       toast.error('Failed to update payment method');
@@ -202,7 +204,7 @@ export default function StaffOrders() {
     ? allOrders.filter((o) => o.status === filterStatus)
     : allOrders;
 
-  if (user?.role === 'manager') return <Orders />;
+  if (user?.role === 'captain' || user?.role === 'manager') return <Orders />;
 
   if (!restaurantId) {
     return (
@@ -294,7 +296,7 @@ export default function StaffOrders() {
                                 </span>
                               )}
                             </span>
-                            <span className="text-slate-500">{item.price * remainingQty}</span>
+                            <span className="text-slate-500">{formatCurrency(item.price * remainingQty)}</span>
                           </div>
                         );
                       })()}
@@ -390,7 +392,7 @@ export default function StaffOrders() {
 
                 {/* Total & Payment */}
                 <div className="mb-3 flex items-center justify-between border-t border-stroke pt-2">
-                  <span className="text-base font-bold text-slate-800">{order.totalAmount}</span>
+                  <span className="text-base font-bold text-slate-800">{formatCurrency(order.totalAmount)}</span>
                   <div className="flex items-center gap-2">
                     <fieldset>
                       <legend className="sr-only">Payment method</legend>

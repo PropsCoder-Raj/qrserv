@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import {
   HiOutlineEye,
   HiOutlinePencil,
+  HiOutlineTrash,
   HiOutlinePlus,
   HiOutlinePrinter,
   HiCash,
@@ -22,6 +23,7 @@ import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import CustomizationEditor from '../components/CustomizationEditor';
 import { getMenuItemSalePrice } from '../utils/menuItemPricing';
+import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 import subscriptionService from '../services/subscriptionService';
 import DatePresetFilter from '../components/DatePresetFilter';
 
@@ -59,6 +61,8 @@ export default function Orders() {
   const [filterStatus, setFilterStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [detailModal, setDetailModal] = useState({ open: false, order: null });
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, order: null });
+  const [deletingOrder, setDeletingOrder] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
@@ -79,8 +83,18 @@ export default function Orders() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponSubmitting, setCouponSubmitting] = useState(false);
   const [orderSubmitting, setOrderSubmitting] = useState(false);
-  const canCreateOrder = ['super_admin', 'org_admin', 'restaurant_owner', 'manager'].includes(user?.role);
+  const [manualDiscount, setManualDiscount] = useState({
+    applied: false,
+    type: 'PERCENTAGE',
+    value: '',
+    reason: '',
+  });
+  const isCaptainOrManager = ['captain', 'manager'].includes(user?.role);
+  const canCreateOrder = ['super_admin', 'org_admin', 'restaurant_owner', 'captain', 'manager'].includes(user?.role);
   const canEditOrder = canCreateOrder;
+  const canDeleteOrder = ['super_admin', 'org_admin', 'restaurant_owner', 'captain', 'manager'].includes(user?.role);
+  const isOrderDeletable = (order) =>
+    canDeleteOrder && ['cancelled', 'canceled'].includes(order?.status);
   const [newOrder, setNewOrder] = useState({
     restaurantId: '',
     orderType: 'takeaway',
@@ -176,10 +190,10 @@ export default function Orders() {
     try {
       const res = isSuperAdmin
         ? await restaurantService.getAll({ limit: 100 })
-        : user?.role === 'manager' && user.restaurantId
+        : isCaptainOrManager && user.restaurantId
           ? await restaurantService.getOne(user.restaurantId)
           : await restaurantService.getMy({ limit: 100 });
-      const list = user?.role === 'manager'
+      const list = isCaptainOrManager
         ? [res.data.data]
         : res.data.data.data || res.data.data;
       const arr = Array.isArray(list) ? list : [];
@@ -246,13 +260,35 @@ export default function Orders() {
 
   const updatePaymentMethod = async (orderId, paymentMethod) => {
     try {
-      await orderService.updatePaymentMethod(orderId, paymentMethod);
-      toast.success(`Payment method updated to ${paymentMethod}`);
+      const normalizedMethod = String(paymentMethod || 'CASH').toUpperCase();
+      await orderService.updatePaymentMethod(orderId, normalizedMethod);
+      toast.success(`Payment method updated to ${normalizedMethod}`);
       loadOrders();
       if (detailModal.order?._id === orderId) {
-        setDetailModal((prev) => ({ ...prev, order: { ...prev.order, paymentMethod } }));
+        setDetailModal((prev) => ({ ...prev, order: { ...prev.order, paymentMethod: normalizedMethod } }));
       }
     } catch { toast.error('Failed to update payment method'); }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!deleteConfirm.order) return;
+    setDeletingOrder(true);
+    try {
+      await orderService.remove(deleteConfirm.order._id);
+      toast.success(
+        `Order #${deleteConfirm.order.orderNumber || deleteConfirm.order._id} deleted successfully`,
+      );
+      if (detailModal.order?._id === deleteConfirm.order._id) {
+        setDetailModal({ open: false, order: null });
+      }
+      setDeleteConfirm({ open: false, order: null });
+      setOrders((prev) => prev.filter((o) => o._id !== deleteConfirm.order._id));
+      loadOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete order');
+    } finally {
+      setDeletingOrder(false);
+    }
   };
 
   const cancelOrderItem = async (orderId) => {
@@ -457,7 +493,7 @@ export default function Orders() {
     }
   };
 
-  const formatAmount = (amount) => Number(amount || 0).toFixed(2);
+  const formatAmount = (amount) => formatCurrency(amount);
   const orderEstimate = (() => {
     const foodSubtotal = newOrder.items
       .filter((item) => (item.itemType || 'food') === 'food')
@@ -467,30 +503,75 @@ export default function Orders() {
       .reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0);
     const foodInclusive = restaurantTax?.taxType === 'inclusive';
     const vatInclusive = restaurantTax?.vatType === 'inclusive';
-    const gstHalfRate = Math.round((Number(restaurantTax?.taxRate || 0) / 2) * 100) / 100;
+    const gstHalfRate = roundTo3(Number(restaurantTax?.taxRate || 0) / 2);
     const foodTax = restaurantTax?.taxEnabled && restaurantTax.taxRate > 0 && foodSubtotal > 0
       ? foodInclusive
-        ? Math.round((foodSubtotal - Math.round((foodSubtotal / (1 + restaurantTax.taxRate / 100)) * 100) / 100) * 100) / 100
-        : Math.round((Math.round((foodSubtotal * (gstHalfRate / 100)) * 100) / 100 + Math.round((foodSubtotal * (gstHalfRate / 100)) * 100) / 100) * 100) / 100
+        ? roundTo3(foodSubtotal - roundTo3(foodSubtotal / (1 + restaurantTax.taxRate / 100)))
+        : roundTo3(roundTo3(foodSubtotal * (gstHalfRate / 100)) * 2)
       : 0;
     const vatTax = restaurantTax?.vatEnabled && restaurantTax.vatRate > 0 && liquorSubtotal > 0
       ? vatInclusive
-        ? Math.round((liquorSubtotal - Math.round((liquorSubtotal / (1 + restaurantTax.vatRate / 100)) * 100) / 100) * 100) / 100
-        : Math.round((liquorSubtotal * (restaurantTax.vatRate / 100)) * 100) / 100
+        ? roundTo3(liquorSubtotal - roundTo3(liquorSubtotal / (1 + restaurantTax.vatRate / 100)))
+        : roundTo3(liquorSubtotal * (restaurantTax.vatRate / 100))
       : 0;
-    const subtotal = foodSubtotal + liquorSubtotal;
-    const tax = Math.round((foodTax + vatTax) * 100) / 100;
-    const additionalTax = (foodInclusive ? 0 : foodTax) + (vatInclusive ? 0 : vatTax);
-    const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+    const subtotal = roundTo3(foodSubtotal + liquorSubtotal);
+    const tax = roundTo3(foodTax + vatTax);
+    const additionalTax = roundTo3((foodInclusive ? 0 : foodTax) + (vatInclusive ? 0 : vatTax));
+    const couponDiscount = appliedCoupon ? roundTo3(appliedCoupon.discountAmount) : 0;
+
+    let manualDiscountAmount = 0;
+    if (manualDiscount.applied && manualDiscount.value) {
+      const val = roundTo3(Number(manualDiscount.value) || 0);
+      if (manualDiscount.type === 'PERCENTAGE') {
+        manualDiscountAmount = roundTo3((subtotal * Math.min(100, Math.max(0, val))) / 100);
+      } else {
+        manualDiscountAmount = roundTo3(Math.min(val, subtotal));
+      }
+      const remainingSubtotal = Math.max(0, roundTo3(subtotal - couponDiscount));
+      manualDiscountAmount = roundTo3(Math.min(manualDiscountAmount, remainingSubtotal));
+    }
+
+    const totalDiscount = roundTo3(couponDiscount + manualDiscountAmount);
+
     return {
       subtotal,
       tax,
       foodTax,
       vatTax,
-      discount,
-      total: Math.max(0, Math.round((subtotal + additionalTax - discount) * 100) / 100),
+      couponDiscount,
+      manualDiscountAmount,
+      discount: totalDiscount,
+      total: Math.max(0, roundTo3(subtotal + additionalTax - totalDiscount)),
     };
   })();
+
+  const applyManualDiscount = () => {
+    if (!newOrder.items.length) {
+      return toast.error('Add items before applying a discount');
+    }
+    const val = Number(manualDiscount.value);
+    if (!manualDiscount.value || !Number.isFinite(val) || val <= 0) {
+      return toast.error('Enter a valid discount value greater than 0');
+    }
+    if (manualDiscount.type === 'PERCENTAGE' && val > 100) {
+      return toast.error('Percentage discount cannot exceed 100%');
+    }
+    if (manualDiscount.type === 'FIXED' && val > orderEstimate.subtotal) {
+      return toast.error(`Fixed discount cannot exceed subtotal (${formatAmount(orderEstimate.subtotal)})`);
+    }
+    setManualDiscount((prev) => ({ ...prev, applied: true }));
+    toast.success('Manual discount applied');
+  };
+
+  const removeManualDiscount = () => {
+    setManualDiscount({
+      applied: false,
+      type: 'PERCENTAGE',
+      value: '',
+      reason: '',
+    });
+    toast.info('Manual discount removed');
+  };
 
   const visibleMenuCategories = menuCategories
     .map((category) => ({
@@ -513,9 +594,19 @@ export default function Orders() {
     }
     setOrderSubmitting(true);
     try {
+      const manualDiscountPayload = {
+        manualDiscountType: manualDiscount.applied ? manualDiscount.type : null,
+        manualDiscountValue: manualDiscount.applied ? Number(manualDiscount.value) || 0 : 0,
+        manualDiscountReason: manualDiscount.applied ? manualDiscount.reason.trim() : '',
+        manual_discount_type: manualDiscount.applied ? manualDiscount.type : null,
+        manual_discount_value: manualDiscount.applied ? Number(manualDiscount.value) || 0 : 0,
+        manual_discount_reason: manualDiscount.applied ? manualDiscount.reason.trim() : '',
+      };
+
       if (editingOrderId) {
         await orderService.updateItems(editingOrderId, {
           couponCode: appliedCoupon?.code || '',
+          ...manualDiscountPayload,
           items: newOrder.items.map((item) => {
             const payload = { ...item };
             delete payload.itemKey;
@@ -529,11 +620,12 @@ export default function Orders() {
           restaurantId: newOrder.restaurantId,
           tableId: newOrder.orderType === 'dine_in' ? newOrder.tableId : null,
           orderType: newOrder.orderType,
-          paymentMethod: newOrder.paymentMethod,
-          paymentStatus: newOrder.paymentStatus,
+          paymentMethod: (newOrder.paymentMethod || 'CASH').toUpperCase(),
+          paymentStatus: (newOrder.paymentStatus || 'pending').toLowerCase(),
           customerName: newOrder.customerName.trim() || undefined,
           customerPhone: newOrder.customerPhone.trim() || undefined,
           couponCode: appliedCoupon?.code,
+          ...manualDiscountPayload,
           items: newOrder.items.map((item) => {
             const payload = { ...item };
             delete payload.itemKey;
@@ -555,6 +647,12 @@ export default function Orders() {
       }));
       setCouponCode('');
       setAppliedCoupon(null);
+      setManualDiscount({
+        applied: false,
+        type: 'PERCENTAGE',
+        value: '',
+        reason: '',
+      });
       loadOrders();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to create order');
@@ -575,6 +673,14 @@ export default function Orders() {
         itemKey: [menuItemId, item.spiceLevel?.name || '', ...(item.addOns || []).map((addOn) => addOn.name).sort(), item.specialInstructions || ''].join('::'),
       };
     });
+
+    const rawManualType = (order.manualDiscountType || order.manual_discount_type || '').toUpperCase();
+    const rawManualVal = order.manualDiscountValue ?? order.manual_discount_value ?? '';
+    const rawManualReason = order.manualDiscountReason || order.manual_discount_reason || '';
+    const hasManual = (rawManualType === 'PERCENTAGE' || rawManualType === 'FIXED') && Number(rawManualVal) > 0;
+    const manualAmt = Number(order.manualDiscountAmount ?? order.manual_discount_amount) || 0;
+    const couponDiscount = Math.max(0, roundTo3((Number(order.discountAmount) || 0) - manualAmt));
+
     setEditingOrderId(order._id);
     setNewOrder({
       restaurantId,
@@ -582,13 +688,21 @@ export default function Orders() {
       tableId: getTableId(order) || '',
       customerName: order.customerName || '',
       customerPhone: order.customerPhone || '',
+      paymentMethod: (order.paymentMethod || 'CASH').toUpperCase(),
+      paymentStatus: (order.paymentStatus || 'pending').toLowerCase(),
       items,
     });
     setCouponCode(order.couponCode || '');
     setAppliedCoupon(order.couponCode ? {
       code: order.couponCode,
-      discountAmount: Number(order.discountAmount) || 0,
+      discountAmount: couponDiscount,
     } : null);
+    setManualDiscount({
+      applied: hasManual,
+      type: rawManualType === 'FIXED' ? 'FIXED' : 'PERCENTAGE',
+      value: rawManualVal !== '' ? String(rawManualVal) : '',
+      reason: rawManualReason,
+    });
     setDetailModal({ open: false, order: null });
     setCreateModalOpen(true);
   };
@@ -695,7 +809,7 @@ export default function Orders() {
     { key: 'orderType', label: 'Order Type', render: (o) => renderOrderType(o.orderType) },
     { key: 'paymentMethod', label: 'Payment Type', render: (o) => renderPaymentMethod(o.paymentMethod) },
     { key: 'items', label: 'Items', render: (o) => `${o.items?.length || 0} items` },
-    { key: 'totalAmount', label: 'Total', sortable: true, render: (o) => `${o.totalAmount}` },
+    { key: 'totalAmount', label: 'Total', sortable: true, render: (o) => formatAmount(o.totalAmount) },
     {
       key: 'status', label: 'Status', render: (o) => (
         <select
@@ -722,12 +836,23 @@ export default function Orders() {
     {
       key: 'actions', label: '', render: (o) => (
         <div className="flex items-center gap-1">
-          <button type="button" aria-label={`View order ${o.orderNumber}`} onClick={() => setDetailModal({ open: true, order: o })} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100">
+          <button type="button" aria-label={`View order ${o.orderNumber}`} onClick={() => setDetailModal({ open: true, order: o })} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 cursor-pointer">
             <HiOutlineEye size={16} />
           </button>
           {isOrderEditable(o) && (
-            <button type="button" aria-label={`Update order ${o.orderNumber}`} title="Update order" onClick={() => startEditingOrder(o)} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50">
+            <button type="button" aria-label={`Update order ${o.orderNumber}`} title="Update order" onClick={() => startEditingOrder(o)} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50 cursor-pointer">
               <HiOutlinePencil size={16} />
+            </button>
+          )}
+          {isOrderDeletable(o) && (
+            <button
+              type="button"
+              aria-label={`Delete order ${o.orderNumber}`}
+              title="Delete Canceled Order"
+              onClick={() => setDeleteConfirm({ open: true, order: o })}
+              className="rounded-lg p-1.5 text-red-600 hover:bg-red-50 cursor-pointer"
+            >
+              <HiOutlineTrash size={16} />
             </button>
           )}
         </div>
@@ -758,6 +883,12 @@ export default function Orders() {
               setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM });
               setCouponCode('');
               setAppliedCoupon(null);
+              setManualDiscount({
+                applied: false,
+                type: 'PERCENTAGE',
+                value: '',
+                reason: '',
+              });
               setCreateModalOpen(true);
             }}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
@@ -816,7 +947,7 @@ export default function Orders() {
         />
       </div>
 
-      <Modal isOpen={createModalOpen} onClose={() => { setCreateModalOpen(false); setEditingOrderId(''); setOpenFoodVisible(false); setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM }); }} title={editingOrderId ? 'Update order' : 'Create order'}>
+      <Modal isOpen={createModalOpen} onClose={() => { setCreateModalOpen(false); setEditingOrderId(''); setOpenFoodVisible(false); setOpenFoodForm({ ...EMPTY_OPEN_FOOD_FORM }); setManualDiscount({ applied: false, type: 'PERCENTAGE', value: '', reason: '' }); }} title={editingOrderId ? 'Update order' : 'Create order'}>
         <form onSubmit={submitNewOrder} className="space-y-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {!editingOrderId && <label className="text-sm font-medium text-slate-700">
@@ -994,7 +1125,7 @@ export default function Orders() {
                     <input
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="0.001"
                       value={openFoodForm.price}
                       onChange={(event) => setOpenFoodForm((current) => ({ ...current, price: event.target.value }))}
                       className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-800"
@@ -1014,9 +1145,9 @@ export default function Orders() {
                     {openFoodForm.discountType && (
                       <input
                         type="number"
-                        min="0.01"
+                        min="0.001"
                         max={openFoodForm.discountType === 'percentage' ? 100 : undefined}
-                        step="0.01"
+                        step="0.001"
                         required
                         value={openFoodForm.discountValue}
                         onChange={(event) => setOpenFoodForm((current) => ({ ...current, discountValue: event.target.value }))}
@@ -1129,8 +1260,8 @@ export default function Orders() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-slate-800">{item.name}</p>
                           <p className="text-xs text-slate-500">
-                            {item.discountType && <span className="mr-1 line-through">{item.price}</span>}
-                            <span className={item.discountType ? 'font-semibold text-green-700' : ''}>{getMenuItemSalePrice(item).toFixed(2)}</span>
+                            {item.discountType && <span className="mr-1 line-through">{formatCurrency(item.price)}</span>}
+                            <span className={item.discountType ? 'font-semibold text-green-700' : ''}>{formatCurrency(getMenuItemSalePrice(item))}</span>
                             {item.itemType === 'liquor' ? ' · Liquor' : ''}
                           </p>
                         </div>
@@ -1145,7 +1276,7 @@ export default function Orders() {
                               Spice level
                               <select value={draftSpiceLevel} onChange={(event) => setDraftSpiceLevel(event.target.value)} className="mt-1 w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-normal text-slate-700">
                                 <option value="">No spice selection</option>
-                                {customization.spiceLevels.map((level) => <option key={level.name} value={level.name}>{level.emoji ? `${level.emoji} ` : ''}{level.name}{Number(level.priceDelta) > 0 ? ` (+${level.priceDelta})` : ''}</option>)}
+                                {customization.spiceLevels.map((level) => <option key={level.name} value={level.name}>{level.emoji ? `${level.emoji} ` : ''}{level.name}{Number(level.priceDelta) > 0 ? ` (+${formatCurrency(level.priceDelta)})` : ''}</option>)}
                               </select>
                             </label>
                           )}
@@ -1164,7 +1295,7 @@ export default function Orders() {
                                       className="accent-primary"
                                     />
                                     <span className="min-w-0 flex-1 truncate">{addOn.emoji ? `${addOn.emoji} ` : ''}{addOn.name}</span>
-                                    <span className="text-xs text-slate-500">{Number(addOn.priceDelta) > 0 ? `+${addOn.priceDelta}` : 'Free'}</span>
+                                    <span className="text-xs text-slate-500">{Number(addOn.priceDelta) > 0 ? `+${formatCurrency(addOn.priceDelta)}` : 'Free'}</span>
                                   </label>
                                 ))}
                               </div>
@@ -1252,14 +1383,108 @@ export default function Orders() {
             {appliedCoupon && <p className="text-xs font-medium text-green-700">{appliedCoupon.code} applied</p>}
           </div>
 
-          <div className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm">
-            <h4 className="mb-3 font-semibold text-slate-700">Order total</h4>
-            <div className="flex justify-between text-slate-600"><span>Items subtotal</span><span>{formatAmount(orderEstimate.subtotal)}</span></div>
-            {restaurantTax?.taxEnabled && <div className="flex justify-between text-slate-600"><span>GST{restaurantTax.taxType === 'inclusive' ? ' (included)' : ''}</span><span>{formatAmount(orderEstimate.foodTax)}</span></div>}
-            {restaurantTax?.vatEnabled && <div className="flex justify-between text-slate-600"><span>VAT{restaurantTax.vatType === 'inclusive' ? ' (included)' : ''}</span><span>{formatAmount(orderEstimate.vatTax)}</span></div>}
-            <div className="flex justify-between text-slate-600"><span>Total tax</span><span>{formatAmount(orderEstimate.tax)}</span></div>
-            {appliedCoupon && <div className="flex justify-between text-green-700"><span>Coupon discount</span><span>-{formatAmount(orderEstimate.discount)}</span></div>}
-            <div className="flex justify-between border-t border-stroke pt-2 font-semibold text-slate-800"><span>Total amount</span><span>{formatAmount(orderEstimate.total)}</span></div>
+          <div className="space-y-3 rounded-lg bg-slate-50 p-4 text-sm">
+            <h4 className="font-semibold text-slate-700">Order Summary</h4>
+            <div className="flex justify-between text-slate-600">
+              <span>Subtotal / Order Total:</span>
+              <span>₹{formatAmount(orderEstimate.subtotal)}</span>
+            </div>
+
+            {/* Manual Discount Controls / Applied Line */}
+            {manualDiscount.applied ? (
+              <div className="flex justify-between items-center text-green-700 bg-green-50/80 border border-green-200 rounded-lg p-2.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-medium">
+                    Manual Discount ({manualDiscount.type === 'PERCENTAGE' ? `${manualDiscount.value}%` : 'Fixed'}):
+                  </span>
+                  <span className="font-semibold">-₹{formatAmount(orderEstimate.manualDiscountAmount)}</span>
+                  {manualDiscount.reason && (
+                    <span className="text-xs text-slate-500 font-normal">
+                      [Reason: {manualDiscount.reason}]
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={removeManualDiscount}
+                  className="text-xs font-semibold text-red-600 hover:text-red-700 underline cursor-pointer shrink-0 ml-2"
+                >
+                  [Remove]
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-stroke bg-white p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Manual Discount</span>
+                  {/* Segmented Control */}
+                  <div className="inline-flex rounded-lg border border-stroke bg-slate-100 p-0.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setManualDiscount((prev) => ({ ...prev, type: 'PERCENTAGE', value: '' }))}
+                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                        manualDiscount.type === 'PERCENTAGE'
+                          ? 'bg-white text-slate-800 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Percentage (%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManualDiscount((prev) => ({ ...prev, type: 'FIXED', value: '' }))}
+                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                        manualDiscount.type === 'FIXED'
+                          ? 'bg-white text-slate-800 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Fixed Amount (₹)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      max={manualDiscount.type === 'PERCENTAGE' ? 100 : orderEstimate.subtotal}
+                      value={manualDiscount.value}
+                      onChange={(e) => setManualDiscount((prev) => ({ ...prev, value: e.target.value }))}
+                      placeholder={manualDiscount.type === 'PERCENTAGE' ? 'Discount % (e.g. 10)' : 'Amount ₹ (e.g. 50.000)'}
+                      className="w-full rounded-lg border border-stroke bg-white px-3 py-1.5 text-xs outline-none"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={manualDiscount.reason}
+                      onChange={(e) => setManualDiscount((prev) => ({ ...prev, reason: e.target.value }))}
+                      placeholder="e.g., Manager courtesy, loyalty gesture"
+                      className="w-full rounded-lg border border-stroke bg-white px-3 py-1.5 text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={applyManualDiscount}
+                    disabled={!manualDiscount.value || Number(manualDiscount.value) <= 0 || !newOrder.items.length}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Apply Discount
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {restaurantTax?.taxEnabled && <div className="flex justify-between text-slate-600"><span>GST{restaurantTax.taxType === 'inclusive' ? ' (included)' : ''}</span><span>₹{formatAmount(orderEstimate.foodTax)}</span></div>}
+            {restaurantTax?.vatEnabled && <div className="flex justify-between text-slate-600"><span>VAT{restaurantTax.vatType === 'inclusive' ? ' (included)' : ''}</span><span>₹{formatAmount(orderEstimate.vatTax)}</span></div>}
+            <div className="flex justify-between text-slate-600"><span>Taxes / Other Charges:</span><span>₹{formatAmount(orderEstimate.tax)}</span></div>
+            {appliedCoupon && <div className="flex justify-between text-green-700"><span>Coupon discount ({appliedCoupon.code})</span><span>-₹{formatAmount(orderEstimate.couponDiscount)}</span></div>}
+            <div className="flex justify-between border-t border-stroke pt-2 font-semibold text-slate-800"><span>Final Total:</span><span>₹{formatAmount(orderEstimate.total)}</span></div>
             <p className="text-xs text-slate-500">Final amount is calculated by the server when the order is created.</p>
           </div>
 
@@ -1276,6 +1501,20 @@ export default function Orders() {
       <Modal isOpen={detailModal.open} onClose={() => setDetailModal({ open: false, order: null })} title={`Order ${detailModal.order?.orderNumber || ''}`}>
         {detailModal.order && (
           <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-stroke pb-3">
+              <span className="text-sm font-semibold text-slate-800">Order Overview</span>
+              {isOrderDeletable(detailModal.order) && (
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm({ open: true, order: detailModal.order })}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 cursor-pointer transition"
+                  title="Delete Canceled Order"
+                >
+                  <HiOutlineTrash size={14} />
+                  Delete Order
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-slate-500">Restaurant:</span> <span className="font-medium">{getRestaurantName(detailModal.order)}</span></div>
               <div><span className="text-slate-500">Restaurant ID:</span> <span className="font-medium">{getRestaurantId(detailModal.order) || '-'}</span></div>
@@ -1437,22 +1676,22 @@ export default function Orders() {
                             let base, itemCgst, itemSgst, itemVat;
                             if (isLiquor && hasVat) {
                               if (vatInclusive) {
-                                base = Math.round(lineTotal / (1 + vatR / 100) * 100) / 100;
-                                itemVat = Math.round((lineTotal - base) * 100) / 100;
+                                base = roundTo3(lineTotal / (1 + vatR / 100));
+                                itemVat = roundTo3(lineTotal - base);
                               } else {
                                 base = lineTotal;
-                                itemVat = Math.round(base * vatR / 100 * 100) / 100;
+                                itemVat = roundTo3((base * vatR) / 100);
                               }
                             } else if (!isLiquor && hasGst) {
                               if (gstInclusive) {
-                                base = Math.round(lineTotal / (1 + rate / 100) * 100) / 100;
-                                const tax = Math.round((lineTotal - base) * 100) / 100;
-                                itemCgst = Math.round(tax / 2 * 100) / 100;
-                                itemSgst = Math.round((tax - itemCgst) * 100) / 100;
+                                base = roundTo3(lineTotal / (1 + rate / 100));
+                                const tax = roundTo3(lineTotal - base);
+                                itemCgst = roundTo3(tax / 2);
+                                itemSgst = roundTo3(tax - itemCgst);
                               } else {
                                 base = lineTotal;
-                                itemCgst = Math.round(base * cgstR / 100 * 100) / 100;
-                                itemSgst = Math.round(base * sgstR / 100 * 100) / 100;
+                                itemCgst = roundTo3((base * cgstR) / 100);
+                                itemSgst = roundTo3((base * sgstR) / 100);
                               }
                             }
                             return (
@@ -1498,15 +1737,15 @@ export default function Orders() {
                                   )}
                                   {isLiquor && hasVat && (
                                     <div className="mt-0.5 text-[11px] text-slate-400 space-x-2">
-                                      <span>Base: {base.toFixed(2)}</span>
-                                      <span>VAT: {itemVat.toFixed(2)}</span>
+                                      <span>Base: {formatCurrency(base)}</span>
+                                      <span>VAT: {formatCurrency(itemVat)}</span>
                                     </div>
                                   )}
                                   {!isLiquor && hasGst && (
                                     <div className="mt-0.5 text-[11px] text-slate-400 space-x-2">
-                                      <span>Base: {base.toFixed(2)}</span>
-                                      <span>CGST: {itemCgst.toFixed(2)}</span>
-                                      <span>SGST: {itemSgst.toFixed(2)}</span>
+                                      <span>Base: {formatCurrency(base)}</span>
+                                      <span>CGST: {formatCurrency(itemCgst)}</span>
+                                      <span>SGST: {formatCurrency(itemSgst)}</span>
                                     </div>
                                   )}
                                 </td>
@@ -1518,37 +1757,77 @@ export default function Orders() {
                                     </div>
                                   )}
                                 </td>
-                                <td className="px-3 py-2 text-right">{lineTotal}</td>
+                                <td className="px-3 py-2 text-right">{formatCurrency(lineTotal)}</td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
                     </div>
-                    {hasTax ? (
-                      <div className="mt-2 space-y-1 text-right text-sm">
-                        {hasGst && (
-                          <>
-                            <div className="text-slate-600">
-                              Food Subtotal: {(o.foodSubtotal || 0).toFixed(2)}
+                    {(() => {
+                      const manualAmt = Number(o.manualDiscountAmount ?? o.manual_discount_amount) || 0;
+                      const manualType = (o.manualDiscountType || o.manual_discount_type || '').toUpperCase();
+                      const manualVal = o.manualDiscountValue ?? o.manual_discount_value;
+                      const manualReason = o.manualDiscountReason || o.manual_discount_reason || '';
+                      const couponAmt = Math.max(0, roundTo3((Number(o.discountAmount) || 0) - manualAmt));
+
+                      return hasTax ? (
+                        <div className="mt-2 space-y-1 text-right text-sm">
+                          {hasGst && (
+                            <>
+                              <div className="text-slate-600">
+                                Food Subtotal: {formatCurrency(o.foodSubtotal || 0)}
+                              </div>
+                              <div className="text-slate-600">CGST ({cgstR}%): {formatCurrency(o.cgstAmount || 0)}</div>
+                              <div className="text-slate-600">SGST ({sgstR}%): {formatCurrency(o.sgstAmount || 0)}</div>
+                            </>
+                          )}
+                          {hasVat && (
+                            <>
+                              <div className="text-slate-600">
+                                Liquor Subtotal: {formatCurrency(o.liquorSubtotal || 0)}
+                              </div>
+                              <div className="text-slate-600">VAT ({vatR}%): {formatCurrency(o.vatAmount || 0)}</div>
+                            </>
+                          )}
+                          {couponAmt > 0 && (
+                            <div className="text-green-700">
+                              Coupon Discount {o.couponCode ? `(${o.couponCode})` : ''}: -{formatCurrency(couponAmt)}
                             </div>
-                            <div className="text-slate-600">CGST ({cgstR}%): {o.cgstAmount}</div>
-                            <div className="text-slate-600">SGST ({sgstR}%): {o.sgstAmount}</div>
-                          </>
-                        )}
-                        {hasVat && (
-                          <>
-                            <div className="text-slate-600">
-                              Liquor Subtotal: {(o.liquorSubtotal || 0).toFixed(2)}
+                          )}
+                          {manualAmt > 0 && (
+                            <div className="text-green-700">
+                              Manual Discount ({manualType === 'PERCENTAGE' ? `${manualVal}%` : 'Fixed'}{manualReason ? ` - ${manualReason}` : ''}): -{formatCurrency(manualAmt)}
                             </div>
-                            <div className="text-slate-600">VAT ({vatR}%): {o.vatAmount}</div>
-                          </>
-                        )}
-                        <div className="font-bold border-t border-stroke pt-1">Total: {o.totalAmount}</div>
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-right text-sm font-bold">Total: {o.totalAmount}</div>
-                    )}
+                          )}
+                          {couponAmt === 0 && manualAmt === 0 && o.discountAmount > 0 && (
+                            <div className="text-green-700">
+                              Discount {o.couponCode ? `(${o.couponCode})` : ''}: -{formatCurrency(o.discountAmount)}
+                            </div>
+                          )}
+                          <div className="font-bold border-t border-stroke pt-1">Total: {formatCurrency(o.totalAmount)}</div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 space-y-1 text-right text-sm">
+                          {couponAmt > 0 && (
+                            <div className="text-green-700">
+                              Coupon Discount {o.couponCode ? `(${o.couponCode})` : ''}: -{formatCurrency(couponAmt)}
+                            </div>
+                          )}
+                          {manualAmt > 0 && (
+                            <div className="text-green-700">
+                              Manual Discount ({manualType === 'PERCENTAGE' ? `${manualVal}%` : 'Fixed'}{manualReason ? ` - ${manualReason}` : ''}): -{formatCurrency(manualAmt)}
+                            </div>
+                          )}
+                          {couponAmt === 0 && manualAmt === 0 && o.discountAmount > 0 && (
+                            <div className="text-green-700">
+                              Discount {o.couponCode ? `(${o.couponCode})` : ''}: -{formatCurrency(o.discountAmount)}
+                            </div>
+                          )}
+                          <div className="font-bold">Total: {formatCurrency(o.totalAmount)}</div>
+                        </div>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -1586,31 +1865,74 @@ export default function Orders() {
             </div>
           </div>
         )}
-        {detailModal.order &&
-          <button
-            onClick={() => {
-              const rest = restaurants.find((r) => r._id === selectedRestaurant);
-              const orderForBill = { ...detailModal.order };
-              if (hasCustomerData) {
-                orderForBill.customerName = customerInfoEnabled
-                  ? detailModal.order.customerName
-                  : maskString(detailModal.order.customerName);
-                orderForBill.customerPhone = customerInfoEnabled
-                  ? detailModal.order.customerPhone
-                  : maskString(detailModal.order.customerPhone);
-              } else {
-                delete orderForBill.customerName;
-                delete orderForBill.customerPhone;
-              }
+        {detailModal.order && (
+          <div className="mt-5 flex items-center justify-between border-t border-stroke pt-4">
+            {isOrderDeletable(detailModal.order) ? (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm({ open: true, order: detailModal.order })}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 cursor-pointer"
+              >
+                <HiOutlineTrash size={14} />
+                Delete Order
+              </button>
+            ) : <div />}
+            <button
+              onClick={() => {
+                const rest = restaurants.find((r) => r._id === selectedRestaurant);
+                const orderForBill = { ...detailModal.order };
+                if (hasCustomerData) {
+                  orderForBill.customerName = customerInfoEnabled
+                    ? detailModal.order.customerName
+                    : maskString(detailModal.order.customerName);
+                  orderForBill.customerPhone = customerInfoEnabled
+                    ? detailModal.order.customerPhone
+                    : maskString(detailModal.order.customerPhone);
+                } else {
+                  delete orderForBill.customerName;
+                  delete orderForBill.customerPhone;
+                }
 
-              generateBillPdf(orderForBill, rest);
-            }}
-            className="ml-auto mt-5 flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 cursor-pointer"
-          >
-            <HiOutlinePrinter size={14} />
-            Print Bill
-          </button>
-        }
+                generateBillPdf(orderForBill, rest);
+              }}
+              className="flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 cursor-pointer"
+            >
+              <HiOutlinePrinter size={14} />
+              Print Bill
+            </button>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Canceled Order Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirm.open}
+        onClose={() => !deletingOrder && setDeleteConfirm({ open: false, order: null })}
+        title="Delete Canceled Order"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to permanently remove Order #{deleteConfirm.order?.orderNumber || deleteConfirm.order?._id}? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-3 border-t border-stroke">
+            <button
+              type="button"
+              disabled={deletingOrder}
+              onClick={() => setDeleteConfirm({ open: false, order: null })}
+              className="rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deletingOrder}
+              onClick={handleDeleteOrder}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+            >
+              {deletingOrder ? 'Deleting...' : 'Confirm Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

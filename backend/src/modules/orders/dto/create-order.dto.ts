@@ -9,8 +9,8 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PaymentMethod, PaymentStatus } from '../../../schemas/order.schema';
+import { Transform, Type } from 'class-transformer';
+import { ManualDiscountType, PaymentMethod, PaymentStatus } from '../../../schemas/order.schema';
 
 export class SelectedAddOnDto {
   @ApiProperty()
@@ -25,7 +25,7 @@ export class SelectedAddOnDto {
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   priceDelta?: number;
 }
@@ -43,7 +43,7 @@ export class SelectedSpiceLevelDto {
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   priceDelta?: number;
 }
@@ -61,7 +61,8 @@ export class OrderItemDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
   price: number;
 
   @ApiProperty()
@@ -114,18 +115,65 @@ export class CreateOrderDto {
     default: PaymentMethod.CASH,
   })
   @IsOptional()
-  @IsIn([PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.ONLINE])
+  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
+  @IsIn([
+    PaymentMethod.CASH,
+    PaymentMethod.CARD,
+    PaymentMethod.ONLINE,
+    'cash',
+    'card',
+    'online',
+  ])
   paymentMethod?: PaymentMethod;
 
   @ApiPropertyOptional({ enum: [PaymentStatus.PENDING, PaymentStatus.PAID] })
   @IsOptional()
-  @IsIn([PaymentStatus.PENDING, PaymentStatus.PAID])
+  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
+  @IsIn([PaymentStatus.PENDING, PaymentStatus.PAID, 'PENDING', 'PAID', 'pending', 'paid'])
   paymentStatus?: PaymentStatus;
 
   @ApiPropertyOptional({ example: 'SAVE10' })
   @IsOptional()
   @IsString()
   couponCode?: string;
+
+  @ApiPropertyOptional({
+    enum: ManualDiscountType,
+    example: ManualDiscountType.PERCENTAGE,
+  })
+  @IsOptional()
+  @IsIn([ManualDiscountType.PERCENTAGE, ManualDiscountType.FIXED, 'percentage', 'fixed', null, ''])
+  manualDiscountType?: ManualDiscountType | string | null;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
+  manualDiscountValue?: number;
+
+  @ApiPropertyOptional({ example: 'Manager courtesy' })
+  @IsOptional()
+  @IsString()
+  manualDiscountReason?: string;
+
+  @ApiPropertyOptional({
+    enum: ManualDiscountType,
+    example: ManualDiscountType.PERCENTAGE,
+  })
+  @IsOptional()
+  @IsIn([ManualDiscountType.PERCENTAGE, ManualDiscountType.FIXED, 'percentage', 'fixed', null, ''])
+  manual_discount_type?: ManualDiscountType | string | null;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
+  manual_discount_value?: number;
+
+  @ApiPropertyOptional({ example: 'Manager courtesy' })
+  @IsOptional()
+  @IsString()
+  manual_discount_reason?: string;
 
   @ApiProperty({ type: [OrderItemDto] })
   @IsArray()

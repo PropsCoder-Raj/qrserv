@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 @Schema({ timestamps: true })
 export class OrderStatistics {
@@ -47,7 +48,7 @@ export class OrderStatistics {
   cancelledOrderCount: number;
 
   @ApiProperty()
-  @Prop({ default: 0 })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   totalOrderAmount: number;
 }
 

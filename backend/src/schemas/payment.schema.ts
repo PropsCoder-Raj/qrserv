@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { mongoose3DecimalSetter } from '../common/utils/precision';
 
 export enum PaymentSchemaStatus {
   CREATED = 'created',
@@ -31,7 +32,7 @@ export class Payment {
   razorpaySignature: string;
 
   @ApiProperty()
-  @Prop({ required: true })
+  @Prop({ required: true, type: Number, set: mongoose3DecimalSetter })
   amount: number;
 
   @ApiProperty()

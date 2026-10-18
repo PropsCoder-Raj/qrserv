@@ -11,7 +11,7 @@ import {
 
 export class CreateWithdrawRequestDto {
   @ApiProperty({ example: 1500 })
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
   @IsPositive()
   amount: number;
 

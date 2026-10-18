@@ -39,6 +39,8 @@ export default function Menu() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState('');
+  const [crNumber, setCrNumber] = useState('');
+  const [receiptHeaderNote, setReceiptHeaderNote] = useState('');
   const [gstNo, setGstNo] = useState('');
   const [vatNo, setVatNo] = useState('');
   const [tableNumber, setTableNumber] = useState('');
@@ -87,6 +89,8 @@ export default function Menu() {
       const res = await restaurantService.getPublicInfo(restaurantId);
       const info = res.data.data;
       setRestaurantName(info.name);
+      setCrNumber(info.cr_number || '');
+      setReceiptHeaderNote(info.receipt_header_note || '');
       setGstNo(info.gst_no);
       setVatNo(info.vat_no);
       setTaxInfo(
@@ -268,8 +272,14 @@ export default function Menu() {
               <HiOutlineLocationMarker size={18} className="flex-shrink-0" />
               <h1 className="text-center text-lg font-bold">{restaurantName}</h1>
             </div>
-            <p className="text-center text-xs">GST No.: {gstNo}</p>
-            <p className="text-center text-xs">VAT No.: {vatNo}</p>
+            {receiptHeaderNote && (
+              <p className="text-center text-xs opacity-90 mt-0.5">{receiptHeaderNote}</p>
+            )}
+            {crNumber && (
+              <p className="text-center text-xs mt-0.5">CR No.: {crNumber}</p>
+            )}
+            {gstNo && <p className="text-center text-xs">GST No.: {gstNo}</p>}
+            {vatNo && <p className="text-center text-xs">VAT No.: {vatNo}</p>}
             {tableNumber || tableId ? (
               <div className="mt-1 flex items-center justify-center gap-3 text-xs text-white/80">
                 <span className="flex items-center gap-1">
