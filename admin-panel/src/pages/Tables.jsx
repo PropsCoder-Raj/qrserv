@@ -17,6 +17,7 @@ import tableService from '../services/tableService';
 import restaurantService from '../services/restaurantService';
 import orderService from '../services/orderService';
 import generateBillPdf from '../utils/generateBillPdf';
+import generateKotPdf from '../utils/generateKotPdf';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
@@ -210,6 +211,10 @@ export default function Tables() {
 
   const printOrderBill = (order) => {
     generateBillPdf(order, getSelectedRestaurantData());
+  };
+
+  const printOrderKot = (order) => {
+    generateKotPdf(order, getSelectedRestaurantData());
   };
 
   const getPageNumbers = () => {
@@ -828,7 +833,14 @@ export default function Tables() {
                 <tbody>
                   {(historyDetailModal.order.items || []).map((item, index) => (
                     <tr key={`${historyDetailModal.order._id}-${index}`} className="border-b border-stroke last:border-0">
-                      <td className="px-4 py-3 text-slate-700">{item.name}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        <div className="font-medium">{item.name}</div>
+                        {(item.cookingNote || item.specialInstructions || item.notes) && (
+                          <div className="mt-1 inline-block rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                            📝 Note: {item.cookingNote || item.specialInstructions || item.notes}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-slate-700">{item.quantity}</td>
                       <td className="px-4 py-3 text-slate-700">{formatCurrency(item.price)}</td>
                       <td className="px-4 py-3 text-slate-700">
@@ -840,11 +852,31 @@ export default function Tables() {
               </table>
             </div>
 
-            <div className="flex justify-end">
+            {(historyDetailModal.order?.order_instructions || historyDetailModal.order?.orderInstructions || historyDetailModal.order?.notes) && (
+              <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-3 shadow-xs">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-800">
+                  <span>🔔</span>
+                  <span>Special Order Note</span>
+                </div>
+                <p className="mt-1 text-xs font-medium text-amber-950 break-words">
+                  {historyDetailModal.order.order_instructions || historyDetailModal.order.orderInstructions || historyDetailModal.order.notes}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => printOrderKot(historyDetailModal.order)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
+              >
+                <HiOutlinePrinter size={16} className="text-slate-600" />
+                Print KOT
+              </button>
               <button
                 type="button"
                 onClick={() => printOrderBill(historyDetailModal.order)}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 cursor-pointer"
               >
                 <HiOutlinePrinter size={16} />
                 Print Bill

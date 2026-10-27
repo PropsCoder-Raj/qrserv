@@ -5,7 +5,7 @@ import {
   OrderStatistics,
   OrderStatisticsDocument,
 } from '../../schemas/order-statistics.schema';
-import { OrderStatus } from '../../schemas/order.schema';
+import { OrderStatus, PaymentStatus } from '../../schemas/order.schema';
 
 type CounterField =
   | 'pendingOrderCount'
@@ -59,29 +59,34 @@ export class OrderStatisticsService {
   }
 
   /**
-   * Increments the counter matching a real order status transition.
-   * The listener only calls this when the status actually changed, so each
-   * transition is counted exactly once.
+   * Increments order lifecycle status counters or updates revenue when payment is PAID.
    *
-   * When the order reaches SERVED, its totalAmount is also added to
-   * totalOrderAmount in the same atomic update.
+   * - OrderStatus transitions increment the corresponding status counter.
+   * - PaymentStatus.PAID adds the order totalAmount to totalOrderAmount.
    */
   async updateOrderStatistics(
     orgId: string | Types.ObjectId,
     restaurantId: string | Types.ObjectId,
-    status: OrderStatus,
+    status: OrderStatus | PaymentStatus | string,
     totalAmount?: number,
   ): Promise<void> {
-    const counterField = STATUS_COUNTER_MAP[status];
-    if (!counterField) {
-      return;
+    const inc: Partial<Record<CounterField | 'totalOrderAmount', number>> = {};
+
+    // 1. If it's a payment status update to PAID, increment totalOrderAmount
+    const isPaid =
+      String(status).toLowerCase() === PaymentStatus.PAID.toLowerCase();
+    if (isPaid && Number(totalAmount) > 0) {
+      inc.totalOrderAmount = Number(totalAmount);
     }
 
-    const inc: Partial<Record<CounterField | 'totalOrderAmount', number>> = {
-      [counterField]: 1,
-    };
-    if (status === OrderStatus.SERVED && Number(totalAmount) > 0) {
-      inc.totalOrderAmount = Number(totalAmount);
+    // 2. If it's an order lifecycle status, increment the matching status counter
+    const counterField = STATUS_COUNTER_MAP[status as OrderStatus];
+    if (counterField) {
+      inc[counterField] = 1;
+    }
+
+    if (Object.keys(inc).length === 0) {
+      return;
     }
 
     await this.incrementCounters(orgId, restaurantId, inc);

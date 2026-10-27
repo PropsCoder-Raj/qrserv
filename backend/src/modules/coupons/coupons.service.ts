@@ -160,6 +160,9 @@ export class CouponsService {
       spiceLevel?: { name: string; emoji?: string; priceDelta?: number };
       addOns?: Array<{ name: string; emoji?: string; priceDelta?: number }>;
       specialInstructions?: string;
+      cookingNote?: string;
+      instruction?: string;
+      notes?: string;
     }>,
   ) {
     if (!items?.length) throw new BadRequestException('Order must contain items');
@@ -218,7 +221,10 @@ export class CouponsService {
           emoji: addOn.emoji || '',
           priceDelta: Number(addOn.priceDelta) || 0,
         })),
-        specialInstructions: item.specialInstructions || '',
+        specialInstructions: (item.specialInstructions || item.cookingNote || item.instruction || item.notes || '').trim(),
+        cookingNote: (item.cookingNote || item.specialInstructions || item.instruction || item.notes || '').trim(),
+        instruction: (item.instruction || item.specialInstructions || item.cookingNote || item.notes || '').trim(),
+        notes: (item.notes || item.specialInstructions || item.cookingNote || item.instruction || '').trim(),
       };
     });
   }

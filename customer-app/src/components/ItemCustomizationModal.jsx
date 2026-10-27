@@ -13,7 +13,9 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
 
   const [spiceLevel, setSpiceLevel] = useState(null);
   const [selectedAddOns, setSelectedAddOns] = useState([]);
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [cookingNote, setCookingNote] = useState(
+    item.cookingNote || item.specialInstructions || '',
+  );
   const [quantity, setQuantity] = useState(1);
 
   const toggleAddOn = (addOn) => {
@@ -31,6 +33,7 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
   const unitPrice = roundTo3(saleBasePrice + addOnsTotal + spiceDelta);
 
   const handleConfirm = () => {
+    const note = cookingNote.trim();
     onConfirm(
       {
         menuItemId: item._id,
@@ -42,7 +45,8 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
         itemType: item.itemType || 'food',
         spiceLevel: spiceLevel || undefined,
         addOns: selectedAddOns,
-        specialInstructions: specialInstructions.trim() || undefined,
+        cookingNote: note || undefined,
+        specialInstructions: note || undefined,
       },
       quantity,
     );
@@ -138,13 +142,16 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
 
           {allowSpecialInstructions && (
             <div className="mb-4">
-              <p className="mb-2 text-sm font-medium text-text">Special Instructions</p>
-              <textarea
-                value={specialInstructions}
-                onChange={(e) => setSpecialInstructions(e.target.value)}
-                placeholder="E.g. less spicy, no onion..."
-                rows={2}
-                className="w-full rounded-xl border border-border bg-surface-cool px-3 py-2 text-sm outline-none placeholder:text-text-light focus:border-primary"
+              <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-text">
+                <span>Cooking Note</span>
+                <span className="text-[11px] font-normal text-text-light">Optional</span>
+              </label>
+              <input
+                type="text"
+                value={cookingNote}
+                onChange={(e) => setCookingNote(e.target.value)}
+                placeholder="e.g., Extra spicy, No onions, sauce on side"
+                className="w-full rounded-xl border border-border bg-surface-cool px-3 py-2.5 text-sm outline-none placeholder:text-text-light focus:border-primary"
               />
             </div>
           )}

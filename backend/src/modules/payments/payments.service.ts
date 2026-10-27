@@ -31,6 +31,11 @@ import {
 } from '../../schemas/subscription.schema';
 import { CreatePaymentOrderDto } from './dto/create-payment-order.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  OrderEvent,
+  OrderPaymentStatusChangedEvent,
+} from '../../common/events/order-events';
 
 @Injectable()
 export class PaymentsService {
@@ -46,6 +51,7 @@ export class PaymentsService {
     @InjectModel(Subscription.name)
     private subscriptionModel: Model<SubscriptionDocument>,
     private configService: ConfigService,
+    private eventEmitter?: EventEmitter2,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Razorpay = require('razorpay');
@@ -161,11 +167,34 @@ export class PaymentsService {
 
     if (!payment) throw new NotFoundException('Payment not found');
 
-    await this.orderModel.findByIdAndUpdate(payment.orderId, {
-      paymentStatus: PaymentStatus.PAID,
-      paymentId: dto.razorpayPaymentId,
-      razorpayPaymentId: dto.razorpayPaymentId,
-    });
+    const updatedOrder = await this.orderModel.findByIdAndUpdate(
+      payment.orderId,
+      {
+        paymentStatus: PaymentStatus.PAID,
+        paymentId: dto.razorpayPaymentId,
+        razorpayPaymentId: dto.razorpayPaymentId,
+      },
+      { new: true },
+    );
+
+    if (updatedOrder && this.eventEmitter) {
+      const restaurant = await this.restaurantModel
+        .findById(updatedOrder.restaurantId)
+        .select('organizationId')
+        .lean();
+
+      this.eventEmitter.emit(
+        OrderEvent.PAYMENT_STATUS_CHANGED,
+        new OrderPaymentStatusChangedEvent(
+          updatedOrder._id.toString(),
+          updatedOrder.restaurantId?.toString(),
+          PaymentStatus.PENDING,
+          PaymentStatus.PAID,
+          restaurant?.organizationId,
+          updatedOrder.totalAmount,
+        ),
+      );
+    }
 
     return { message: 'Payment verified successfully', payment };
   }
@@ -187,11 +216,34 @@ export class PaymentsService {
 
       const payment = await this.paymentModel.findOne({ razorpayOrderId });
       if (payment) {
-        await this.orderModel.findByIdAndUpdate(payment.orderId, {
-          paymentStatus: PaymentStatus.PAID,
-          paymentId: razorpayPaymentId,
-          razorpayPaymentId,
-        });
+        const updatedOrder = await this.orderModel.findByIdAndUpdate(
+          payment.orderId,
+          {
+            paymentStatus: PaymentStatus.PAID,
+            paymentId: razorpayPaymentId,
+            razorpayPaymentId,
+          },
+          { new: true },
+        );
+
+        if (updatedOrder && this.eventEmitter) {
+          const restaurant = await this.restaurantModel
+            .findById(updatedOrder.restaurantId)
+            .select('organizationId')
+            .lean();
+
+          this.eventEmitter.emit(
+            OrderEvent.PAYMENT_STATUS_CHANGED,
+            new OrderPaymentStatusChangedEvent(
+              updatedOrder._id.toString(),
+              updatedOrder.restaurantId?.toString(),
+              PaymentStatus.PENDING,
+              PaymentStatus.PAID,
+              restaurant?.organizationId,
+              updatedOrder.totalAmount,
+            ),
+          );
+        }
       }
     }
 

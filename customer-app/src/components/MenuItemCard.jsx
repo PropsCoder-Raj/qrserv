@@ -23,7 +23,7 @@ export default function MenuItemCard({ item }) {
   const hasCustomization =
     (customization.spiceLevels?.length || 0) > 0 || (customization.addOns?.length || 0) > 0;
 
-  const cartItem = items.find((i) => i.menuItemId === item._id && !i.spiceLevel && !i.addOns?.length && !i.specialInstructions);
+  const cartItem = items.find((i) => i.menuItemId === item._id && !i.spiceLevel && !i.addOns?.length && !i.specialInstructions && !i.cookingNote);
   const qty = hasCustomization ? getQuantityForMenuItem(item._id) : cartItem?.quantity || 0;
   const salePrice = getMenuItemSalePrice(item);
   const hasPriceDrop = salePrice < Number(item.price);

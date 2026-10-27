@@ -23,6 +23,7 @@ const orderService = {
     return api.get(`/orders?${params.toString()}`);
   },
   getOne: (id) => api.get(`/orders/${id}`),
+  getInvoice: (id) => api.get(`/orders/${id}/invoice`),
   getStats: (restaurantId, { datePreset, fromDate, toDate } = {}) => {
     const params = new URLSearchParams();
     if (restaurantId) params.append('restaurantId', restaurantId);

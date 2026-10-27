@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Paroso-Style Thermal Print & Screen Preview Styling
+   Supports: 80mm (Standard POS) & 58mm (Compact Mobile) thermal roll paper
+   ========================================================================== */
+
+/* Authentic thermal paper typography */
+.thermal-font {
+  font-family: 'Courier New', Courier, 'Space Mono', 'Lucida Console', Monaco, monospace;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Realistic zigzag tear edge for receipt top & bottom */
+.receipt-tear-top {
+  background: radial-gradient(circle, transparent, transparent 3px, #ffffff 3.5px, #ffffff 4px);
+  background-size: 8px 8px;
+  background-position: -4px -4px;
+}
+
+.receipt-tear-bottom {
+  background: radial-gradient(circle, transparent, transparent 3px, #ffffff 3.5px, #ffffff 4px);
+  background-size: 8px 8px;
+  background-position: -4px 4px;
+}
+
+/* Paper shadow simulation in POS view */
+.thermal-paper-shadow {
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.5),
+    0 8px 10px -6px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Authentic dashed thermal divider */
+.thermal-dash {
+  border-bottom: 1px dashed #000000;
+  margin: 6px 0;
+  width: 100%;
+}
+
+.thermal-double-dash {
+  border-bottom: 2px dashed #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+/* Width specifications */
+.thermal-width-80mm {
+  width: 80mm;
+  max-width: 80mm;
+  min-width: 80mm;
+}
+
+.thermal-width-58mm {
+  width: 58mm;
+  max-width: 58mm;
+  min-width: 58mm;
+}
+
+/* Pure thermal barcode stripes */
+.barcode-stripes {
+  background: repeating-linear-gradient(
+    90deg,
+    #000 0px,
+    #000 2px,
+    #fff 2px,
+    #fff 4px,
+    #000 4px,
+    #000 5px,
+    #fff 5px,
+    #fff 8px,
+    #000 8px,
+    #000 11px,
+    #fff 11px,
+    #fff 12px,
+    #000 12px,
+    #000 15px,
+    #fff 15px,
+    #fff 17px
+  );
+}
+
+/* --------------------------------------------------------------------------
+   @media print Rules for Thermal Roll Output
+   Hides all UI, navigation, buttons, scrollbars and isolates receipt paper
+   -------------------------------------------------------------------------- */
+@media print {
+  /* Set zero margins for continuous thermal roll */
+  @page {
+    margin: 0mm !important;
+    size: auto;
+  }
+
+  /* Reset document background */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all interactive UI and non-printable elements */
+  .no-print,
+  .no-print *,
+  header,
+  nav,
+  aside,
+  button,
+  footer,
+  .toast,
+  .toaster-container,
+  [role="status"],
+  [role="alert"] {
+    display: none !important;
+  }
+
+  /* Thermal paper container overrides */
+  .thermal-paper-printable {
+    margin: 0 auto !important;
+    padding: 2mm 3mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    float: none !important;
+    overflow: visible !important;
+  }
+
+  .thermal-paper-printable.thermal-width-80mm {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-width: 80mm !important;
+  }
+
+  .thermal-paper-printable.thermal-width-58mm {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    min-width: 58mm !important;
+  }
+
+  /* Prevent awkward page break cuts inside receipt sections */
+  .thermal-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Ensure text is true black with no fading */
+  * {
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+}

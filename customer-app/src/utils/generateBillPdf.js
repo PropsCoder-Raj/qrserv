@@ -71,12 +71,22 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     (order.customerPhone ? 4 : 0) +
     (tableNumber ? 4 : 0);
 
+  const orderNote = (order.order_instructions || order.orderInstructions || order.notes || '').trim();
+  const orderNoteLines = orderNote ? Math.ceil(orderNote.length / ITEM_NAME_CHARS_PER_LINE) : 0;
+  const extraOrderNoteHeight = orderNote ? (orderNoteLines * 3.5 + 8) : 0;
+  const itemNotesHeight = items.reduce((acc, it) => {
+    const n = (it.cookingNote || it.specialInstructions || it.notes || '').trim();
+    return acc + (n ? (Math.ceil(n.length / ITEM_NAME_CHARS_PER_LINE) * 3 + 3) : 0);
+  }, 0);
+
   const pageHeight =
     75 +
     extraHeaderHeight +
     extraOrderMetaHeight +
     itemCount * (hasTax ? 16 : 12) +
     longItemNameHeight +
+    extraOrderNoteHeight +
+    itemNotesHeight +
     (hasGst ? 16 : 0) +
     (hasVat ? 12 : 0);
 
@@ -215,6 +225,11 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     addWrappedLeftText(getItemLabel(item), 7, 'bold');
     addLeftRight(`  ${remainingQty} x ${formatCurrency(item.price)}`, formatCurrency(amount));
 
+    const itemNote = (item.cookingNote || item.specialInstructions || item.notes || '').trim();
+    if (itemNote) {
+      addWrappedLeftText(`  Note: ${itemNote}`, 6, 'italic');
+    }
+
     if (cancelledQty > 0) {
       addLeftText(`  Cancelled: ${cancelledQty}/${totalQty}`, 6);
       if (item.cancelReason) {
@@ -275,6 +290,13 @@ export default function generateBillPdf(order, customRestaurant = {}) {
   y += 4.5;
 
   addLeftRight('Payment:', order.paymentStatus || 'pending');
+
+  if (orderNote) {
+    addDashLine();
+    addCenteredText('*** SPECIAL INSTRUCTIONS ***', 7, 'bold');
+    addWrappedLeftText(orderNote, 6.5, 'normal');
+  }
+
   addDashLine();
   y += 1;
   addCenteredText('Thank you! Visit again', 7, 'bold');

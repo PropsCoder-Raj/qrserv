@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import generateBillPdf from '../utils/generateBillPdf';
+import generateKotPdf from '../utils/generateKotPdf';
 import restaurantService from '../services/restaurantService';
 import menuService from '../services/menuService';
 import tableService from '../services/tableService';
@@ -838,6 +839,15 @@ export default function Orders() {
         <div className="flex items-center gap-1">
           <button type="button" aria-label={`View order ${o.orderNumber}`} onClick={() => setDetailModal({ open: true, order: o })} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 cursor-pointer">
             <HiOutlineEye size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label={`Print thermal bill for order ${o.orderNumber}`}
+            title="Paroso Thermal Bill & KOT Live Preview"
+            onClick={() => window.open(`/admin/print/bill/${o._id}`, '_blank')}
+            className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+          >
+            <HiOutlinePrinter size={16} />
           </button>
           {isOrderEditable(o) && (
             <button type="button" aria-label={`Update order ${o.orderNumber}`} title="Update order" onClick={() => startEditingOrder(o)} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50 cursor-pointer">
@@ -1727,10 +1737,9 @@ export default function Orders() {
                                             .join(', ')}
                                         </div>
                                       )}
-                                      {item.specialInstructions && (
-                                        <div className="italic">
-                                          <span className="font-medium text-slate-600 not-italic">Note:</span>{' '}
-                                          {item.specialInstructions}
+                                      {(item.cookingNote || item.specialInstructions || item.notes) && (
+                                        <div className="mt-1 rounded bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900 inline-block">
+                                          📝 Note: {item.cookingNote || item.specialInstructions || item.notes}
                                         </div>
                                       )}
                                     </div>
@@ -1833,6 +1842,18 @@ export default function Orders() {
               })()}
             </div>
 
+            {(detailModal.order?.order_instructions || detailModal.order?.orderInstructions || detailModal.order?.notes) && (
+              <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-3 shadow-xs">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-800">
+                  <span>🔔</span>
+                  <span>Special Order Instructions / Note</span>
+                </div>
+                <p className="mt-1 text-xs font-medium text-amber-950 break-words">
+                  {detailModal.order.order_instructions || detailModal.order.orderInstructions || detailModal.order.notes}
+                </p>
+              </div>
+            )}
+
             <div>
               <h4 className="mb-2 text-sm font-semibold text-slate-700">Order Status</h4>
               <div className="flex flex-wrap items-center gap-2">
@@ -1877,29 +1898,51 @@ export default function Orders() {
                 Delete Order
               </button>
             ) : <div />}
-            <button
-              onClick={() => {
-                const rest = restaurants.find((r) => r._id === selectedRestaurant);
-                const orderForBill = { ...detailModal.order };
-                if (hasCustomerData) {
-                  orderForBill.customerName = customerInfoEnabled
-                    ? detailModal.order.customerName
-                    : maskString(detailModal.order.customerName);
-                  orderForBill.customerPhone = customerInfoEnabled
-                    ? detailModal.order.customerPhone
-                    : maskString(detailModal.order.customerPhone);
-                } else {
-                  delete orderForBill.customerName;
-                  delete orderForBill.customerPhone;
-                }
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.open(`/admin/print/bill/${detailModal.order._id}`, '_blank')}
+                className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 cursor-pointer shadow-xs"
+                title="Open Paroso-Style Thermal Preview & Live Sync"
+              >
+                <HiOutlinePrinter size={14} />
+                Print Bill
+              </button>
+              {/* <button
+                type="button"
+                onClick={() => {
+                  const rest = restaurants.find((r) => r._id === selectedRestaurant);
+                  generateKotPdf(detailModal.order, rest);
+                }}
+                className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 cursor-pointer shadow-xs"
+              >
+                <HiOutlinePrinter size={14} className="text-slate-600" />
+                Print KOT
+              </button>
+              <button
+                onClick={() => {
+                  const rest = restaurants.find((r) => r._id === selectedRestaurant);
+                  const orderForBill = { ...detailModal.order };
+                  if (hasCustomerData) {
+                    orderForBill.customerName = customerInfoEnabled
+                      ? detailModal.order.customerName
+                      : maskString(detailModal.order.customerName);
+                    orderForBill.customerPhone = customerInfoEnabled
+                      ? detailModal.order.customerPhone
+                      : maskString(detailModal.order.customerPhone);
+                  } else {
+                    delete orderForBill.customerName;
+                    delete orderForBill.customerPhone;
+                  }
 
-                generateBillPdf(orderForBill, rest);
-              }}
-              className="flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 cursor-pointer"
-            >
-              <HiOutlinePrinter size={14} />
-              Print Bill
-            </button>
+                  generateBillPdf(orderForBill, rest);
+                }}
+                className="flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 cursor-pointer"
+              >
+                <HiOutlinePrinter size={14} />
+                Print Bill
+              </button> */}
+            </div>
           </div>
         )}
       </Modal>
