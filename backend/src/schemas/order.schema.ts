@@ -95,6 +95,15 @@ export class OrderItem {
 
   @ApiProperty({ required: false })
   specialInstructions?: string;
+
+  @ApiProperty({ required: false })
+  cookingNote?: string;
+
+  @ApiProperty({ required: false })
+  instruction?: string;
+
+  @ApiProperty({ required: false })
+  notes?: string;
 }
 
 @Schema({ timestamps: true })
@@ -166,6 +175,9 @@ export class Order {
           default: [],
         },
         specialInstructions: { type: String, default: '' },
+        cookingNote: { type: String, default: '' },
+        instruction: { type: String, default: '' },
+        notes: { type: String, default: '' },
       },
     ],
     required: true,
@@ -307,6 +319,18 @@ export class Order {
   @ApiProperty()
   @Prop()
   paymentId: string;
+
+  @ApiProperty({ required: false, default: '' })
+  @Prop({ default: '' })
+  order_instructions: string;
+
+  @ApiProperty({ required: false, default: '' })
+  @Prop({ default: '' })
+  orderInstructions?: string;
+
+  @ApiProperty({ required: false, default: '' })
+  @Prop({ default: '' })
+  orderNotes?: string;
 }
 
 export type OrderDocument = Order & Document;

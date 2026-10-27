@@ -92,6 +92,21 @@ export class OrderItemDto {
   @IsOptional()
   @IsString()
   specialInstructions?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  cookingNote?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  instruction?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class CreateOrderDto {
@@ -190,4 +205,19 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   customerPhone?: string;
+
+  @ApiPropertyOptional({ example: 'Ring bell twice, pack cutlery' })
+  @IsOptional()
+  @IsString()
+  order_instructions?: string;
+
+  @ApiPropertyOptional({ example: 'Ring bell twice, pack cutlery' })
+  @IsOptional()
+  @IsString()
+  orderInstructions?: string;
+
+  @ApiPropertyOptional({ example: 'Ring bell twice, pack cutlery' })
+  @IsOptional()
+  @IsString()
+  orderNotes?: string;
 }

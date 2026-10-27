@@ -374,8 +374,8 @@ export default function OrderStatus() {
                             </span>
                           )}
                         </span>
-                        {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
-                          <div className="text-[11px] text-text-light">
+                        {(item.spiceLevel?.name || item.addOns?.length > 0 || item.cookingNote || item.specialInstructions) && (
+                          <div className="text-[11px] text-text-light space-y-0.5">
                             {item.spiceLevel?.name && (
                               <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
                             )}
@@ -384,8 +384,10 @@ export default function OrderStatus() {
                                 {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
                               </div>
                             )}
-                            {item.specialInstructions && (
-                              <div className="italic">Note: {item.specialInstructions}</div>
+                            {(item.cookingNote || item.specialInstructions) && (
+                              <div className="mt-0.5 inline-block rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10.5px] font-medium text-amber-900">
+                                📝 Note: {item.cookingNote || item.specialInstructions}
+                              </div>
                             )}
                           </div>
                         )}
@@ -407,6 +409,18 @@ export default function OrderStatus() {
                   );
                 })}
               </div>
+
+              {(order.order_instructions || order.orderInstructions || order.notes) && (
+                <div className="mt-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/90 p-3 text-xs text-amber-950">
+                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-amber-800">
+                    <span>🔔</span>
+                    <span>Order Note / Instructions</span>
+                  </div>
+                  <p className="mt-1 font-medium break-words">
+                    {order.order_instructions || order.orderInstructions || order.notes}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

@@ -8,8 +8,7 @@ import ManagerLogin from './pages/ManagerLogin';
 import StaffLogin from './pages/StaffLogin';
 import Dashboard from './pages/Dashboard';
 import Restaurants from './pages/Restaurants';
-import Categories from './pages/Categories';
-import MenuItems from './pages/MenuItems';
+import MenuManagement from './pages/MenuManagement';
 import Tables from './pages/Tables';
 import Orders from './pages/Orders';
 import Users from './pages/Users';
@@ -26,6 +25,7 @@ import RestaurantProfileSettings from './pages/RestaurantProfileSettings';
 import OrderStatistics from './pages/OrderStatistics';
 import OrderAnalytics from './pages/OrderAnalytics';
 import Coupons from './pages/Coupons';
+import AdminBillPrintPreview from './pages/AdminBillPrintPreview';
 
 export default function App() {
   return (
@@ -46,8 +46,8 @@ export default function App() {
             />
             <Route path="/order-payments" element={<OrganizationDetails />} />
             <Route path="/restaurants" element={<Restaurants />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/menu-items" element={<MenuItems />} />
+            <Route path="/categories" element={<Navigate to="/menu-items" replace />} />
+            <Route path="/menu-items" element={<MenuManagement />} />
             <Route path="/coupons" element={<Coupons />} />
             <Route path="/tables" element={<Tables />} />
             <Route path="/orders" element={<Orders />} />
@@ -67,6 +67,9 @@ export default function App() {
             <Route path="/staff/menu" element={<StaffMenuItems />} />
             <Route path="/staff/orders" element={<StaffOrders />} />
           </Route>
+          {/* Admin / POS Paroso-Style Thermal Print & KOT Preview */}
+          <Route path="/admin/print/bill/:id" element={<AdminBillPrintPreview />} />
+          <Route path="/print/bill/:id" element={<AdminBillPrintPreview />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

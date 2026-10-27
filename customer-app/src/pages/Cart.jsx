@@ -27,6 +27,7 @@ export default function Cart() {
     paymentMethod: cartPaymentMethod,
     setCartPaymentMethod,
     updateQuantity,
+    updateItemNote,
     clearCart,
     taxEnabled,
     taxType,
@@ -48,6 +49,7 @@ export default function Cart() {
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [orderInstructions, setOrderInstructions] = useState('');
   const [placing, setPlacing] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -122,6 +124,8 @@ export default function Cart() {
         orderType,
         paymentMethod,
         couponCode: appliedCoupon?.couponCode || undefined,
+        order_instructions: orderInstructions.trim() || undefined,
+        orderInstructions: orderInstructions.trim() || undefined,
         items: items.map((i) => ({
           menuItemId: i.menuItemId,
           name: i.name,
@@ -130,7 +134,8 @@ export default function Cart() {
           itemType: i.itemType || 'food',
           spiceLevel: i.spiceLevel || undefined,
           addOns: i.addOns?.length ? i.addOns : undefined,
-          specialInstructions: i.specialInstructions || undefined,
+          cookingNote: (i.cookingNote || i.specialInstructions || '').trim() || undefined,
+          specialInstructions: (i.cookingNote || i.specialInstructions || '').trim() || undefined,
         })),
         customerName: customerName || undefined,
         customerPhone,
@@ -220,57 +225,67 @@ export default function Cart() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20, height: 0 }}
-                    className="flex items-center gap-3 rounded-2xl bg-surface p-4 border border-border"
+                    className="flex flex-col gap-2 rounded-2xl bg-surface p-4 border border-border"
                   >
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-text truncate">
-                        {item.name}
-                      </h3>
-                      {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
-                        <div className="mt-0.5 space-y-0.5 text-[11px] text-text-light">
-                          {item.spiceLevel?.name && (
-                            <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-text truncate">
+                          {item.name}
+                        </h3>
+                        {(item.spiceLevel?.name || item.addOns?.length > 0) && (
+                          <div className="mt-0.5 space-y-0.5 text-[11px] text-text-light">
+                            {item.spiceLevel?.name && (
+                              <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
+                            )}
+                            {item.addOns?.length > 0 && (
+                              <div>
+                                {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="mt-0.5 flex items-baseline gap-2 text-sm font-medium text-primary">
+                          {item.originalPrice > item.price && <del className="text-xs font-normal text-text-light">{formatCurrency(item.originalPrice * item.quantity)}</del>}
+                          <span>{formatCurrency(item.price * item.quantity)}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 rounded-xl bg-surface-cool p-1 shrink-0">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.cartItemId, item.quantity - 1)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
+                        >
+                          {item.quantity === 1 ? (
+                            <HiTrash size={14} className="text-danger" />
+                          ) : (
+                            <HiMinus size={14} />
                           )}
-                          {item.addOns?.length > 0 && (
-                            <div>
-                              {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
-                            </div>
-                          )}
-                          {item.specialInstructions && (
-                            <div className="italic">Note: {item.specialInstructions}</div>
-                          )}
-                        </div>
-                      )}
-                      <p className="mt-0.5 flex items-baseline gap-2 text-sm font-medium text-primary">
-                        {item.originalPrice > item.price && <del className="text-xs font-normal text-text-light">{formatCurrency(item.originalPrice * item.quantity)}</del>}
-                        <span>{formatCurrency(item.price * item.quantity)}</span>
-                      </p>
+                        </button>
+                        <span className="min-w-[24px] text-center text-sm font-bold text-text">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.cartItemId, item.quantity + 1)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
+                        >
+                          <HiPlus size={14} />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1 rounded-xl bg-surface-cool p-1">
-                      <button
-                        onClick={() =>
-                          updateQuantity(item.cartItemId, item.quantity - 1)
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
-                      >
-                        {item.quantity === 1 ? (
-                          <HiTrash size={14} className="text-danger" />
-                        ) : (
-                          <HiMinus size={14} />
-                        )}
-                      </button>
-                      <span className="min-w-[24px] text-center text-sm font-bold text-text">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() =>
-                          updateQuantity(item.cartItemId, item.quantity + 1)
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-primary-50 hover:text-primary"
-                      >
-                        <HiPlus size={14} />
-                      </button>
+                    {/* Cooking Note Input on Cart Card */}
+                    <div className="pt-2 border-t border-border/60">
+                      <input
+                        type="text"
+                        value={item.cookingNote || item.specialInstructions || ''}
+                        onChange={(e) => updateItemNote(item.cartItemId, e.target.value)}
+                        placeholder="Cooking Note (e.g., Extra spicy, No onions)..."
+                        className="w-full rounded-xl border border-border bg-surface-cool px-3 py-1.5 text-xs outline-none focus:border-primary placeholder:text-text-light"
+                      />
                     </div>
                   </motion.div>
                 ))}
@@ -314,6 +329,21 @@ export default function Cart() {
               )}
             </div>
 
+            {/* Order / Delivery Note */}
+            {/* <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-text">Order / Delivery Note</h3>
+                <span className="text-[11px] font-normal text-text-light">Optional</span>
+              </div>
+              <textarea
+                value={orderInstructions}
+                onChange={(e) => setOrderInstructions(e.target.value)}
+                placeholder="Add general instructions (e.g. Ring bell twice, Pack cutlery, Leave at the door)..."
+                rows={2}
+                className="w-full rounded-xl border border-border bg-surface-cool p-3 text-sm outline-none placeholder:text-text-light focus:border-primary"
+              />
+            </div> */}
+
             {/* Customer Info */}
             {grandTotal < 0 && (
               <span className="text-base font-bold text-primary">{grandTotal}</span>
@@ -343,7 +373,7 @@ export default function Cart() {
               </div>
             </div>
 
-            <fieldset className="mt-6 rounded-2xl border border-border bg-surface p-4">
+            {/* <fieldset className="mt-6 rounded-2xl border border-border bg-surface p-4">
               <h3 className="mb-3 text-sm font-semibold text-text">
                 Payment Method
               </h3>
@@ -383,7 +413,7 @@ export default function Cart() {
               <p className="mt-2 text-xs text-text-light">
                 Pay by {paymentMethod.toLowerCase()} at the restaurant.
               </p>
-            </fieldset>
+            </fieldset> */}
 
             {/* Bill Summary */}
             <div className="mt-6 rounded-2xl bg-surface p-4 border border-border">

@@ -8,12 +8,13 @@ export const useCart = () => useContext(CartContext);
 
 // Builds a stable key that identifies a unique cart line — same menu item
 // with different spice level/add-ons/instructions is tracked separately.
-export function buildCartItemId(menuItemId, spiceLevel, addOns, specialInstructions) {
+export function buildCartItemId(menuItemId, spiceLevel, addOns, specialInstructions, cookingNote) {
   const addOnsKey = (addOns || [])
     .map((a) => a.name)
     .sort()
     .join(',');
-  return [menuItemId, spiceLevel?.name || '', addOnsKey, specialInstructions || ''].join('::');
+  const noteKey = (specialInstructions || cookingNote || '').trim();
+  return [menuItemId, spiceLevel?.name || '', addOnsKey, noteKey].join('::');
 }
 
 export function CartProvider({ children }) {
@@ -63,12 +64,18 @@ export function CartProvider({ children }) {
   }, [restaurantId, tableId, orderType, paymentMethod]);
 
   const addItem = (item, quantity = 1) => {
+    const note = (item.cookingNote || item.specialInstructions || '').trim();
     const cartItemId = buildCartItemId(
       item.menuItemId,
       item.spiceLevel,
       item.addOns,
-      item.specialInstructions,
+      note,
     );
+    const normalizedItem = {
+      ...item,
+      cookingNote: note || undefined,
+      specialInstructions: note || undefined,
+    };
     setItems((prev) => {
       const existing = prev.find((i) => i.cartItemId === cartItemId);
       if (existing) {
@@ -78,8 +85,23 @@ export function CartProvider({ children }) {
             : i
         );
       }
-      return [...prev, { ...item, cartItemId, quantity }];
+      return [...prev, { ...normalizedItem, cartItemId, quantity }];
     });
+  };
+
+  const updateItemNote = (cartItemId, note) => {
+    const trimmed = (note || '').trim();
+    setItems((prev) =>
+      prev.map((i) =>
+        i.cartItemId === cartItemId
+          ? {
+              ...i,
+              cookingNote: trimmed,
+              specialInstructions: trimmed,
+            }
+          : i
+      )
+    );
   };
 
   const removeItem = (cartItemId) => {
@@ -233,6 +255,7 @@ export function CartProvider({ children }) {
         addItem,
         removeItem,
         updateQuantity,
+        updateItemNote,
         syncMenuPrices,
         getQuantityForMenuItem,
         clearCart,

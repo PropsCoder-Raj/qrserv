@@ -3,7 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { OrderStatisticsService } from './order-statistics.service';
 import { OrderStatistics } from '../../schemas/order-statistics.schema';
-import { OrderStatus } from '../../schemas/order.schema';
+import { OrderStatus, PaymentStatus } from '../../schemas/order.schema';
 
 const ORG_1 = '507f1f77bcf86cd799439011';
 const ORG_2 = '507f1f77bcf86cd799439012';
@@ -157,26 +157,26 @@ describe('OrderStatisticsService', () => {
     });
   });
 
-  describe('totalOrderAmount on SERVED', () => {
-    it('adds the order totalAmount to totalOrderAmount when status is SERVED', async () => {
+  describe('totalOrderAmount on PAID', () => {
+    it('adds the order totalAmount to totalOrderAmount when status is PAID', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        OrderStatus.SERVED,
+        PaymentStatus.PAID,
         250.5,
       );
 
       expect(findOneAndUpdateMock).toHaveBeenCalledWith(
         filterFor(ORG_1, RESTAURANT_1),
         {
-          $inc: { servedOrderCount: 1, totalOrderAmount: 250.5 },
+          $inc: { totalOrderAmount: 250.5 },
           $setOnInsert: filterFor(ORG_1, RESTAURANT_1),
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
     });
 
-    it('does not touch totalOrderAmount for non-SERVED statuses even with a totalAmount', async () => {
+    it('does not touch totalOrderAmount for OrderStatus even with a totalAmount', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
@@ -194,21 +194,14 @@ describe('OrderStatisticsService', () => {
       );
     });
 
-    it('does not add totalOrderAmount when SERVED arrives without a totalAmount', async () => {
+    it('does not add totalOrderAmount when PAID arrives without a totalAmount', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        OrderStatus.SERVED,
+        PaymentStatus.PAID,
       );
 
-      expect(findOneAndUpdateMock).toHaveBeenCalledWith(
-        filterFor(ORG_1, RESTAURANT_1),
-        {
-          $inc: { servedOrderCount: 1 },
-          $setOnInsert: filterFor(ORG_1, RESTAURANT_1),
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
+      expect(findOneAndUpdateMock).not.toHaveBeenCalled();
     });
   });
 

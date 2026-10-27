@@ -5,6 +5,7 @@ import {
   HiOutlineBell,
   HiCash,
   HiOutlineCreditCard,
+  HiOutlinePrinter,
 } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +13,7 @@ import { getOrdersSocket } from '../services/socket';
 import ringSound from '../assets/music/Ring.mpeg?url';
 import Orders from './Orders';
 import { formatCurrency } from '../utils/formatCurrency';
+import generateKotPdf from '../utils/generateKotPdf';
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
@@ -268,7 +270,27 @@ export default function StaffOrders() {
               >
                 {/* Header */}
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-slate-800">#{order.orderNumber}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-slate-800">#{order.orderNumber}</span>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`/admin/print/bill/${order._id}?kot=1`, '_blank')}
+                      title="Live Thermal KOT Ticket"
+                      className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 shadow-xs hover:bg-amber-100 cursor-pointer"
+                    >
+                      <HiOutlinePrinter size={13} className="text-amber-600" />
+                      Thermal KOT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`/admin/print/bill/${order._id}`, '_blank')}
+                      title="Live Thermal Bill"
+                      className="inline-flex items-center gap-1 rounded-md border border-stroke bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
+                    >
+                      <HiOutlinePrinter size={13} className="text-slate-500" />
+                      Bill
+                    </button>
+                  </div>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(order.status)}`}>
                     {order.status}
                   </span>
@@ -278,30 +300,43 @@ export default function StaffOrders() {
                   {tableLabel}
                 </div>
 
+                {/* Overall Order Note Highlighted Banner */}
+                {(order.order_instructions || order.orderInstructions || order.notes) && (
+                  <div className="mb-3 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-2.5 shadow-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-800">
+                      <span>🔔</span>
+                      <span>Special Order Note</span>
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-amber-950 break-words">
+                      {order.order_instructions || order.orderInstructions || order.notes}
+                    </p>
+                  </div>
+                )}
+
                 {/* Items */}
-                <div className="mb-3 space-y-1">
+                <div className="mb-3 space-y-2">
                   {order.items?.map((item, i) => (
-                    <div key={i} className="text-sm text-slate-700">
+                    <div key={i} className="text-sm text-slate-700 pb-1.5 border-b border-stroke/50 last:border-0 last:pb-0">
                       {(() => {
                         const totalQty = Number(item.quantity || 0);
                         const cancelledQty = Number(item.cancelledQuantity || 0);
                         const remainingQty = Math.max(0, totalQty - cancelledQty);
                         return (
-                          <div className="flex justify-between">
+                          <div className="flex justify-between font-medium">
                             <span>
                               {remainingQty}x {item.name}
                               {cancelledQty > 0 && (
-                                <span className="ml-1 text-[10px] text-red-600">
+                                <span className="ml-1 text-[10px] text-red-600 font-normal">
                                   (cancelled {cancelledQty}/{totalQty})
                                 </span>
                               )}
                             </span>
-                            <span className="text-slate-500">{formatCurrency(item.price * remainingQty)}</span>
+                            <span className="text-slate-500 font-normal">{formatCurrency(item.price * remainingQty)}</span>
                           </div>
                         );
                       })()}
-                      {(item.spiceLevel?.name || item.addOns?.length > 0 || item.specialInstructions) && (
-                        <div className="ml-2 space-y-0.5 text-[11px] text-slate-500">
+                      {(item.spiceLevel?.name || item.addOns?.length > 0) && (
+                        <div className="ml-2 mt-0.5 space-y-0.5 text-[11px] text-slate-500">
                           {item.spiceLevel?.name && (
                             <div>{item.spiceLevel.emoji} {item.spiceLevel.name}</div>
                           )}
@@ -310,9 +345,12 @@ export default function StaffOrders() {
                               {item.addOns.map((a) => `${a.emoji || ''} ${a.name}`.trim()).join(', ')}
                             </div>
                           )}
-                          {item.specialInstructions && (
-                            <div className="italic">Note: {item.specialInstructions}</div>
-                          )}
+                        </div>
+                      )}
+                      {(item.cookingNote || item.specialInstructions || item.notes) && (
+                        <div className="mt-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900 shadow-xs flex items-start gap-1.5">
+                          <span className="shrink-0 text-amber-700">📝 Note:</span>
+                          <span className="break-words font-medium">{item.cookingNote || item.specialInstructions || item.notes}</span>
                         </div>
                       )}
                     </div>

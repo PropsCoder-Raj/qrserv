@@ -5,7 +5,9 @@ import {
   OrderEvent,
   OrderPaymentStatusChangedEvent,
   OrderStatusChangedEvent,
+  OrderUpdatedEvent,
 } from '../order-events';
+import { PaymentStatus } from '../../../schemas/order.schema';
 import { OrderStatisticsService } from '../../../modules/order-statistics/order-statistics.service';
 import { OrdersGateway } from '../../websocket/orders.gateway';
 
@@ -60,7 +62,6 @@ export class OrderEventsListener {
         event.orgId,
         event.restaurantId,
         event.newStatus,
-        event.totalAmount,
       );
     } catch (err: any) {
       this.logger.error(
@@ -68,12 +69,75 @@ export class OrderEventsListener {
         err?.stack,
       );
     }
+
+    try {
+      this.ordersGateway.emitOrderUpdated(event.restaurantId, {
+        orderId: event.orderId,
+        status: event.newStatus,
+        previousStatus: event.previousStatus,
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to push order:updated notification for order ${event.orderId}`,
+        err?.stack,
+      );
+    }
   }
 
   @OnEvent(OrderEvent.PAYMENT_STATUS_CHANGED)
-  handlePaymentStatusChanged(event: OrderPaymentStatusChangedEvent) {
+  async handlePaymentStatusChanged(event: OrderPaymentStatusChangedEvent) {
     this.logger.log(
       `Order ${event.orderId} payment status changed: ${event.previousStatus} -> ${event.newStatus}`,
     );
+
+    const isPaid =
+      String(event.newStatus).toLowerCase() ===
+      PaymentStatus.PAID.toLowerCase();
+
+    if (isPaid && event.orgId) {
+      try {
+        await this.orderStatisticsService.updateOrderStatistics(
+          event.orgId,
+          event.restaurantId,
+          event.newStatus,
+          event.totalAmount,
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `Failed to update order statistics for order ${event.orderId}`,
+          err?.stack,
+        );
+      }
+    }
+
+    try {
+      this.ordersGateway.emitOrderUpdated(event.restaurantId, {
+        orderId: event.orderId,
+        paymentStatus: event.newStatus,
+        previousStatus: event.previousStatus,
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to push order:updated notification for order ${event.orderId}`,
+        err?.stack,
+      );
+    }
+  }
+
+  @OnEvent(OrderEvent.UPDATED)
+  handleOrderUpdated(event: OrderUpdatedEvent) {
+    this.logger.log(`Order ${event.orderId} updated event received`);
+
+    try {
+      this.ordersGateway.emitOrderUpdated(event.restaurantId, {
+        orderId: event.orderId,
+        ...(event.payload || {}),
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to push order:updated notification for order ${event.orderId}`,
+        err?.stack,
+      );
+    }
   }
 }

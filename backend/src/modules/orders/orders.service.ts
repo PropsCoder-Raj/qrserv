@@ -45,6 +45,7 @@ import {
   OrderEvent,
   OrderPaymentStatusChangedEvent,
   OrderStatusChangedEvent,
+  OrderUpdatedEvent,
 } from '../../common/events/order-events';
 import { OrderStatisticsService } from '../order-statistics/order-statistics.service';
 import { CouponsService } from '../coupons/coupons.service';
@@ -393,10 +394,20 @@ export class OrdersService {
 
     const { tableId: _tableId, ...orderDto } = dto;
 
+    const normalizedOrderInstructions = (
+      dto.order_instructions ||
+      dto.orderInstructions ||
+      dto.orderNotes ||
+      ''
+    ).trim();
+
     let order: OrderDocument;
     try {
       order = await this.orderModel.create({
         ...orderDto,
+        order_instructions: normalizedOrderInstructions,
+        orderInstructions: normalizedOrderInstructions,
+        orderNotes: normalizedOrderInstructions,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
         items: pricedItems.map((i) => ({
@@ -445,6 +456,9 @@ export class OrdersService {
 
       order = await this.orderModel.create({
         ...orderDto,
+        order_instructions: normalizedOrderInstructions,
+        orderInstructions: normalizedOrderInstructions,
+        orderNotes: normalizedOrderInstructions,
         restaurantId: restaurantObjectId,
         tableId: tableObjectId,
         items: pricedItems.map((i) => ({
@@ -511,6 +525,20 @@ export class OrdersService {
         order.totalAmount,
       ),
     );
+
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      this.eventEmitter.emit(
+        OrderEvent.PAYMENT_STATUS_CHANGED,
+        new OrderPaymentStatusChangedEvent(
+          order._id.toString(),
+          restaurantObjectId.toString(),
+          PaymentStatus.PENDING,
+          PaymentStatus.PAID,
+          restaurant.organizationId,
+          order.totalAmount,
+        ),
+      );
+    }
 
     return order;
   }
@@ -812,6 +840,14 @@ export class OrdersService {
     }
 
     await order.save();
+    this.eventEmitter.emit(
+      OrderEvent.UPDATED,
+      new OrderUpdatedEvent(
+        order._id.toString(),
+        order.restaurantId?.toString(),
+        { action: 'items_updated' },
+      ),
+    );
     return this.findOne(id);
   }
 
@@ -1101,6 +1137,15 @@ export class OrdersService {
 
     await order.save();
 
+    this.eventEmitter.emit(
+      OrderEvent.UPDATED,
+      new OrderUpdatedEvent(
+        order._id.toString(),
+        order.restaurantId?.toString(),
+        { action: 'item_cancelled' },
+      ),
+    );
+
     if (previousStatus !== order.status) {
       this.eventEmitter.emit(
         OrderEvent.STATUS_CHANGED,
@@ -1350,7 +1395,7 @@ export class OrdersService {
   async updatePaymentStatus(id: string, dto: UpdatePaymentStatusDto) {
     const existing = await this.orderModel
       .findById(id)
-      .select('paymentStatus restaurantId');
+      .select('paymentStatus restaurantId totalAmount');
     if (!existing) throw new NotFoundException('Order not found');
 
     const previousStatus = existing.paymentStatus;
@@ -1362,6 +1407,11 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     if (previousStatus !== dto.paymentStatus) {
+      const restaurant = await this.restaurantModel
+        .findById(order.restaurantId)
+        .select('organizationId')
+        .lean();
+
       this.eventEmitter.emit(
         OrderEvent.PAYMENT_STATUS_CHANGED,
         new OrderPaymentStatusChangedEvent(
@@ -1369,6 +1419,8 @@ export class OrdersService {
           order.restaurantId?.toString(),
           previousStatus,
           dto.paymentStatus,
+          restaurant?.organizationId,
+          order.totalAmount,
         ),
       );
     }
@@ -1388,6 +1440,14 @@ export class OrdersService {
       { new: true, runValidators: true },
     );
     if (!order) throw new NotFoundException('Order not found');
+    this.eventEmitter.emit(
+      OrderEvent.UPDATED,
+      new OrderUpdatedEvent(
+        order._id.toString(),
+        order.restaurantId?.toString(),
+        { action: 'payment_method_updated', paymentMethod },
+      ),
+    );
     return order;
   }
 

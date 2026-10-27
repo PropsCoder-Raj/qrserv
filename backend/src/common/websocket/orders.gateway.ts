@@ -35,4 +35,10 @@ export class OrdersGateway {
     this.logger.log(`Emitting order:new to restaurant ${restaurantId}`);
     this.server?.to(this.restaurantRoom(restaurantId)).emit('order:new', payload);
   }
+
+  emitOrderUpdated(restaurantId: string, payload: Record<string, unknown>) {
+    if (!restaurantId) return;
+    this.logger.log(`Emitting order:updated to restaurant ${restaurantId}`);
+    this.server?.to(this.restaurantRoom(restaurantId)).emit('order:updated', payload);
+  }
 }
