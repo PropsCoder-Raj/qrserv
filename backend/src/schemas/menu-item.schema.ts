@@ -102,6 +102,14 @@ export class MenuItem {
   @Prop({ enum: ItemType, default: ItemType.FOOD })
   itemType: ItemType;
 
+  @ApiPropertyOptional({ default: 0, description: 'GST % applied to this item. 0 means no GST' })
+  @Prop({ min: 0, default: 0, type: Number, set: mongoose3DecimalSetter })
+  gstRate: number;
+
+  @ApiPropertyOptional({ default: 0, description: 'VAT % applied to this item. 0 means no VAT' })
+  @Prop({ min: 0, default: 0, type: Number, set: mongoose3DecimalSetter })
+  vatRate: number;
+
   @ApiPropertyOptional({ type: MenuItemCustomization })
   @Prop({ type: MenuItemCustomizationSchema, default: () => ({}) })
   customization: MenuItemCustomization;

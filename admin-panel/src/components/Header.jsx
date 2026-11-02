@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineMenu, HiOutlineLogout, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineMenu, HiOutlineLogout, HiOutlineUser, HiSparkles } from 'react-icons/hi';
+import { APP_VERSION } from '../config/version';
 
 export default function Header({ setSidebarOpen }) {
   const { user, logout } = useAuth();
@@ -38,6 +39,17 @@ export default function Header({ setSidebarOpen }) {
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('qrserv:open-release-notes'))}
+          className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-primary transition cursor-pointer"
+          title={`View Release Notes (${APP_VERSION})`}
+        >
+          <HiSparkles size={14} className="text-amber-500" />
+          <span>What's New</span>
+          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-500">{APP_VERSION}</span>
+        </button>
+
         <div className="relative" ref={dropdownRef}>
           <button
             className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-100 cursor-pointer"
@@ -58,6 +70,17 @@ export default function Header({ setSidebarOpen }) {
                 <p className="text-sm font-medium">{user?.name}</p>
                 <p className="text-xs text-slate-500">{user?.role?.replace('_', ' ')}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDropdownOpen(false);
+                  window.dispatchEvent(new CustomEvent('qrserv:open-release-notes'));
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <HiSparkles size={18} className="text-amber-500" />
+                Release Notes
+              </button>
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-slate-100 cursor-pointer"

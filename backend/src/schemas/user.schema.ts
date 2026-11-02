@@ -52,6 +52,10 @@ export class User {
 
   @Prop()
   refreshToken: string;
+
+  // Web push (FCM) registration tokens, one per browser the user enabled alerts in.
+  @Prop({ type: [String], default: [], select: false })
+  fcmTokens: string[];
 }
 
 export type UserDocument = User & Document;

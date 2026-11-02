@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getMenuItemSalePrice } from '../utils/menuItemPricing';
 import { roundTo3 } from '../utils/formatCurrency';
+import { computeTaxBreakdown } from '../utils/tax';
 
 const CartContext = createContext(null);
 
@@ -41,12 +42,14 @@ export function CartProvider({ children }) {
     return savedMethod?.toUpperCase() === 'CARD' ? 'CARD' : 'CASH';
   });
   const [isPaymentGatewayAllocated, setIsPaymentGatewayAllocated] = useState(false);
-  const [taxEnabled, setTaxEnabled] = useState(false);
-  const [taxRate, setTaxRate] = useState(0);
-  const [taxType, setTaxType] = useState('inclusive');
-  const [vatEnabled, setVatEnabled] = useState(false);
-  const [vatRate, setVatRate] = useState(0);
-  const [vatType, setVatType] = useState('inclusive');
+  const [taxEnabled, setTaxEnabled] = useState(() => localStorage.getItem('cartTaxEnabled') === 'true');
+  const [taxRate, setTaxRate] = useState(() => Number(localStorage.getItem('cartTaxRate')) || 0);
+  const [taxType, setTaxType] = useState(() => localStorage.getItem('cartTaxType') || 'inclusive');
+  const [vatEnabled, setVatEnabled] = useState(() => localStorage.getItem('cartVatEnabled') === 'true');
+  const [vatRate, setVatRate] = useState(() => Number(localStorage.getItem('cartVatRate')) || 0);
+  const [vatType, setVatType] = useState(() => localStorage.getItem('cartVatType') || 'inclusive');
+  const [gstNo, setGstNo] = useState(() => localStorage.getItem('cartGstNo') || '');
+  const [vatNo, setVatNo] = useState(() => localStorage.getItem('cartVatNo') || '');
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(items));
@@ -61,7 +64,15 @@ export function CartProvider({ children }) {
     }
     localStorage.setItem('cartOrderType', orderType);
     localStorage.setItem('cartPaymentMethod', paymentMethod);
-  }, [restaurantId, tableId, orderType, paymentMethod]);
+    localStorage.setItem('cartTaxEnabled', String(taxEnabled));
+    localStorage.setItem('cartTaxRate', String(taxRate));
+    localStorage.setItem('cartTaxType', taxType);
+    localStorage.setItem('cartVatEnabled', String(vatEnabled));
+    localStorage.setItem('cartVatRate', String(vatRate));
+    localStorage.setItem('cartVatType', vatType);
+    if (gstNo) localStorage.setItem('cartGstNo', gstNo);
+    if (vatNo) localStorage.setItem('cartVatNo', vatNo);
+  }, [restaurantId, tableId, orderType, paymentMethod, taxEnabled, taxRate, taxType, vatEnabled, vatRate, vatType, gstNo, vatNo]);
 
   const addItem = (item, quantity = 1) => {
     const note = (item.cookingNote || item.specialInstructions || '').trim();
@@ -133,6 +144,8 @@ export function CartProvider({ children }) {
         ...cartItem,
         name: menuItem.name,
         itemType: menuItem.itemType || 'food',
+        gstRate: Number(menuItem.gstRate) || 0,
+        vatRate: Number(menuItem.vatRate) || 0,
         price: roundTo3(getMenuItemSalePrice(menuItem) + optionsPrice),
         originalPrice: roundTo3(Number(menuItem.price) + optionsPrice),
         discountType: menuItem.discountType || '',
@@ -153,58 +166,14 @@ export function CartProvider({ children }) {
       .filter((i) => i.menuItemId === menuItemId)
       .reduce((sum, i) => sum + i.quantity, 0);
 
-  // Separate items into food and liquor groups
-  const foodItems = items.filter((i) => (i.itemType || 'food') === 'food');
-  const liquorItems = items.filter((i) => (i.itemType || 'food') === 'liquor');
-  const foodTotal = foodItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const liquorTotal = liquorItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const itemTotal = foodTotal + liquorTotal;
-
-  let foodSubtotal = foodTotal;
-  let liquorSubtotal = liquorTotal;
-  let totalAmount = itemTotal;
-  let subtotalAmount = itemTotal;
-  let cgstRate = 0;
-  let sgstRate = 0;
-  let cgstAmount = 0;
-  let sgstAmount = 0;
-  let vatAmount = 0;
-  let taxAmount = 0;
-  let grandTotal = itemTotal;
-
-  // Food items — GST (CGST + SGST)
-  if (taxEnabled && taxRate > 0 && foodTotal > 0) {
-    cgstRate = roundTo3(taxRate / 2);
-    sgstRate = roundTo3(taxRate / 2);
-
-    if (taxType === 'inclusive') {
-      foodSubtotal = roundTo3(foodTotal / (1 + taxRate / 100));
-      const gstTax = roundTo3(foodTotal - foodSubtotal);
-      cgstAmount = roundTo3(gstTax / 2);
-      sgstAmount = roundTo3(gstTax - cgstAmount);
-    } else {
-      foodSubtotal = roundTo3(foodTotal);
-      cgstAmount = roundTo3((foodSubtotal * cgstRate) / 100);
-      sgstAmount = roundTo3((foodSubtotal * sgstRate) / 100);
-    }
-  }
-
-  // Liquor items — VAT (single tax)
-  if (vatEnabled && vatRate > 0 && liquorTotal > 0) {
-    if (vatType === 'inclusive') {
-      liquorSubtotal = roundTo3(liquorTotal / (1 + vatRate / 100));
-      vatAmount = roundTo3(liquorTotal - liquorSubtotal);
-    } else {
-      liquorSubtotal = roundTo3(liquorTotal);
-      vatAmount = roundTo3((liquorSubtotal * vatRate) / 100);
-    }
-  }
-
-  // Combined totals
-  subtotalAmount = roundTo3(foodSubtotal + liquorSubtotal);
-  taxAmount = roundTo3((cgstAmount + sgstAmount) + vatAmount);
-  totalAmount = roundTo3(itemTotal);
-  grandTotal = roundTo3(subtotalAmount + taxAmount);
+  const breakdown = computeTaxBreakdown(
+    { taxEnabled, taxRate, taxType, vatEnabled, vatRate, vatType },
+    items,
+  );
+  const itemTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const { cgstRate, sgstRate, cgstAmount, sgstAmount, vatAmount, taxAmount, subtotalAmount } = breakdown;
+  const totalAmount = itemTotal;
+  const grandTotal = breakdown.totalAmount;
 
   const setTableInfo = (rId, tId, nextOrderType) => {
     setRestaurantId(rId);
@@ -220,13 +189,15 @@ export function CartProvider({ children }) {
     setOrderType(nextOrderType === 'dine_in' ? 'dine_in' : 'takeaway');
   };
 
-  const setTaxInfo = (enabled, rate, type, vEnabled, vRate, vType) => {
-    setTaxEnabled(enabled);
-    setTaxRate(rate);
+  const setTaxInfo = (enabled, rate, type, vEnabled, vRate, vType, gNo, vNo) => {
+    setTaxEnabled(Boolean(enabled));
+    setTaxRate(Number(rate) || 0);
     setTaxType(type || 'inclusive');
-    setVatEnabled(vEnabled || false);
-    setVatRate(vRate || 0);
+    setVatEnabled(Boolean(vEnabled));
+    setVatRate(Number(vRate) || 0);
     setVatType(vType || 'inclusive');
+    if (gNo !== undefined) setGstNo(gNo || '');
+    if (vNo !== undefined) setVatNo(vNo || '');
   };
 
   const setPaymentGatewayInfo = (enabled) => {
@@ -280,8 +251,14 @@ export function CartProvider({ children }) {
         vatRate,
         vatType,
         vatAmount,
-        foodSubtotal,
-        liquorSubtotal,
+        gstNo,
+        vatNo,
+        gstAmount: breakdown.gstAmount,
+        gstBase: breakdown.gstBase,
+        vatBase: breakdown.vatBase,
+        gstBreakdown: breakdown.gstBreakdown,
+        vatBreakdown: breakdown.vatBreakdown,
+        taxLines: breakdown.lines,
       }}
     >
       {children}

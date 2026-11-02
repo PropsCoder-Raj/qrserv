@@ -24,7 +24,12 @@ export default function ThermalReceipt({
         ? order.restaurantId
         : restaurant || {};
 
-  const widthClass = paperWidth === '58mm' ? 'thermal-width-58mm' : 'thermal-width-80mm';
+  const widthClass =
+    paperWidth === '58mm'
+      ? 'thermal-width-58mm'
+      : paperWidth === 'a4'
+        ? 'thermal-width-a4'
+        : 'thermal-width-80mm';
   const is58mm = paperWidth === '58mm';
 
   // Currency symbol or code auto-detected dynamically from restaurant or order

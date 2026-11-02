@@ -3,6 +3,7 @@ import authService from '../services/authService';
 import userService from '../services/userService';
 import restaurantService from '../services/restaurantService';
 import organizationService from '../services/organizationService';
+import { unregisterPushForStaff } from '../services/notificationService';
 
 const AuthContext = createContext(null);
 
@@ -162,7 +163,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Detach this browser's push token while the access token is still stored.
+    if (localStorage.getItem('accessToken')) {
+      await unregisterPushForStaff();
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');

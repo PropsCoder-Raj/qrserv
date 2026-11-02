@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsMongoId, IsOptional } from 'class-validator';
+import { IsDateString, IsIn, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { DATE_PRESETS, DatePreset } from '../../../common/dto/date-filter.dto';
 
 export class OrderAnalyticsQueryDto {
@@ -14,7 +14,7 @@ export class OrderAnalyticsQueryDto {
   @ApiPropertyOptional({
     enum: DATE_PRESETS,
     description:
-      'Date range preset (e.g. today, last7Days, thisMonth). Ignored when start_date/end_date are provided.',
+      'Date range preset (e.g. today, yesterday, last7Days, thisMonth, custom). Ignored when start_date/end_date are provided.',
   })
   @IsOptional()
   @IsIn(DATE_PRESETS as unknown as string[])
@@ -35,4 +35,26 @@ export class OrderAnalyticsQueryDto {
   @IsOptional()
   @IsDateString()
   end_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by payment status: all, paid, pending, failed, cod.',
+  })
+  @IsOptional()
+  @IsString()
+  payment_status?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by fulfillment method / order type: all, dine_in, takeaway, delivery.',
+  })
+  @IsOptional()
+  @IsString()
+  fulfillment_method?: string;
+
+  @ApiPropertyOptional({
+    description: 'Alias for fulfillment_method.',
+  })
+  @IsOptional()
+  @IsString()
+  order_type?: string;
 }

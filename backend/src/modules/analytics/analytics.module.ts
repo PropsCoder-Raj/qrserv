@@ -4,6 +4,7 @@ import { AnalyticsService } from './analytics.service';
 import { AnalyticsController } from './analytics.controller';
 import { Order, OrderSchema } from '../../schemas/order.schema';
 import { Restaurant, RestaurantSchema } from '../../schemas/restaurant.schema';
+import { Table, TableSchema } from '../../schemas/table.schema';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { RestaurantsModule } from '../restaurants/restaurants.module';
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
       { name: Restaurant.name, schema: RestaurantSchema },
+      { name: Table.name, schema: TableSchema },
     ]),
   ],
   controllers: [AnalyticsController],

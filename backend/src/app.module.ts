@@ -20,6 +20,8 @@ import { ContactModule } from './modules/contact/contact.module';
 import { WithdrawRequestsModule } from './modules/withdraw-requests/withdraw-requests.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { WaiterCallsModule } from './modules/waiter-calls/waiter-calls.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     WithdrawRequestsModule,
     CouponsModule,
     AnalyticsModule,
+    NotificationsModule,
+    WaiterCallsModule,
   ],
   providers: [
     {

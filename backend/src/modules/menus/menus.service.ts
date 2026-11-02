@@ -10,6 +10,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Category, CategoryDocument } from '../../schemas/category.schema';
 import {
+  ItemType,
   MenuItem,
   MenuItemDocument,
   PriceDropType,

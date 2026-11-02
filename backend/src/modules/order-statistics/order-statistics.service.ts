@@ -10,26 +10,23 @@ import { OrderStatus, PaymentStatus } from '../../schemas/order.schema';
 type CounterField =
   | 'pendingOrderCount'
   | 'confirmedOrderCount'
-  | 'preparingOrderCount'
   | 'readyOrderCount'
-  | 'servedOrderCount'
+  | 'completedOrderCount'
   | 'cancelledOrderCount';
 
 const STATUS_COUNTER_MAP: Record<OrderStatus, CounterField> = {
   [OrderStatus.PENDING]: 'pendingOrderCount',
   [OrderStatus.CONFIRMED]: 'confirmedOrderCount',
-  [OrderStatus.PREPARING]: 'preparingOrderCount',
   [OrderStatus.READY]: 'readyOrderCount',
-  [OrderStatus.SERVED]: 'servedOrderCount',
+  [OrderStatus.COMPLETED]: 'completedOrderCount',
   [OrderStatus.CANCELLED]: 'cancelledOrderCount',
 };
 
 const ZERO_COUNTERS: Record<CounterField | 'totalOrderAmount', number> = {
   pendingOrderCount: 0,
   confirmedOrderCount: 0,
-  preparingOrderCount: 0,
   readyOrderCount: 0,
-  servedOrderCount: 0,
+  completedOrderCount: 0,
   cancelledOrderCount: 0,
   totalOrderAmount: 0,
 };
@@ -59,30 +56,24 @@ export class OrderStatisticsService {
   }
 
   /**
-   * Increments order lifecycle status counters or updates revenue when payment is PAID.
-   *
-   * - OrderStatus transitions increment the corresponding status counter.
-   * - PaymentStatus.PAID adds the order totalAmount to totalOrderAmount.
+   * Increments order lifecycle status counters. Revenue (totalOrderAmount)
+   * is only accrued when an order reaches COMPLETED.
    */
   async updateOrderStatistics(
     orgId: string | Types.ObjectId,
     restaurantId: string | Types.ObjectId,
-    status: OrderStatus | PaymentStatus | string,
+    status: OrderStatus | string,
     totalAmount?: number,
   ): Promise<void> {
     const inc: Partial<Record<CounterField | 'totalOrderAmount', number>> = {};
 
-    // 1. If it's a payment status update to PAID, increment totalOrderAmount
-    const isPaid =
-      String(status).toLowerCase() === PaymentStatus.PAID.toLowerCase();
-    if (isPaid && Number(totalAmount) > 0) {
-      inc.totalOrderAmount = Number(totalAmount);
-    }
-
-    // 2. If it's an order lifecycle status, increment the matching status counter
     const counterField = STATUS_COUNTER_MAP[status as OrderStatus];
     if (counterField) {
       inc[counterField] = 1;
+    }
+
+    if (status === OrderStatus.COMPLETED && Number(totalAmount) > 0) {
+      inc.totalOrderAmount = Number(totalAmount);
     }
 
     if (Object.keys(inc).length === 0) {
@@ -159,13 +150,13 @@ export class OrderStatisticsService {
   }
 
   /**
-   * Sums servedOrderCount/totalOrderAmount across all statistics records
+   * Sums completedOrderCount/totalOrderAmount across all statistics records
    * matching the given restaurant scope (a single restaurantId, a list of
    * restaurantIds, or no filter at all for an all-restaurants total).
    */
-  async getServedTotals(
+  async getCompletedTotals(
     restaurantId?: string | Types.ObjectId | (string | Types.ObjectId)[],
-  ): Promise<{ servedOrderCount: number; totalOrderAmount: number }> {
+  ): Promise<{ completedOrderCount: number; totalOrderAmount: number }> {
     const match: Record<string, unknown> = {};
     if (Array.isArray(restaurantId)) {
       if (restaurantId.length) {
@@ -182,14 +173,14 @@ export class OrderStatisticsService {
       {
         $group: {
           _id: null,
-          servedOrderCount: { $sum: '$servedOrderCount' },
+          completedOrderCount: { $sum: '$completedOrderCount' },
           totalOrderAmount: { $sum: '$totalOrderAmount' },
         },
       },
     ]);
 
     return {
-      servedOrderCount: totals?.servedOrderCount || 0,
+      completedOrderCount: totals?.completedOrderCount || 0,
       totalOrderAmount: totals?.totalOrderAmount || 0,
     };
   }

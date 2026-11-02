@@ -41,6 +41,8 @@ export default function MenuItemCard({ item }) {
       discountType: item.discountType || '',
       discountValue: Number(item.discountValue) || 0,
       itemType: item.itemType || 'food',
+      gstRate: Number(item.gstRate) || 0,
+      vatRate: Number(item.vatRate) || 0,
     });
   };
 

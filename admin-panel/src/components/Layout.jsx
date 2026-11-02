@@ -3,6 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../contexts/AuthContext';
+import ReleaseNotesModal from './ReleaseNotesModal';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,6 +34,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      <ReleaseNotesModal />
     </div>
   );
 }

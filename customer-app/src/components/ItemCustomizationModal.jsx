@@ -43,6 +43,8 @@ export default function ItemCustomizationModal({ item, onClose, onConfirm }) {
         discountType: item.discountType || '',
         discountValue: Number(item.discountValue) || 0,
         itemType: item.itemType || 'food',
+        gstRate: Number(item.gstRate) || 0,
+        vatRate: Number(item.vatRate) || 0,
         spiceLevel: spiceLevel || undefined,
         addOns: selectedAddOns,
         cookingNote: note || undefined,

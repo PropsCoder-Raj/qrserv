@@ -9,6 +9,7 @@ import {
   HiOutlineClipboardList,
   HiOutlineCurrencyDollar,
   HiOutlineSparkles,
+  HiOutlineDownload,
 } from 'react-icons/hi';
 import orderService from '../services/orderService';
 import restaurantService from '../services/restaurantService';
@@ -18,6 +19,8 @@ import { unwrapOrder, detectCurrency } from '../utils/orderHelper';
 import ThermalReceipt from '../components/ThermalReceipt';
 import ThermalKOT from '../components/ThermalKOT';
 import SettleBillModal from '../components/SettleBillModal';
+import generateBillPdf from '../utils/generateBillPdf';
+import generateKotPdf from '../utils/generateKotPdf';
 import '../styles/thermal-print.css';
 
 /**
@@ -168,6 +171,19 @@ export default function AdminBillPrintPreview() {
     }
   };
 
+  // Direct Admin Action: One-Click Download PDF (matches Customer App jsPDF implementation)
+  const handleDownloadPdf = () => {
+    if (!order) return;
+    if (isKotMode) {
+      generateKotPdf(order, effectiveRest);
+    } else {
+      generateBillPdf(order, effectiveRest, {
+        paperWidth,
+        currency: activeCurrency,
+      });
+    }
+  };
+
   // Callback when bill is settled in modal
   const handleSettleSuccess = (andPrint = false) => {
     loadOrderData();
@@ -221,7 +237,7 @@ export default function AdminBillPrintPreview() {
   const activeCurrency = customCurrency || detectCurrency(effectiveRest, order);
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col print:bg-white print:text-black print:min-h-0 print-page-wrapper">
       {/* ====================================================================
           ADMIN / POS TOP CONTROL BAR (STRICTLY HIDDEN DURING PRINTING)
           ==================================================================== */}
@@ -316,7 +332,7 @@ export default function AdminBillPrintPreview() {
               </button>
             </div>
 
-            {/* Paper Width (80mm vs 58mm) */}
+            {/* Paper Width (80mm vs 58mm vs A4) */}
             <div className="flex items-center rounded-xl bg-slate-950 p-1 border border-slate-800">
               <button
                 type="button"
@@ -339,6 +355,17 @@ export default function AdminBillPrintPreview() {
                 }`}
               >
                 58mm
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaperWidth('a4')}
+                className={`rounded-lg px-2 py-1 text-[11px] font-bold transition cursor-pointer ${
+                  paperWidth === 'a4'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                A4
               </button>
             </div>
 
@@ -374,7 +401,7 @@ export default function AdminBillPrintPreview() {
             </button>
 
             {/* Settle Bill Button */}
-            {!isCancelled && (
+            {/* {!isCancelled && (
               <button
                 type="button"
                 onClick={() => setSettleModalOpen(true)}
@@ -387,26 +414,37 @@ export default function AdminBillPrintPreview() {
                 {isPaid ? <HiCheckCircle size={16} /> : <HiOutlineCurrencyDollar size={16} />}
                 <span>{isPaid ? 'Settled (Paid)' : 'Settle Bill'}</span>
               </button>
-            )}
+            )} */}
 
             {/* Print KOT Action */}
-            <button
+            {/* <button
               type="button"
               onClick={handlePrintKot}
               className="inline-flex items-center gap-1.5 rounded-xl border border-amber-600/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-300 transition hover:bg-amber-900/50 cursor-pointer shadow-xs"
             >
               <HiOutlinePrinter size={16} />
               <span>Print KOT</span>
-            </button>
+            </button> */}
 
             {/* Print Bill Action */}
-            <button
+            {/* <button
               type="button"
               onClick={handlePrintBill}
               className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 text-slate-900 px-3.5 py-1.5 text-xs font-bold transition hover:bg-white cursor-pointer shadow-sm"
             >
               <HiOutlinePrinter size={16} />
               <span>Print Bill</span>
+            </button> */}
+
+            {/* One-click Download PDF Action (Replicated from Customer App jsPDF) */}
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-white px-3.5 py-1.5 text-xs font-bold transition hover:bg-primary-dark cursor-pointer shadow-sm"
+              title={isKotMode ? 'Download Kitchen Order Ticket PDF' : 'Download Invoice / Bill PDF'}
+            >
+              <HiOutlineDownload size={16} />
+              <span>{isKotMode ? 'Download KOT PDF' : 'Download PDF'}</span>
             </button>
           </div>
         </div>
@@ -423,7 +461,7 @@ export default function AdminBillPrintPreview() {
       {/* ====================================================================
           RECEIPT PREVIEW STAGE
           ==================================================================== */}
-      <main className="flex-1 flex flex-col items-center justify-start p-4 sm:p-8 overflow-y-auto">
+      <main className="flex-1 flex flex-col items-center justify-start p-4 sm:p-8 overflow-y-auto print:p-0 print:m-0 print:overflow-visible print:bg-white print:block">
         {/* Screen Preview Subtitle */}
         <div className="no-print text-center mb-3">
           <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">

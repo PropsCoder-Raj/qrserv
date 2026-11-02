@@ -92,6 +92,8 @@ export default function MenuManagement() {
     isVeg: false,
     preparationTime: 15,
     itemType: 'food',
+    gstRate: 0,
+    vatRate: 0,
     imageFile: null,
     imagePreview: '',
     removeImage: false,
@@ -462,6 +464,8 @@ export default function MenuManagement() {
       isVeg: item.isVeg || false,
       preparationTime: item.preparationTime || 15,
       itemType: item.itemType || 'food',
+      gstRate: item.gstRate || 0,
+      vatRate: item.vatRate || 0,
       imageFile: null,
       imagePreview: item.image || '',
       removeImage: false,
@@ -549,6 +553,8 @@ export default function MenuManagement() {
         isVeg: itemForm.isVeg,
         preparationTime: Number(itemForm.preparationTime),
         itemType: itemForm.itemType,
+        gstRate: Number(itemForm.gstRate) || 0,
+        vatRate: Number(itemForm.vatRate) || 0,
         customization: itemForm.customization,
       };
 
@@ -1326,121 +1332,53 @@ export default function MenuManagement() {
                   (r) => r._id === selectedRestaurant,
                 );
                 const price = getMenuItemSalePrice(itemForm);
-                const isLiquor = itemForm.itemType === 'liquor';
+                const gstRate = Number(itemForm.gstRate) || 0;
+                const vatRate = Number(itemForm.vatRate) || 0;
+                const taxes = [
+                  { label: 'GST', rate: rest?.taxEnabled ? gstRate : 0, type: rest?.taxType || 'inclusive' },
+                  { label: 'VAT', rate: rest?.vatEnabled ? vatRate : 0, type: rest?.vatType || 'inclusive' },
+                ].filter((t) => t.rate > 0);
+                if (taxes.length === 0 || !(price > 0)) return null;
 
-                // Liquor items use VAT
-                if (
-                  isLiquor &&
-                  rest?.vatEnabled &&
-                  rest.vatRate > 0 &&
-                  price > 0
-                ) {
-                  const vatType = rest.vatType || 'inclusive';
-                  const vatR = rest.vatRate;
-                  let basePrice, vat, total;
-                  if (vatType === 'inclusive') {
-                    total = price;
-                    basePrice = roundTo3(price / (1 + vatR / 100));
-                    vat = roundTo3(total - basePrice);
-                  } else {
-                    basePrice = price;
-                    vat = roundTo3((basePrice * vatR) / 100);
-                    total = roundTo3(basePrice + vat);
-                  }
-                  return (
-                    <div className="mt-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-2.5 text-xs text-slate-600 space-y-1">
-                      <p className="font-medium text-amber-700">
-                        {vatType === 'inclusive'
-                          ? 'Price breakdown (VAT inclusive)'
-                          : 'Price breakdown (VAT exclusive)'}
-                      </p>
-                      <div className="flex justify-between">
-                        <span>Base Price</span>
-                        <span>{formatCurrency(basePrice)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>VAT ({vatR}%)</span>
-                        <span>{formatCurrency(vat)}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-amber-300 pt-1">
-                        <span>Customer Pays</span>
-                        <span>{formatCurrency(total)}</span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (isLiquor && rest?.vatEnabled && rest.vatRate > 0) {
-                  const vatType = rest.vatType || 'inclusive';
-                  return (
-                    <p className="mt-1 text-xs text-amber-600">
-                      {vatType === 'inclusive'
-                        ? `This price includes VAT (${rest.vatRate}%)`
-                        : `VAT (${rest.vatRate}%) will be added at checkout`}
-                    </p>
-                  );
-                }
+                const inclusiveTaxes = taxes.filter((t) => t.type === 'inclusive');
+                const exclusiveTaxes = taxes.filter((t) => t.type !== 'inclusive');
+                const inclusiveSum = inclusiveTaxes.reduce((s, t) => s + t.rate, 0);
+                const basePrice = inclusiveSum > 0 ? roundTo3(price / (1 + inclusiveSum / 100)) : price;
+                let inclusiveRemaining = roundTo3(price - basePrice);
+                const inclusiveLines = inclusiveTaxes.map((t, i) => {
+                  const amount = i === inclusiveTaxes.length - 1
+                    ? inclusiveRemaining
+                    : roundTo3((basePrice * t.rate) / 100);
+                  inclusiveRemaining = roundTo3(inclusiveRemaining - amount);
+                  return { ...t, amount };
+                });
+                const exclusiveLines = exclusiveTaxes.map((t) => ({
+                  ...t,
+                  amount: roundTo3((basePrice * t.rate) / 100),
+                }));
+                const total = roundTo3(price + exclusiveLines.reduce((s, t) => s + t.amount, 0));
 
-                // Food items use GST
-                if (
-                  !isLiquor &&
-                  rest?.taxEnabled &&
-                  rest.taxRate > 0 &&
-                  price > 0
-                ) {
-                  const taxType = rest.taxType || 'inclusive';
-                  const rate = rest.taxRate;
-                  const cgstRate = roundTo3(rate / 2);
-                  const sgstRate = roundTo3(rate / 2);
-                  let basePrice, cgst, sgst, total;
-                  if (taxType === 'inclusive') {
-                    total = price;
-                    basePrice = roundTo3(price / (1 + rate / 100));
-                    const tax = roundTo3(total - basePrice);
-                    cgst = roundTo3(tax / 2);
-                    sgst = roundTo3(tax - cgst);
-                  } else {
-                    basePrice = price;
-                    cgst = roundTo3((basePrice * cgstRate) / 100);
-                    sgst = roundTo3((basePrice * sgstRate) / 100);
-                    total = roundTo3(basePrice + cgst + sgst);
-                  }
-                  return (
-                    <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-2.5 text-xs text-slate-600 space-y-1">
-                      <p className="font-medium text-slate-700">
-                        {taxType === 'inclusive'
-                          ? 'Price breakdown (GST inclusive)'
-                          : 'Price breakdown (GST exclusive)'}
-                      </p>
-                      <div className="flex justify-between">
-                        <span>Base Price</span>
-                        <span>{formatCurrency(basePrice)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>CGST ({cgstRate}%)</span>
-                        <span>{formatCurrency(cgst)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>SGST ({sgstRate}%)</span>
-                        <span>{formatCurrency(sgst)}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1">
-                        <span>Customer Pays</span>
-                        <span>{formatCurrency(total)}</span>
-                      </div>
+                return (
+                  <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-2.5 text-xs text-slate-600 space-y-1">
+                    <p className="font-medium text-slate-700">Price breakdown</p>
+                    <div className="flex justify-between">
+                      <span>Base Price</span>
+                      <span>{formatCurrency(basePrice)}</span>
                     </div>
-                  );
-                }
-                if (!isLiquor && rest?.taxEnabled && rest.taxRate > 0) {
-                  const taxType = rest.taxType || 'inclusive';
-                  return (
-                    <p className="mt-1 text-xs text-slate-500">
-                      {taxType === 'inclusive'
-                        ? `This price includes GST (${rest.taxRate}%)`
-                        : `GST (${rest.taxRate}%) will be added at checkout`}
-                    </p>
-                  );
-                }
-                return null;
+                    {[...inclusiveLines, ...exclusiveLines].map((line) => (
+                      <div key={line.label} className="flex justify-between">
+                        <span>
+                          {line.label} ({line.rate}% {line.type === 'inclusive' ? 'incl.' : 'excl.'})
+                        </span>
+                        <span>{formatCurrency(line.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-300 pt-1">
+                      <span>Customer Pays</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                  </div>
+                );
               })()}
             </div>
             <div>
@@ -1493,6 +1431,36 @@ export default function MenuManagement() {
                 <option value="food">Food</option>
                 <option value="liquor">Liquor</option>
               </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                GST %
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={itemForm.gstRate}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, gstRate: e.target.value })
+                }
+                className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                VAT %
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={itemForm.vatRate}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, vatRate: e.target.value })
+                }
+                className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 py-2.5 text-sm cursor-pointer">

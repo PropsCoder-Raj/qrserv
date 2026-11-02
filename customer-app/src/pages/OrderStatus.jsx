@@ -20,14 +20,67 @@ import menuService from '../services/menuService';
 import Loader from '../components/Loader';
 import generateBillPdf from '../utils/generateBillPdf';
 import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
+import { computeTaxBreakdown } from '../utils/tax';
+import BillBreakdown from '../components/BillBreakdown';
+import { getOrderBillBreakdown } from '../utils/billCalculator';
 
 const STATUS_STEPS = [
   { key: 'pending', label: 'Order Placed', icon: HiOutlineClock, color: '#f59e0b' },
   { key: 'confirmed', label: 'Confirmed', icon: HiOutlineClipboardCheck, color: '#3b82f6' },
-  { key: 'preparing', label: 'Preparing', icon: HiOutlineFire, color: '#8b5cf6' },
   { key: 'ready', label: 'Ready', icon: HiOutlineBell, color: '#10b981' },
-  { key: 'served', label: 'Served', icon: HiOutlineCheckCircle, color: '#008080' },
+  { key: 'completed', label: 'Completed', icon: HiOutlineCheckCircle, color: '#008080' },
 ];
+
+// Per-line tax is re-derived from the GST and VAT rates stored on each order item. Order-level
+// groups come from the persisted snapshot, with a fallback for orders saved before per-item rates.
+const buildOrderTax = (order) => {
+  const lines = computeTaxBreakdown(
+    {
+      taxEnabled: order.taxRate > 0,
+      taxRate: order.taxRate,
+      taxType: order.taxType,
+      vatEnabled: order.vatRate > 0,
+      vatRate: order.vatRate,
+      vatType: order.vatType,
+    },
+    (order.items || []).map((item) => ({
+      menuItemId: item.menuItemId,
+      name: item.name,
+      price: item.price,
+      quantity: Math.max(0, Number(item.quantity || 0) - Number(item.cancelledQuantity || 0)),
+      gstRate: item.gstRate,
+      vatRate: item.vatRate,
+    })),
+  ).lines;
+
+  const legacyGst = (order.cgstAmount || 0) + (order.sgstAmount || 0);
+  const gstGroups = order.gstBreakdown?.length
+    ? order.gstBreakdown
+    : legacyGst > 0
+      ? [{
+        rate: (order.cgstRate || 0) + (order.sgstRate || 0),
+        base: order.gstBase ?? order.foodSubtotal ?? 0,
+        taxAmount: legacyGst,
+      }]
+      : [];
+  const vatGroups = order.vatBreakdown?.length
+    ? order.vatBreakdown
+    : (order.vatAmount || 0) > 0
+      ? [{
+        rate: order.vatRate || 0,
+        base: order.vatBase ?? order.liquorSubtotal ?? 0,
+        taxAmount: order.vatAmount,
+      }]
+      : [];
+
+  return {
+    lines,
+    gstGroups,
+    vatGroups,
+    gstSubtotal: roundTo3(gstGroups.reduce((sum, g) => sum + (g.base || 0), 0)),
+    vatSubtotal: roundTo3(vatGroups.reduce((sum, g) => sum + (g.base || 0), 0)),
+  };
+};
 
 export default function OrderStatus() {
   const { orderId } = useParams();
@@ -118,7 +171,7 @@ export default function OrderStatus() {
   const canEditItems =
     Boolean(order.tableId) &&
     order.paymentStatus !== 'paid' &&
-    !['cancelled', 'served'].includes(order.status);
+    !['cancelled', 'completed'].includes(order.status);
   const restaurantId = order.restaurantId?._id || order.restaurantId;
   const draftTotal = draftItems.reduce(
     (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
@@ -187,6 +240,9 @@ export default function OrderStatus() {
     }
   };
 
+  const billBreakdown = order ? getOrderBillBreakdown(order) : null;
+  const orderTax = order ? buildOrderTax(order) : null;
+
   return (
     <div className="min-h-screen bg-surface-warm">
       {/* Header */}
@@ -213,7 +269,7 @@ export default function OrderStatus() {
         >
           {isCancelled ? (
             <HiOutlineXCircle size={64} className="mx-auto text-red-300" />
-          ) : currentStepIndex >= 4 ? (
+          ) : currentStepIndex >= 3 ? (
             <HiOutlineCheckCircle size={64} className="mx-auto text-green-300" />
           ) : (
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/20">
@@ -229,7 +285,7 @@ export default function OrderStatus() {
         >
           {isCancelled
             ? 'Order Cancelled'
-            : currentStepIndex >= 4
+            : currentStepIndex >= 3
             ? 'Order Complete!'
             : 'Order in Progress'}
         </motion.h1>
@@ -345,24 +401,8 @@ export default function OrderStatus() {
                   const cancelledQty = Number(item.cancelledQuantity || 0);
                   const remainingQty = Math.max(0, totalQty - cancelledQty);
                   const lineTotal = item.price * remainingQty;
-                  const hasTax = order.taxAmount > 0;
-                  const isInclusive = hasTax && (order.taxType || 'exclusive') === 'inclusive';
-                  const rate = order.taxRate || 0;
-                  const cgstR = order.cgstRate || 0;
-                  const sgstR = order.sgstRate || 0;
-                  let base, itemCgst, itemSgst;
-                  if (hasTax) {
-                    if (isInclusive) {
-                      base = roundTo3(lineTotal / (1 + rate / 100));
-                      const tax = roundTo3(lineTotal - base);
-                      itemCgst = roundTo3(tax / 2);
-                      itemSgst = roundTo3(tax - itemCgst);
-                    } else {
-                      base = lineTotal;
-                      itemCgst = roundTo3((base * cgstR) / 100);
-                      itemSgst = roundTo3((base * sgstR) / 100);
-                    }
-                  }
+                  const taxLine = orderTax?.lines[i];
+                  const hasItemTax = !!taxLine && taxLine.taxAmount > 0;
                   return (
                     <div key={i} className="flex items-start justify-between">
                       <div>
@@ -396,11 +436,15 @@ export default function OrderStatus() {
                             Reason: {item.cancelReason}
                           </div>
                         )}
-                        {hasTax && (
+                        {hasItemTax && (
                           <div className="text-[11px] text-text-light space-x-2">
-                            <span>Base: {formatCurrency(base)}</span>
-                            <span>CGST: {formatCurrency(itemCgst)}</span>
-                            <span>SGST: {formatCurrency(itemSgst)}</span>
+                            <span>Base: {formatCurrency(taxLine.taxableBase)}</span>
+                            {taxLine.gstRate > 0 && (
+                              <span>GST {taxLine.gstRate}%: {formatCurrency(taxLine.gstAmount)}</span>
+                            )}
+                            {taxLine.vatRate > 0 && (
+                              <span>VAT {taxLine.vatRate}%: {formatCurrency(taxLine.vatAmount)}</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -525,101 +569,22 @@ export default function OrderStatus() {
             </div>
           )}
 
-          {/* Amount Summary */}
-          {order.taxAmount > 0 && (
-            <>
-              {/* Food (GST) */}
-              {(order.cgstAmount > 0 || order.sgstAmount > 0) && (
-                <>
-                  <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-                    <span className="text-sm text-text-secondary">
-                      Food Subtotal
-                    </span>
-                    <span className="text-sm font-medium text-text">
-                      {formatCurrency(order.foodSubtotal ?? order.subtotalAmount)}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-                    <span className="text-sm text-text-secondary">CGST ({order.cgstRate}%)</span>
-                    <span className="text-sm font-medium text-text">
-                      {formatCurrency(order.cgstAmount || 0)}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-                    <span className="text-sm text-text-secondary">SGST ({order.sgstRate}%)</span>
-                    <span className="text-sm font-medium text-text">
-                      {formatCurrency(order.sgstAmount || 0)}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {/* Liquor (VAT) */}
-              {order.vatAmount > 0 && (
-                <>
-                  <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-                    <span className="text-sm text-text-secondary">
-                      Liquor Subtotal
-                    </span>
-                    <span className="text-sm font-medium text-text">
-                      {formatCurrency(order.liquorSubtotal || 0)}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-                    <span className="text-sm text-text-secondary">VAT ({order.vatRate}%)</span>
-                    <span className="text-sm font-medium text-text">
-                      {formatCurrency(order.vatAmount || 0)}
-                    </span>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-          {order.discountAmount > 0 && (
-            <div className="mt-2 flex items-center justify-between rounded-xl bg-surface-cool p-4">
-              <span className="text-sm text-green-700">
-                Coupon Discount {order.couponCode ? `(${order.couponCode})` : ''}
-              </span>
-              <span className="text-sm font-medium text-green-700">
-                -{formatCurrency(order.discountAmount)}
-              </span>
+          {/* Bill & Payment Breakdown */}
+          {billBreakdown && (
+            <div className="mt-4">
+              <BillBreakdown
+                breakdown={billBreakdown}
+                title="Bill & Payment Summary"
+                isReceipt={true}
+                vatNo={order.restaurantId?.vat_no || order.vat_no || ''}
+                gstNo={order.restaurantId?.gst_no || order.gst_no || ''}
+                paymentMethod={order.paymentMethod}
+                paymentStatus={order.paymentStatus}
+              />
             </div>
           )}
-          <div className={`${order.taxAmount > 0 || order.discountAmount > 0 ? 'mt-2' : 'mt-4'} flex items-center justify-between rounded-xl bg-surface-cool p-4`}>
-            <span className="text-sm text-text-secondary">Total Amount</span>
-            <span className="text-lg font-bold text-text">
-              {formatCurrency(order.totalAmount)}
-            </span>
-          </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-surface-cool p-4">
-            <div>
-              <p className="text-xs text-text-light">Payment Method</p>
-              <p className="mt-1 text-sm font-semibold text-text">
-                {order.paymentMethod?.toUpperCase() === 'CARD'
-                  ? 'Card'
-                  : order.paymentMethod?.toLowerCase() === 'online'
-                    ? 'Online'
-                    : 'Cash'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-text-light">Payment Status</p>
-              <span
-                className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-                  order.paymentStatus === 'paid'
-                    ? 'bg-green-100 text-green-700'
-                    : order.paymentStatus === 'failed'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                }`}
-              >
-                {order.paymentStatus || 'pending'}
-              </span>
-            </div>
-          </div>
-
-          {order.status === 'served' && (
+          {order.status === 'completed' && (
             <button
               type="button"
               onClick={() => generateBillPdf(order)}
@@ -632,7 +597,7 @@ export default function OrderStatus() {
         </div>
 
         {/* Auto-refresh note */}
-        {!isCancelled && currentStepIndex < 4 && (
+        {!isCancelled && currentStepIndex < 3 && (
           <p className="mt-4 text-center text-xs text-text-light">
             Auto-refreshing every 10 seconds
           </p>

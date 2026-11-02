@@ -6,10 +6,12 @@ import {
   HiX,
   HiOutlineLocationMarker,
   HiOutlineClock,
+  HiOutlineBell,
 } from 'react-icons/hi';
 import { MdTableBar, MdPeople } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import menuService from '../services/menuService';
+import alertService from '../services/alertService';
 import restaurantService from '../services/restaurantService';
 import tableService from '../services/tableService';
 import { useCart } from '../contexts/CartContext';
@@ -25,6 +27,27 @@ export default function Menu() {
   const navigate = useNavigate();
   const hasTable = Boolean(tableId);
 
+  // Mirrors the backend 60s per-table cooldown so the button stays disabled after a successful call.
+  const handleCallWaiter = async () => {
+    setCallingWaiter(true);
+    try {
+      await alertService.callWaiter({ restaurantId, tableId });
+      toast.success('Waiter has been notified');
+      setWaiterCooldown(true);
+      setTimeout(() => setWaiterCooldown(false), 60000);
+    } catch (err) {
+      if (err?.response?.status === 429) {
+        toast('A waiter was already called. Please wait a moment.');
+        setWaiterCooldown(true);
+        setTimeout(() => setWaiterCooldown(false), 60000);
+      } else {
+        toast.error('Could not call the waiter. Please try again.');
+      }
+    } finally {
+      setCallingWaiter(false);
+    }
+  };
+
   const {
     orderType,
     setTableInfo,
@@ -34,6 +57,8 @@ export default function Menu() {
     syncMenuPrices,
   } = useCart();
   const [menu, setMenu] = useState([]);
+  const [callingWaiter, setCallingWaiter] = useState(false);
+  const [waiterCooldown, setWaiterCooldown] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,6 +125,8 @@ export default function Menu() {
         info.vatEnabled || false,
         info.vatRate || 0,
         info.vatType || 'inclusive',
+        info.gst_no || '',
+        info.vat_no || '',
       );
       setPaymentGatewayInfo(info.isPaymentGatewayAllocated || false);
       setPlanStatus({
@@ -328,6 +355,16 @@ export default function Menu() {
                       activeClassName: 'bg-surface text-text',
                       idleClassName: 'text-text-light',
                     })}
+                  {hasTable && (
+                    <button
+                      onClick={handleCallWaiter}
+                      disabled={waiterCooldown || callingWaiter}
+                      title={waiterCooldown ? 'Waiter has been notified' : 'Call waiter'}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-cool text-text-secondary disabled:opacity-50"
+                    >
+                      <HiOutlineBell size={18} />
+                    </button>
+                  )}
                   <button
                     onClick={() => navigate('/orders')}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-cool text-text-secondary"

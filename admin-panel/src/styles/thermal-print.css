@@ -1,6 +1,6 @@
 /* ==========================================================================
    Paroso-Style Thermal Print & Screen Preview Styling
-   Supports: 80mm (Standard POS) & 58mm (Compact Mobile) thermal roll paper
+   Supports: 80mm (Standard POS), 58mm (Compact Mobile) & A4 standard formats
    ========================================================================== */
 
 /* Authentic thermal paper typography */
@@ -58,6 +58,12 @@
   min-width: 58mm;
 }
 
+.thermal-width-a4 {
+  width: 190mm;
+  max-width: 190mm;
+  min-width: 190mm;
+}
+
 /* Pure thermal barcode stripes */
 .barcode-stripes {
   background: repeating-linear-gradient(
@@ -82,26 +88,47 @@
 }
 
 /* --------------------------------------------------------------------------
-   @media print Rules for Thermal Roll Output
-   Hides all UI, navigation, buttons, scrollbars and isolates receipt paper
+   @media print Rules for Clean White Print Output
+   Eliminates all dark/black backgrounds, hides UI chrome, and guarantees
+   crisp black-on-white printing across thermal and standard printers.
    -------------------------------------------------------------------------- */
 @media print {
-  /* Set zero margins for continuous thermal roll */
+  /* Continuous roll margin reset */
   @page {
     margin: 0mm !important;
     size: auto;
   }
 
-  /* Reset document background */
-  html, body {
+  /* Reset document and all wrapper backgrounds to solid white */
+  html,
+  body,
+  #root,
+  .print-page-wrapper,
+  main {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #000000 !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  /* Force override any dark background classes when printing */
+  .bg-slate-950,
+  .bg-slate-900,
+  .bg-slate-800,
+  .bg-slate-700,
+  .text-slate-100,
+  .text-slate-200,
+  .text-white {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
   }
 
   /* Hide all interactive UI and non-printable elements */
@@ -112,20 +139,24 @@
   aside,
   button,
   footer,
+  .receipt-tear-top,
+  .receipt-tear-bottom,
   .toast,
   .toaster-container,
   [role="status"],
   [role="alert"] {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Thermal paper container overrides */
+  /* Thermal paper container print overrides */
   .thermal-paper-printable {
     margin: 0 auto !important;
-    padding: 2mm 3mm !important;
+    padding: 3mm 4mm !important;
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #000000 !important;
     float: none !important;
     overflow: visible !important;
@@ -141,6 +172,12 @@
     width: 58mm !important;
     max-width: 58mm !important;
     min-width: 58mm !important;
+  }
+
+  .thermal-paper-printable.thermal-width-a4 {
+    width: 100% !important;
+    max-width: 210mm !important;
+    padding: 10mm !important;
   }
 
   /* Prevent awkward page break cuts inside receipt sections */

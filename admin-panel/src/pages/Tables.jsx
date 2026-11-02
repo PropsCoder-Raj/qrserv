@@ -27,6 +27,7 @@ const HISTORY_PAGE_SIZE = 5;
 
 export default function Tables() {
   const { user } = useAuth();
+  const isOrgOrRestaurantOwner = ['org_admin', 'restaurant_owner'].includes(user?.role);
   const [tables, setTables] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
@@ -172,10 +173,10 @@ export default function Tables() {
   const getStatusChipClass = (status) => {
     const value = String(status || '').toLowerCase();
 
-    if (['served', 'completed'].includes(value)) {
+    if (['completed'].includes(value)) {
       return 'bg-emerald-100 text-emerald-700';
     }
-    if (['preparing', 'confirmed'].includes(value)) {
+    if (['confirmed', 'ready'].includes(value)) {
       return 'bg-amber-100 text-amber-700';
     }
     if (['cancelled', 'failed'].includes(value)) {
@@ -708,19 +709,21 @@ export default function Tables() {
                                 <button
                                   type="button"
                                   onClick={() => openHistoryDetails(order)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-stroke px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-stroke px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
                                 >
                                   <HiOutlineEye size={14} />
                                   View
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => printOrderBill(order)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-                                >
-                                  <HiOutlinePrinter size={14} />
-                                  Print
-                                </button>
+                                {!isOrgOrRestaurantOwner && (
+                                  <button
+                                    type="button"
+                                    onClick={() => printOrderBill(order)}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 cursor-pointer"
+                                  >
+                                    <HiOutlinePrinter size={14} />
+                                    Print
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -864,24 +867,26 @@ export default function Tables() {
               </div>
             )}
 
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => printOrderKot(historyDetailModal.order)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
-              >
-                <HiOutlinePrinter size={16} className="text-slate-600" />
-                Print KOT
-              </button>
-              <button
-                type="button"
-                onClick={() => printOrderBill(historyDetailModal.order)}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 cursor-pointer"
-              >
-                <HiOutlinePrinter size={16} />
-                Print Bill
-              </button>
-            </div>
+            {!isOrgOrRestaurantOwner && (
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => printOrderKot(historyDetailModal.order)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
+                >
+                  <HiOutlinePrinter size={16} className="text-slate-600" />
+                  Print KOT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => printOrderBill(historyDetailModal.order)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <HiOutlinePrinter size={16} />
+                  Print Bill
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

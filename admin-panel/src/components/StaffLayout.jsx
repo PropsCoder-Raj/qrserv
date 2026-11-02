@@ -3,6 +3,8 @@ import { Outlet, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { HiOutlineLogout, HiOutlineClipboardList, HiOutlineViewGrid, HiOutlineBell } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import StaffAlertsListener from './StaffAlertsListener';
+import { enablePushForStaff, isPushRole } from '../services/notificationService';
 
 export default function StaffLayout() {
   const { user, loading, logout, notificationsEnabled, updateNotificationSettings } = useAuth();
@@ -32,14 +34,23 @@ export default function StaffLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
   const toggleNotifications = async () => {
+    const nextEnabled = !notificationsEnabled;
+    if (nextEnabled && isPushRole(user?.role)) {
+      // Background alerts need a push token; in-page alerts still work if it fails.
+      try {
+        await enablePushForStaff();
+      } catch (err) {
+        toast.error(`Background alerts unavailable: ${err.message}`);
+      }
+    }
     try {
-      await updateNotificationSettings(!notificationsEnabled);
+      await updateNotificationSettings(nextEnabled);
     } catch {
       toast.error('Failed to update notification settings');
     }
@@ -50,6 +61,7 @@ export default function StaffLayout() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+      <StaffAlertsListener />
       {/* Top Navbar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-card px-4 py-3 shadow-sm sm:px-6">
         <div className="flex items-center gap-1 sm:gap-2">

@@ -14,6 +14,7 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  canTransitionOrderStatus,
 } from '../../schemas/order.schema';
 import {
   Restaurant,
@@ -51,6 +52,7 @@ import { OrderStatisticsService } from '../order-statistics/order-statistics.ser
 import { CouponsService } from '../coupons/coupons.service';
 import { Role } from '../../common/decorators';
 import { roundTo3 } from '../../common/utils/precision';
+import { computeTaxBreakdown } from '../../common/utils/tax';
 
 @Injectable()
 export class OrdersService {
@@ -235,78 +237,29 @@ export class OrdersService {
     const isPaymentGatewayAllocated =
       await this.isPaymentGatewayAllocatedForRestaurant(restaurant);
 
-    // Separate items into food and liquor groups
-    const foodItems = pricedItems.filter(
-      (i) => (i.itemType || 'food') === 'food',
+    const totals = this.computeTotalsForItems(restaurant, pricedItems);
+    const {
+      subtotalAmount,
+      taxAmount,
+      taxRate,
+      taxType,
+      cgstRate,
+      sgstRate,
+      cgstAmount,
+      sgstAmount,
+      vatAmount,
+      vatRate,
+      vatType,
+      vatBreakdown,
+      gstBreakdown,
+      gstBase,
+      vatBase,
+    } = totals;
+    const foodBase = gstBase;
+    const liquorBase = vatBase;
+    const orderSubtotal = roundTo3(
+      pricedItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
     );
-    const liquorItems = pricedItems.filter(
-      (i) => (i.itemType || 'food') === 'liquor',
-    );
-
-    const foodTotal = foodItems.reduce(
-      (sum, i) => sum + i.price * i.quantity,
-      0,
-    );
-    const liquorTotal = liquorItems.reduce(
-      (sum, i) => sum + i.price * i.quantity,
-      0,
-    );
-
-    let foodBase = roundTo3(foodTotal);
-    let liquorBase = roundTo3(liquorTotal);
-    let taxRate = 0;
-    let taxType = 'exclusive';
-    let cgstRate = 0;
-    let sgstRate = 0;
-    let cgstAmount = 0;
-    let sgstAmount = 0;
-    let vatAmount = 0;
-    let vatRate = 0;
-    let vatType = 'exclusive';
-
-    // Food items — GST (CGST + SGST)
-    if (restaurant?.taxEnabled && restaurant.taxRate > 0 && foodTotal > 0) {
-      taxRate = restaurant.taxRate;
-      taxType = restaurant.taxType || 'inclusive';
-      cgstRate = roundTo3(taxRate / 2);
-      sgstRate = roundTo3(taxRate / 2);
-
-      if (taxType === 'inclusive') {
-        foodBase = roundTo3(foodTotal / (1 + taxRate / 100));
-        const gstTax = roundTo3(foodTotal - foodBase);
-        cgstAmount = roundTo3(gstTax / 2);
-        sgstAmount = roundTo3(gstTax - cgstAmount);
-      } else {
-        foodBase = roundTo3(foodTotal);
-        cgstAmount = roundTo3((foodBase * cgstRate) / 100);
-        sgstAmount = roundTo3((foodBase * sgstRate) / 100);
-      }
-    } else if (restaurant?.taxEnabled) {
-      taxRate = restaurant.taxRate;
-      taxType = restaurant.taxType || 'inclusive';
-    }
-
-    // Liquor items — VAT (single tax)
-    if (restaurant?.vatEnabled && restaurant.vatRate > 0 && liquorTotal > 0) {
-      vatRate = restaurant.vatRate;
-      vatType = restaurant.vatType || 'inclusive';
-
-      if (vatType === 'inclusive') {
-        liquorBase = roundTo3(liquorTotal / (1 + vatRate / 100));
-        vatAmount = roundTo3(liquorTotal - liquorBase);
-      } else {
-        liquorBase = roundTo3(liquorTotal);
-        vatAmount = roundTo3((liquorBase * vatRate) / 100);
-      }
-    } else if (restaurant?.vatEnabled) {
-      vatRate = restaurant.vatRate;
-      vatType = restaurant.vatType || 'inclusive';
-    }
-
-    // Combined totals
-    const subtotalAmount = roundTo3(foodBase + liquorBase);
-    const taxAmount = roundTo3(cgstAmount + sgstAmount + vatAmount);
-    const orderSubtotal = roundTo3(foodTotal + liquorTotal);
     const preDiscountTotal = roundTo3(subtotalAmount + taxAmount);
     const coupon = dto.couponCode
       ? await this.couponsService.validateCoupon(
@@ -375,7 +328,7 @@ export class OrdersService {
           status: { $ne: OrderStatus.CANCELLED },
           $nor: [
             {
-              status: OrderStatus.SERVED,
+              status: OrderStatus.COMPLETED,
               paymentStatus: PaymentStatus.PAID,
             },
           ],
@@ -419,6 +372,10 @@ export class OrdersService {
         })),
         orderNumber,
         orderType,
+        gstBase,
+        vatBase,
+        vatBreakdown,
+        gstBreakdown,
         paymentMethod,
         paymentStatus,
         subtotalAmount,
@@ -470,6 +427,10 @@ export class OrdersService {
         })),
         orderNumber: await this.generateOrderNumber(restaurantObjectId),
         orderType,
+        gstBase,
+        vatBase,
+        vatBreakdown,
+        gstBreakdown,
         paymentMethod,
         paymentStatus,
         subtotalAmount,
@@ -620,7 +581,7 @@ export class OrdersService {
     if (order.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException('Paid orders cannot be updated');
     }
-    if ([OrderStatus.CANCELLED, OrderStatus.SERVED].includes(order.status)) {
+    if ([OrderStatus.CANCELLED, OrderStatus.COMPLETED].includes(order.status)) {
       throw new BadRequestException(
         `Order cannot be updated when status is '${order.status}'`,
       );
@@ -639,6 +600,8 @@ export class OrdersService {
       price: item.price,
       quantity: item.quantity,
       itemType: item.itemType || 'food',
+      gstRate: Number(item.gstRate) || 0,
+      vatRate: Number(item.vatRate) || 0,
       status: OrderItemStatus.ACTIVE,
       cancelledQuantity: 0,
       cancelReason: '',
@@ -672,6 +635,10 @@ export class OrdersService {
     (order as any).vatType = totals.vatType;
     (order as any).foodSubtotal = totals.foodSubtotal;
     (order as any).liquorSubtotal = totals.liquorSubtotal;
+    (order as any).gstBase = totals.gstBase;
+    (order as any).vatBase = totals.vatBase;
+    (order as any).vatBreakdown = totals.vatBreakdown;
+    (order as any).gstBreakdown = totals.gstBreakdown;
     (order as any).totalAmount = totals.totalAmount;
     if (order.razorpayOrderId) {
       await this.paymentModel.deleteMany({ orderId: order._id });
@@ -724,7 +691,7 @@ export class OrdersService {
     if (order.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException('Paid orders cannot be updated');
     }
-    if ([OrderStatus.CANCELLED, OrderStatus.SERVED].includes(order.status)) {
+    if ([OrderStatus.CANCELLED, OrderStatus.COMPLETED].includes(order.status)) {
       throw new BadRequestException(
         `Order cannot be updated when status is '${order.status}'`,
       );
@@ -809,6 +776,10 @@ export class OrdersService {
     (order as any).vatType = totals.vatType;
     (order as any).foodSubtotal = totals.foodSubtotal;
     (order as any).liquorSubtotal = totals.liquorSubtotal;
+    (order as any).gstBase = totals.gstBase;
+    (order as any).vatBase = totals.vatBase;
+    (order as any).vatBreakdown = totals.vatBreakdown;
+    (order as any).gstBreakdown = totals.gstBreakdown;
     (order as any).couponId = coupon?.coupon._id;
     (order as any).couponCode = coupon?.coupon.code || '';
     (order as any).manualDiscountType = manualDiscountInfo.manualDiscountType;
@@ -926,98 +897,71 @@ export class OrdersService {
 
   private computeTotalsForItems(
     restaurant: any,
-    items: Array<{ price: number; quantity: number; itemType?: string }>,
+    items: Array<{
+      menuItemId?: { toString(): string };
+      name?: string;
+      price: number;
+      quantity: number;
+      itemType?: string;
+      gstRate?: number;
+      vatRate?: number;
+    }>,
   ) {
-    // Separate items into food and liquor groups
-    const foodItems = items.filter((i) => (i.itemType || 'food') === 'food');
-    const liquorItems = items.filter(
-      (i) => (i.itemType || 'food') === 'liquor',
+    const breakdown = computeTaxBreakdown(
+      {
+        taxEnabled: restaurant?.taxEnabled,
+        taxRate: restaurant?.taxRate,
+        taxType: restaurant?.taxType,
+        vatEnabled: restaurant?.vatEnabled,
+        vatRate: restaurant?.vatRate,
+        vatType: restaurant?.vatType,
+      },
+      items.map((i) => {
+        const rates = this.resolveItemTaxRates(i, {
+          taxRate: restaurant?.taxRate,
+          vatRate: restaurant?.vatRate,
+        });
+        return {
+          menuItemId: i.menuItemId?.toString(),
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+          gstRate: rates.gstRate,
+          vatRate: rates.vatRate,
+        };
+      }),
     );
-
-    const foodTotal = roundTo3(
-      foodItems.reduce(
-        (sum, i) => sum + i.price * i.quantity,
-        0,
-      ),
-    );
-    const liquorTotal = roundTo3(
-      liquorItems.reduce(
-        (sum, i) => sum + i.price * i.quantity,
-        0,
-      ),
-    );
-
-    let foodBase = foodTotal;
-    let liquorBase = liquorTotal;
-    let taxRate = 0;
-    let taxType = 'exclusive';
-    let cgstRate = 0;
-    let sgstRate = 0;
-    let cgstAmount = 0;
-    let sgstAmount = 0;
-    let vatAmount = 0;
-    let vatRate = 0;
-    let vatType = 'exclusive';
-
-    // Food items — GST (CGST + SGST)
-    if (restaurant?.taxEnabled && restaurant.taxRate > 0 && foodTotal > 0) {
-      taxRate = restaurant.taxRate;
-      taxType = restaurant.taxType || 'inclusive';
-      cgstRate = roundTo3(taxRate / 2);
-      sgstRate = roundTo3(taxRate / 2);
-
-      if (taxType === 'inclusive') {
-        foodBase = roundTo3(foodTotal / (1 + taxRate / 100));
-        const gstTax = roundTo3(foodTotal - foodBase);
-        cgstAmount = roundTo3(gstTax / 2);
-        sgstAmount = roundTo3(gstTax - cgstAmount);
-      } else {
-        foodBase = foodTotal;
-        cgstAmount = roundTo3((foodBase * cgstRate) / 100);
-        sgstAmount = roundTo3((foodBase * sgstRate) / 100);
-      }
-    } else if (restaurant?.taxEnabled) {
-      taxRate = restaurant.taxRate;
-      taxType = restaurant.taxType || 'inclusive';
-    }
-
-    // Liquor items — VAT (single tax)
-    if (restaurant?.vatEnabled && restaurant.vatRate > 0 && liquorTotal > 0) {
-      vatRate = restaurant.vatRate;
-      vatType = restaurant.vatType || 'inclusive';
-
-      if (vatType === 'inclusive') {
-        liquorBase = roundTo3(liquorTotal / (1 + vatRate / 100));
-        vatAmount = roundTo3(liquorTotal - liquorBase);
-      } else {
-        liquorBase = liquorTotal;
-        vatAmount = roundTo3((liquorBase * vatRate) / 100);
-      }
-    } else if (restaurant?.vatEnabled) {
-      vatRate = restaurant.vatRate;
-      vatType = restaurant.vatType || 'inclusive';
-    }
-
-    // Combined totals
-    const subtotalAmount = roundTo3(foodBase + liquorBase);
-    const taxAmount = roundTo3(cgstAmount + sgstAmount + vatAmount);
-    const totalAmount = roundTo3(subtotalAmount + taxAmount);
 
     return {
-      subtotalAmount,
-      taxAmount,
-      taxRate,
-      taxType,
-      cgstRate,
-      sgstRate,
-      cgstAmount,
-      sgstAmount,
-      vatAmount,
-      vatRate,
-      vatType,
-      foodSubtotal: foodBase,
-      liquorSubtotal: liquorBase,
-      totalAmount,
+      ...breakdown,
+      foodSubtotal: breakdown.gstBase,
+      liquorSubtotal: breakdown.vatBase,
+    };
+  }
+
+  /**
+   * Items saved before per-item rates existed have no gstRate/vatRate. For those, fall back to
+   * the order's restaurant rates by item type so historical totals keep their original tax.
+   */
+  private resolveItemTaxRates(
+    item: { itemType?: string; gstRate?: number; vatRate?: number },
+    fallback: { taxRate?: number; vatRate?: number },
+  ) {
+    const hasGst = item.gstRate != null && Number(item.gstRate) >= 0;
+    const hasVat = item.vatRate != null && Number(item.vatRate) >= 0;
+
+    if (hasGst || hasVat) {
+      return {
+        gstRate: hasGst ? Number(item.gstRate) : Number(fallback.taxRate) || 0,
+        vatRate: hasVat ? Number(item.vatRate) : Number(fallback.vatRate) || 0,
+      };
+    }
+    if (item.itemType === 'liquor') {
+      return { gstRate: 0, vatRate: Number(fallback.vatRate) || 0 };
+    }
+    return {
+      gstRate: Number(fallback.taxRate) || 0,
+      vatRate: Number(fallback.vatRate) || 0,
     };
   }
 
@@ -1025,14 +969,8 @@ export class OrdersService {
     const order = await this.orderModel.findById(id);
     if (!order) throw new NotFoundException('Order not found');
 
-    // Only allow until preparing (inclusive)
-    if (
-      ![
-        OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
-        OrderStatus.PREPARING,
-      ].includes(order.status)
-    ) {
+    // Items can only be cancelled until the order is ready
+    if (![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)) {
       throw new BadRequestException(
         `Item cancellation is not allowed when order is '${order.status}'`,
       );
@@ -1092,6 +1030,10 @@ export class OrdersService {
     (order as any).vatType = totals.vatType;
     (order as any).foodSubtotal = totals.foodSubtotal;
     (order as any).liquorSubtotal = totals.liquorSubtotal;
+    (order as any).gstBase = totals.gstBase;
+    (order as any).vatBase = totals.vatBase;
+    (order as any).vatBreakdown = totals.vatBreakdown;
+    (order as any).gstBreakdown = totals.gstBreakdown;
     const effectiveOrderSubtotal = roundTo3(totals.foodSubtotal + totals.liquorSubtotal);
     const existingManualType = (order as any).manualDiscountType || (order as any).manual_discount_type;
     const existingManualVal = (order as any).manualDiscountValue ?? (order as any).manual_discount_value ?? 0;
@@ -1349,7 +1291,7 @@ export class OrdersService {
     const order = await this.orderModel
       .findById(id)
       .select(
-        'orderNumber status paymentStatus paymentMethod items totalAmount subtotalAmount taxAmount taxRate taxType cgstRate sgstRate cgstAmount sgstAmount vatAmount vatRate vatType foodSubtotal liquorSubtotal orderType restaurantId tableId customerName customerPhone isPaymentGatewayAllocated couponId couponCode discountAmount manualDiscountType manualDiscountValue manualDiscountAmount manualDiscountReason manual_discount_type manual_discount_value manual_discount_amount manual_discount_reason createdAt',
+        'orderNumber status paymentStatus paymentMethod items totalAmount subtotalAmount taxAmount taxRate taxType cgstRate sgstRate cgstAmount sgstAmount vatAmount vatRate vatType foodSubtotal liquorSubtotal gstBase vatBase vatBreakdown gstBreakdown lineTaxes taxSnapshotAt orderType restaurantId tableId customerName customerPhone isPaymentGatewayAllocated couponId couponCode discountAmount manualDiscountType manualDiscountValue manualDiscountAmount manualDiscountReason manual_discount_type manual_discount_value manual_discount_amount manual_discount_reason createdAt',
       )
       .populate(this.orderRelationPopulate);
     if (!order) throw new NotFoundException('Order not found');
@@ -1359,15 +1301,59 @@ export class OrdersService {
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
     const existing = await this.orderModel
       .findById(id)
-      .select('status restaurantId');
+      .select(
+        'status restaurantId items taxRate taxType vatRate vatType taxSnapshotAt',
+      );
     if (!existing) throw new NotFoundException('Order not found');
 
     const previousStatus = existing.status;
-    const order = await this.orderModel.findByIdAndUpdate(
-      id,
-      { status: dto.status },
-      { new: true },
-    );
+    if (previousStatus !== dto.status) {
+      if (!canTransitionOrderStatus(previousStatus, dto.status)) {
+        throw new BadRequestException(
+          `Invalid status transition from '${previousStatus}' to '${dto.status}'`,
+        );
+      }
+    }
+
+    const update: Record<string, unknown> = { status: dto.status };
+    if (dto.status === OrderStatus.COMPLETED && !existing.taxSnapshotAt) {
+      // Freeze per-line tax using the rates stored on the order, not current restaurant settings.
+      const snapshot = computeTaxBreakdown(
+        {
+          taxEnabled: true,
+          taxRate: existing.taxRate,
+          taxType: existing.taxType,
+          vatEnabled: true,
+          vatRate: existing.vatRate,
+          vatType: existing.vatType,
+        },
+        (existing.items || [])
+          .map((it: any) => {
+            const rates = this.resolveItemTaxRates(it, {
+              taxRate: existing.taxRate,
+              vatRate: existing.vatRate,
+            });
+            return {
+              menuItemId: it.menuItemId?.toString(),
+              name: it.name,
+              price: Number(it.price) || 0,
+              quantity: Math.max(
+                0,
+                Number(it.quantity || 0) - Number(it.cancelledQuantity || 0),
+              ),
+              gstRate: rates.gstRate,
+              vatRate: rates.vatRate,
+            };
+          })
+          .filter((it) => it.quantity > 0),
+      );
+      update.lineTaxes = snapshot.lines;
+      update.taxSnapshotAt = new Date();
+    }
+
+    const order = await this.orderModel.findByIdAndUpdate(id, update, {
+      new: true,
+    });
     if (!order) throw new NotFoundException('Order not found');
 
     if (previousStatus !== dto.status) {
@@ -1385,6 +1371,7 @@ export class OrdersService {
           dto.status,
           restaurant?.organizationId,
           order.totalAmount,
+          order.orderNumber,
         ),
       );
     }
@@ -1522,8 +1509,12 @@ export class OrdersService {
   }
 
   private async getStatsWithMatch(match: any) {
+    // Sales, order count, revenue and average order value only include
+    // COMPLETED orders; pending, confirmed, ready and cancelled are excluded.
+    const completedMatch = { ...match, status: OrderStatus.COMPLETED };
+
     const [totals] = await this.orderModel.aggregate([
-      { $match: match },
+      { $match: completedMatch },
       {
         $group: {
           _id: null,
@@ -1536,11 +1527,11 @@ export class OrdersService {
     // OrderStatistics is cumulative (not date-scoped), so only the
     // restaurant scope from `match` applies here, not the date range.
     const restaurantScope = match.restaurantId?.$in ?? match.restaurantId;
-    const { servedOrderCount, totalOrderAmount } =
-      await this.orderStatisticsService.getServedTotals(restaurantScope);
+    const { completedOrderCount, totalOrderAmount } =
+      await this.orderStatisticsService.getCompletedTotals(restaurantScope);
 
     const mostSoldItems = await this.orderModel.aggregate([
-      { $match: match },
+      { $match: completedMatch },
       { $unwind: '$items' },
       {
         $group: {
@@ -1562,8 +1553,8 @@ export class OrdersService {
     const revenueDaily = await this.orderModel.aggregate([
       {
         $match: hasDateFilter
-          ? match
-          : { ...match, createdAt: { $gte: thirtyDaysAgo } },
+          ? completedMatch
+          : { ...completedMatch, createdAt: { $gte: thirtyDaysAgo } },
       },
       {
         $group: {
@@ -1580,8 +1571,8 @@ export class OrdersService {
     const revenueWeekly = await this.orderModel.aggregate([
       {
         $match: hasDateFilter
-          ? match
-          : { ...match, createdAt: { $gte: twelveWeeksAgo } },
+          ? completedMatch
+          : { ...completedMatch, createdAt: { $gte: twelveWeeksAgo } },
       },
       {
         $group: {
@@ -1598,8 +1589,8 @@ export class OrdersService {
     const revenueMonthly = await this.orderModel.aggregate([
       {
         $match: hasDateFilter
-          ? match
-          : { ...match, createdAt: { $gte: twelveMonthsAgo } },
+          ? completedMatch
+          : { ...completedMatch, createdAt: { $gte: twelveMonthsAgo } },
       },
       {
         $group: {
@@ -1612,7 +1603,7 @@ export class OrdersService {
     ]);
 
     const revenueYearly = await this.orderModel.aggregate([
-      { $match: match },
+      { $match: completedMatch },
       {
         $group: {
           _id: { $dateToString: { format: '%Y', date: '$createdAt' } },
@@ -1623,11 +1614,17 @@ export class OrdersService {
       { $sort: { _id: 1 } },
     ]);
 
+    const totalOrders = totals?.totalOrders || 0;
+    const totalSales = totals?.totalSales || 0;
+
     return {
-      totalOrders: totals?.totalOrders || 0,
-      totalSales: totals?.totalSales || 0,
-      totalServedOrders: servedOrderCount,
-      totalServedSales: totalOrderAmount,
+      totalOrders,
+      totalSales,
+      averageOrderValue: completedOrderCount
+        ? totalOrderAmount / completedOrderCount
+        : 0,
+      totalCompletedOrders: completedOrderCount,
+      totalCompletedSales: totalOrderAmount,
       mostSoldItems: mostSoldItems.map((item) => ({
         name: item._id,
         quantity: item.totalQuantity,

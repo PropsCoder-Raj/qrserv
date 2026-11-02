@@ -59,6 +59,11 @@ export default function generateKotPdf(order, restaurant = {}) {
     format: [PAGE_WIDTH, Math.max(80, estimatedHeight)],
   });
 
+  // Solid pure white background
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, PAGE_WIDTH, Math.max(80, estimatedHeight), 'F');
+  doc.setTextColor(0, 0, 0);
+
   let y = 6;
   const centerX = PAGE_WIDTH / 2;
 

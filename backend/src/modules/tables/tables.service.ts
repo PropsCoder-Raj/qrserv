@@ -171,7 +171,7 @@ export class TablesService {
             status: { $ne: OrderStatus.CANCELLED },
             $nor: [
               {
-                status: OrderStatus.SERVED,
+                status: OrderStatus.COMPLETED,
                 paymentStatus: PaymentStatus.PAID,
               },
             ],

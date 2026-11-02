@@ -13,9 +13,11 @@ import {
   HiOutlineCog,
   HiOutlineX,
   HiOutlineChartBar,
+  HiSparkles,
 } from 'react-icons/hi';
 import useSubscription from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_VERSION } from '../config/version';
 
 const allMenuItems = [
   { path: '/', label: 'Dashboard', icon: HiOutlineViewGrid },
@@ -96,8 +98,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
           </ul>
         </nav>
 
-        <div className="border-t border-white/10 px-6 py-4">
-          <p className="text-xs text-slate-400">v1.0.0</p>
+        <div className="border-t border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('qrserv:open-release-notes'))}
+            className="group flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white transition cursor-pointer"
+            title="Click to view What's New & Release Notes"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-slate-300">{APP_VERSION}</span>
+              <span className="inline-flex items-center gap-1 rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 group-hover:bg-amber-400/30">
+                <HiSparkles size={11} /> What's New
+              </span>
+            </div>
+          </button>
         </div>
       </aside>
     </>

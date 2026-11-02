@@ -14,13 +14,10 @@ export class OrderStatisticsDto {
   confirmedOrderCount: number;
 
   @ApiProperty()
-  preparingOrderCount: number;
-
-  @ApiProperty()
   readyOrderCount: number;
 
   @ApiProperty()
-  servedOrderCount: number;
+  completedOrderCount: number;
 
   @ApiProperty()
   cancelledOrderCount: number;

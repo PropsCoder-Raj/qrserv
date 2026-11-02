@@ -22,6 +22,7 @@ import StaffOrders from './pages/StaffOrders';
 import WithdrawRequests from './pages/WithdrawRequests';
 import Settings from './pages/Settings';
 import RestaurantProfileSettings from './pages/RestaurantProfileSettings';
+import RestaurantQrCodes from './pages/RestaurantQrCodes';
 import OrderStatistics from './pages/OrderStatistics';
 import OrderAnalytics from './pages/OrderAnalytics';
 import Coupons from './pages/Coupons';
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/settings" element={<Settings />}>
               <Route index element={<Navigate to="restaurant-profile" replace />} />
               <Route path="restaurant-profile" element={<RestaurantProfileSettings />} />
+              <Route path="qr-codes" element={<RestaurantQrCodes />} />
               <Route path="order-statistics" element={<OrderStatistics />} />
             </Route>
           </Route>

@@ -1,30 +1,47 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { HiOutlineClipboardList, HiOutlineOfficeBuilding } from 'react-icons/hi';
-
-const settingsGroups = [
-  {
-    label: 'Restaurant Management',
-    items: [
-      {
-        path: '/settings/restaurant-profile',
-        label: 'Restaurant Profile',
-        icon: HiOutlineOfficeBuilding,
-      },
-    ],
-  },
-  {
-    label: 'Order Management',
-    items: [
-      {
-        path: '/settings/order-statistics',
-        label: 'Order Statistics',
-        icon: HiOutlineClipboardList,
-      },
-    ],
-  },
-];
+import {
+  HiOutlineClipboardList,
+  HiOutlineOfficeBuilding,
+  HiOutlineQrcode,
+} from 'react-icons/hi';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Settings() {
+  const { user } = useAuth();
+  const isRestaurantOwner = user?.role === 'restaurant_owner';
+
+  const settingsGroups = [
+    {
+      label: 'Restaurant Management',
+      items: [
+        {
+          path: '/settings/restaurant-profile',
+          label: 'Restaurant Profile',
+          icon: HiOutlineOfficeBuilding,
+        },
+        ...(isRestaurantOwner
+          ? [
+              {
+                path: '/settings/qr-codes',
+                label: 'QR Codes',
+                icon: HiOutlineQrcode,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: 'Order Management',
+      items: [
+        {
+          path: '/settings/order-statistics',
+          label: 'Order Statistics',
+          icon: HiOutlineClipboardList,
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>

@@ -87,9 +87,8 @@ describe('OrderStatisticsService', () => {
     it.each([
       [OrderStatus.PENDING, 'pendingOrderCount'],
       [OrderStatus.CONFIRMED, 'confirmedOrderCount'],
-      [OrderStatus.PREPARING, 'preparingOrderCount'],
       [OrderStatus.READY, 'readyOrderCount'],
-      [OrderStatus.SERVED, 'servedOrderCount'],
+      [OrderStatus.COMPLETED, 'completedOrderCount'],
       [OrderStatus.CANCELLED, 'cancelledOrderCount'],
     ])('increments %s -> %s', async (status, counterField) => {
       await service.updateOrderStatistics(
@@ -117,17 +116,12 @@ describe('OrderStatisticsService', () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        OrderStatus.PREPARING,
-      );
-      await service.updateOrderStatistics(
-        ORG_1,
-        RESTAURANT_1,
         OrderStatus.READY,
       );
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        OrderStatus.SERVED,
+        OrderStatus.COMPLETED,
       );
 
       expect(findOneAndUpdateMock).toHaveBeenNthCalledWith(
@@ -139,44 +133,38 @@ describe('OrderStatisticsService', () => {
       expect(findOneAndUpdateMock).toHaveBeenNthCalledWith(
         2,
         filterFor(ORG_1, RESTAURANT_1),
-        expect.objectContaining({ $inc: { preparingOrderCount: 1 } }),
+        expect.objectContaining({ $inc: { readyOrderCount: 1 } }),
         expect.any(Object),
       );
       expect(findOneAndUpdateMock).toHaveBeenNthCalledWith(
         3,
         filterFor(ORG_1, RESTAURANT_1),
-        expect.objectContaining({ $inc: { readyOrderCount: 1 } }),
-        expect.any(Object),
-      );
-      expect(findOneAndUpdateMock).toHaveBeenNthCalledWith(
-        4,
-        filterFor(ORG_1, RESTAURANT_1),
-        expect.objectContaining({ $inc: { servedOrderCount: 1 } }),
+        expect.objectContaining({ $inc: { completedOrderCount: 1 } }),
         expect.any(Object),
       );
     });
   });
 
-  describe('totalOrderAmount on PAID', () => {
-    it('adds the order totalAmount to totalOrderAmount when status is PAID', async () => {
+  describe('totalOrderAmount on COMPLETED', () => {
+    it('adds the order totalAmount to totalOrderAmount when status is COMPLETED', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        PaymentStatus.PAID,
+        OrderStatus.COMPLETED,
         250.5,
       );
 
       expect(findOneAndUpdateMock).toHaveBeenCalledWith(
         filterFor(ORG_1, RESTAURANT_1),
         {
-          $inc: { totalOrderAmount: 250.5 },
+          $inc: { completedOrderCount: 1, totalOrderAmount: 250.5 },
           $setOnInsert: filterFor(ORG_1, RESTAURANT_1),
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
     });
 
-    it('does not touch totalOrderAmount for OrderStatus even with a totalAmount', async () => {
+    it('does not touch totalOrderAmount for non-COMPLETED statuses even with a totalAmount', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
@@ -194,14 +182,21 @@ describe('OrderStatisticsService', () => {
       );
     });
 
-    it('does not add totalOrderAmount when PAID arrives without a totalAmount', async () => {
+    it('does not add totalOrderAmount when COMPLETED arrives without a totalAmount', async () => {
       await service.updateOrderStatistics(
         ORG_1,
         RESTAURANT_1,
-        PaymentStatus.PAID,
+        OrderStatus.COMPLETED,
       );
 
-      expect(findOneAndUpdateMock).not.toHaveBeenCalled();
+      expect(findOneAndUpdateMock).toHaveBeenCalledWith(
+        filterFor(ORG_1, RESTAURANT_1),
+        {
+          $inc: { completedOrderCount: 1 },
+          $setOnInsert: filterFor(ORG_1, RESTAURANT_1),
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
     });
   });
 
@@ -350,9 +345,8 @@ describe('OrderStatisticsService', () => {
           $set: {
             pendingOrderCount: 0,
             confirmedOrderCount: 0,
-            preparingOrderCount: 0,
             readyOrderCount: 0,
-            servedOrderCount: 0,
+            completedOrderCount: 0,
             cancelledOrderCount: 0,
             totalOrderAmount: 0,
           },
@@ -369,9 +363,8 @@ describe('OrderStatisticsService', () => {
           $set: {
             pendingOrderCount: 0,
             confirmedOrderCount: 0,
-            preparingOrderCount: 0,
             readyOrderCount: 0,
-            servedOrderCount: 0,
+            completedOrderCount: 0,
             cancelledOrderCount: 0,
             totalOrderAmount: 0,
           },

@@ -6,9 +6,11 @@ import {
   OrderPaymentStatusChangedEvent,
   OrderStatusChangedEvent,
   OrderUpdatedEvent,
+  WaiterCalledEvent,
 } from '../order-events';
-import { PaymentStatus } from '../../../schemas/order.schema';
+import { OrderStatus } from '../../../schemas/order.schema';
 import { OrderStatisticsService } from '../../../modules/order-statistics/order-statistics.service';
+import { FcmService } from '../../../modules/notifications/fcm.service';
 import { OrdersGateway } from '../../websocket/orders.gateway';
 
 // Central place to react to order/payment status changes emitted across the app.
@@ -19,6 +21,7 @@ export class OrderEventsListener {
   constructor(
     private readonly orderStatisticsService: OrderStatisticsService,
     private readonly ordersGateway: OrdersGateway,
+    private readonly fcmService: FcmService,
   ) {}
 
   @OnEvent(OrderEvent.CREATED)
@@ -49,6 +52,18 @@ export class OrderEventsListener {
         err?.stack,
       );
     }
+
+    await this.safeNotifyStaff(() =>
+      this.fcmService.notifyStaff({
+        type: 'order',
+        title: 'New order',
+        body: event.orderNumber
+          ? `Order #${event.orderNumber} received`
+          : 'A new order was received',
+        restaurantId: event.restaurantId,
+        orderId: event.orderId,
+      }),
+    );
   }
 
   @OnEvent(OrderEvent.STATUS_CHANGED)
@@ -62,6 +77,7 @@ export class OrderEventsListener {
         event.orgId,
         event.restaurantId,
         event.newStatus,
+        event.totalAmount,
       );
     } catch (err: any) {
       this.logger.error(
@@ -82,6 +98,33 @@ export class OrderEventsListener {
         err?.stack,
       );
     }
+
+    if (event.newStatus === OrderStatus.READY) {
+      const label = event.orderNumber ? `#${event.orderNumber}` : event.orderId;
+      try {
+        this.ordersGateway.emitKitchenAlert(event.restaurantId, {
+          orderId: event.orderId,
+          orderNumber: event.orderNumber,
+          status: event.newStatus,
+          message: `Order ${label} is ready to serve`,
+        });
+      } catch (err: any) {
+        this.logger.error(
+          `Failed to push kitchen:alert for order ${event.orderId}`,
+          err?.stack,
+        );
+      }
+
+      await this.safeNotifyStaff(() =>
+        this.fcmService.notifyStaff({
+          type: 'kitchen',
+          title: 'Order ready',
+          body: `Order ${label} is ready to serve`,
+          restaurantId: event.restaurantId,
+          orderId: event.orderId,
+        }),
+      );
+    }
   }
 
   @OnEvent(OrderEvent.PAYMENT_STATUS_CHANGED)
@@ -89,26 +132,6 @@ export class OrderEventsListener {
     this.logger.log(
       `Order ${event.orderId} payment status changed: ${event.previousStatus} -> ${event.newStatus}`,
     );
-
-    const isPaid =
-      String(event.newStatus).toLowerCase() ===
-      PaymentStatus.PAID.toLowerCase();
-
-    if (isPaid && event.orgId) {
-      try {
-        await this.orderStatisticsService.updateOrderStatistics(
-          event.orgId,
-          event.restaurantId,
-          event.newStatus,
-          event.totalAmount,
-        );
-      } catch (err: any) {
-        this.logger.error(
-          `Failed to update order statistics for order ${event.orderId}`,
-          err?.stack,
-        );
-      }
-    }
 
     try {
       this.ordersGateway.emitOrderUpdated(event.restaurantId, {
@@ -122,6 +145,36 @@ export class OrderEventsListener {
         err?.stack,
       );
     }
+  }
+
+  @OnEvent(OrderEvent.WAITER_CALLED)
+  async handleWaiterCalled(event: WaiterCalledEvent) {
+    this.logger.log(
+      `Waiter called for table ${event.tableNumber} (restaurant ${event.restaurantId})`,
+    );
+
+    try {
+      this.ordersGateway.emitWaiterCall(event.restaurantId, {
+        tableId: event.tableId,
+        tableNumber: event.tableNumber,
+        message: `Table ${event.tableNumber} needs a waiter`,
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to push waiter:call for table ${event.tableId}`,
+        err?.stack,
+      );
+    }
+
+    await this.safeNotifyStaff(() =>
+      this.fcmService.notifyStaff({
+        type: 'waiter_call',
+        title: 'Waiter requested',
+        body: `Table ${event.tableNumber} needs a waiter`,
+        restaurantId: event.restaurantId,
+        tableId: event.tableId,
+      }),
+    );
   }
 
   @OnEvent(OrderEvent.UPDATED)
@@ -138,6 +191,15 @@ export class OrderEventsListener {
         `Failed to push order:updated notification for order ${event.orderId}`,
         err?.stack,
       );
+    }
+  }
+
+  // Push delivery is best-effort; a failed FCM send must not block socket delivery.
+  private async safeNotifyStaff(send: () => Promise<void>) {
+    try {
+      await send();
+    } catch (err: any) {
+      this.logger.error(`FCM notification failed: ${err?.message}`, err?.stack);
     }
   }
 }

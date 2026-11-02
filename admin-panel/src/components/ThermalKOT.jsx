@@ -21,7 +21,12 @@ export default function ThermalKOT({
         ? order.restaurantId
         : restaurant || {};
 
-  const widthClass = paperWidth === '58mm' ? 'thermal-width-58mm' : 'thermal-width-80mm';
+  const widthClass =
+    paperWidth === '58mm'
+      ? 'thermal-width-58mm'
+      : paperWidth === 'a4'
+        ? 'thermal-width-a4'
+        : 'thermal-width-80mm';
 
   // Order Details
   const items = order.items || [];

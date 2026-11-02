@@ -135,7 +135,7 @@ describe('OrdersService - remove', () => {
     expect(orderModel.findByIdAndDelete).toHaveBeenCalledWith(mockOrder._id);
   });
 
-  it('rejects deletion if order status is not cancelled (e.g. pending or served)', async () => {
+  it('rejects deletion if order status is not cancelled (e.g. pending or completed)', async () => {
     const { service } = createService({
       order: { ...mockOrder, status: OrderStatus.PENDING },
     });

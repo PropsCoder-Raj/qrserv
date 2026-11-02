@@ -7,12 +7,16 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   IsArray,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ItemType, PriceDropType } from '../../../schemas/menu-item.schema';
+import {
+  ItemType,
+  PriceDropType,
+} from '../../../schemas/menu-item.schema';
 
 export class CustomizationOptionDto {
   @ApiProperty({ example: 'Extra Cheese' })
@@ -118,6 +122,20 @@ export class CreateMenuItemDto {
   @IsOptional()
   @IsEnum(ItemType)
   itemType?: ItemType;
+
+  @ApiPropertyOptional({ example: 5, description: 'Per-item GST rate (%). 0 means no GST' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  gstRate?: number;
+
+  @ApiPropertyOptional({ example: 15, description: 'Per-item VAT rate (%). 0 means no VAT' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  vatRate?: number;
 
   @ApiPropertyOptional({ type: MenuItemCustomizationDto })
   @IsOptional()

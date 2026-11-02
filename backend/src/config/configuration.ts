@@ -26,6 +26,11 @@ export default () => ({
       process.env.WITHDRAW_CHARGE_GST_PERCENTAGE || '18',
     ),
   },
+  firebase: {
+    // Path to a Firebase service-account JSON file, or the JSON itself.
+    serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
+  },
   mail: {
     host: process.env.MAIL_HOST || '',
     port: parseInt(process.env.MAIL_PORT || '587', 10),

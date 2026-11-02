@@ -11,9 +11,8 @@ import { formatCurrency } from '../utils/formatCurrency';
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-700',
   confirmed: 'bg-blue-100 text-blue-700',
-  preparing: 'bg-purple-100 text-purple-700',
   ready: 'bg-green-100 text-green-700',
-  served: 'bg-teal-100 text-teal-700',
+  completed: 'bg-teal-100 text-teal-700',
   cancelled: 'bg-red-100 text-red-700',
 };
 
@@ -166,7 +165,7 @@ export default function OrderHistory() {
                     {order.items?.reduce((sum, i) => sum + i.quantity, 0)} items
                   </span>
                   <div className="flex items-center gap-2">
-                    {order.status === 'served' && (
+                    {order.status === 'completed' && (
                       <button
                         type="button"
                         onClick={(e) => handleDownloadBill(e, order)}

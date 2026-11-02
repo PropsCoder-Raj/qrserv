@@ -41,4 +41,17 @@ export class OrdersGateway {
     this.logger.log(`Emitting order:updated to restaurant ${restaurantId}`);
     this.server?.to(this.restaurantRoom(restaurantId)).emit('order:updated', payload);
   }
+
+  emitKitchenAlert(restaurantId: string, payload: Record<string, unknown>) {
+    if (!restaurantId) return;
+    this.logger.log(`Emitting kitchen:alert to restaurant ${restaurantId}`);
+    this.server?.to(this.restaurantRoom(restaurantId)).emit('kitchen:alert', payload);
+  }
+
+  emitWaiterCall(restaurantId: string, payload: Record<string, unknown>) {
+    if (!restaurantId) return;
+    this.logger.log(`Emitting waiter:call to restaurant ${restaurantId}`);
+    this.server?.to(this.restaurantRoom(restaurantId)).emit('waiter:call', payload);
+  }
 }
+

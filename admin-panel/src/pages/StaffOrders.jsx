@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   HiOutlineRefresh,
-  HiOutlineBell,
   HiCash,
   HiOutlineCreditCard,
   HiOutlinePrinter,
@@ -10,42 +9,24 @@ import {
 import orderService from '../services/orderService';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrdersSocket } from '../services/socket';
-import ringSound from '../assets/music/Ring.mpeg?url';
 import Orders from './Orders';
 import { formatCurrency } from '../utils/formatCurrency';
 import generateKotPdf from '../utils/generateKotPdf';
 
-const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
+const KITCHEN_STATUSES = ['confirmed', 'ready'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
 
-const STATUS_FLOW = ['pending', 'confirmed', 'preparing', 'ready', 'served'];
-
-function playNewOrderRing() {
-  try {
-    new Audio(ringSound).play()?.catch(() => {
-      // ignore if browser blocks autoplay before user interaction
-    });
-  } catch {
-    // ignore if audio isn't supported by the browser
-  }
-}
+const KITCHEN_TRANSITIONS = { confirmed: 'ready' };
 
 export default function StaffOrders() {
-  const { user, notificationsEnabled, notificationSettingsLoading } = useAuth();
+  const { user } = useAuth();
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
 
-
-  const [cancelState, setCancelState] = useState({
-    openForOrderId: null,
-    itemIndex: 0,
-    cancelQuantity: 1,
-    reason: '',
-    submitting: false,
-  });
-
   const restaurantId = user?.restaurantId;
+  // Kitchen staff see only KOT details; payment data and the customer bill stay hidden.
+  const isKitchen = user?.role === 'kitchen';
 
   // Always fetch the full (unfiltered) list so status filter buttons can
   // show accurate counts; the active filter is then applied client-side.
@@ -65,44 +46,15 @@ export default function StaffOrders() {
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
-  // Real-time new-order notifications for this restaurant's staff panel.
+  // Keep the list fresh when a new order arrives. Chime and toast are handled by StaffAlertsListener.
   useEffect(() => {
-    if (!restaurantId || notificationSettingsLoading) return undefined;
-
+    if (!restaurantId) return undefined;
     const socket = getOrdersSocket();
-    socket.connect();
-    socket.emit('join', { restaurantId });
-
-    const handleNewOrder = (payload) => {
-      if (notificationsEnabled) {
-        playNewOrderRing();
-        toast.custom(
-          () => (
-            <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-white p-4 shadow-lg">
-              <div className="rounded-full bg-primary/10 p-2 text-primary">
-                <HiOutlineBell size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800">New order received</p>
-                <p className="text-xs text-slate-500">
-                  {payload?.orderNumber ? `Order #${payload.orderNumber}` : 'A new order was placed'}
-                </p>
-              </div>
-            </div>
-          ),
-          { duration: 5000 },
-        );
-      }
-      loadOrders();
-    };
-
-    socket.on('order:new', handleNewOrder);
-
+    socket.on('order:new', loadOrders);
     return () => {
-      socket.off('order:new', handleNewOrder);
-      socket.disconnect();
+      socket.off('order:new', loadOrders);
     };
-  }, [restaurantId, loadOrders, notificationsEnabled, notificationSettingsLoading]);
+  }, [restaurantId, loadOrders]);
 
   const updateStatus = async (orderId, status) => {
     try {
@@ -135,46 +87,14 @@ export default function StaffOrders() {
     }
   };
 
-  const cancelOrderItem = async (order) => {
-    try {
-      setCancelState((p) => ({ ...p, submitting: true }));
-      if (!cancelState.reason?.trim()) {
-        toast.error('Please enter cancel reason');
-        return;
-      }
-      const res = await orderService.cancelOrderItem(order._id, {
-        itemIndex: Number(cancelState.itemIndex),
-        cancelQuantity: Number(cancelState.cancelQuantity),
-        reason: cancelState.reason.trim(),
-      });
-      const updated = res.data.data;
-      toast.success('Item cancelled');
-      setAllOrders((prev) => prev.map((o) => (o._id === order._id ? updated : o)));
-      setCancelState((p) => ({
-        ...p,
-        submitting: false,
-        reason: '',
-      }));
-    } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to cancel item');
-    } finally {
-      setCancelState((p) => ({ ...p, submitting: false }));
-    }
-  };
-
-  const getNextStatus = (currentStatus) => {
-    const idx = STATUS_FLOW.indexOf(currentStatus);
-    if (idx >= 0 && idx < STATUS_FLOW.length - 1) return STATUS_FLOW[idx + 1];
-    return null;
-  };
+  const getNextStatus = (currentStatus) => KITCHEN_TRANSITIONS[currentStatus] || null;
 
   const statusColor = (status) => {
     const map = {
       pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
       confirmed: 'bg-blue-100 text-blue-700 border-blue-200',
-      preparing: 'bg-purple-100 text-purple-700 border-purple-200',
       ready: 'bg-green-100 text-green-700 border-green-200',
-      served: 'bg-slate-100 text-slate-600 border-slate-200',
+      completed: 'bg-slate-100 text-slate-600 border-slate-200',
       cancelled: 'bg-red-100 text-red-700 border-red-200',
     };
     return map[status] || map.pending;
@@ -198,13 +118,14 @@ export default function StaffOrders() {
     return table;
   };
 
-  const statusCounts = ORDER_STATUSES.reduce((acc, s) => {
-    acc[s] = allOrders.filter((o) => o.status === s).length;
+  const kitchenOrders = allOrders.filter((o) => KITCHEN_STATUSES.includes(o.status));
+  const statusCounts = KITCHEN_STATUSES.reduce((acc, s) => {
+    acc[s] = kitchenOrders.filter((o) => o.status === s).length;
     return acc;
   }, {});
   const orders = filterStatus
-    ? allOrders.filter((o) => o.status === filterStatus)
-    : allOrders;
+    ? kitchenOrders.filter((o) => o.status === filterStatus)
+    : kitchenOrders;
 
   if (user?.role === 'captain' || user?.role === 'manager') return <Orders />;
 
@@ -237,9 +158,9 @@ export default function StaffOrders() {
           onClick={() => setFilterStatus('')}
           className={`rounded-full px-3 py-1.5 text-xs font-medium transition cursor-pointer ${!filterStatus ? 'bg-primary text-white' : 'border border-stroke text-slate-600 hover:bg-slate-50'}`}
         >
-          All ({allOrders.length})
+          All ({kitchenOrders.length})
         </button>
-        {ORDER_STATUSES.map((s) => (
+        {KITCHEN_STATUSES.map((s) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -281,15 +202,17 @@ export default function StaffOrders() {
                       <HiOutlinePrinter size={13} className="text-amber-600" />
                       Thermal KOT
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => window.open(`/admin/print/bill/${order._id}`, '_blank')}
-                      title="Live Thermal Bill"
-                      className="inline-flex items-center gap-1 rounded-md border border-stroke bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
-                    >
-                      <HiOutlinePrinter size={13} className="text-slate-500" />
-                      Bill
-                    </button>
+                    {!isKitchen && (
+                      <button
+                        type="button"
+                        onClick={() => window.open(`/admin/print/bill/${order._id}`, '_blank')}
+                        title="Live Thermal Bill"
+                        className="inline-flex items-center gap-1 rounded-md border border-stroke bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
+                      >
+                        <HiOutlinePrinter size={13} className="text-slate-500" />
+                        Bill
+                      </button>
+                    )}
                   </div>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(order.status)}`}>
                     {order.status}
@@ -357,78 +280,8 @@ export default function StaffOrders() {
                   ))}
                 </div>
 
-                {/* Cancel item action (only until preparing) */}
-                {['pending', 'confirmed', 'preparing'].includes(order.status) && (
-                  <div className="mb-3 rounded-lg border border-stroke bg-white p-2">
-                    <div className="mb-2 text-[11px] font-semibold text-slate-600">
-                      Cancel item
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      <select
-                        value={cancelState.openForOrderId === order._id ? cancelState.itemIndex : 0}
-                        onChange={(e) =>
-                          setCancelState((p) => ({
-                            ...p,
-                            openForOrderId: order._id,
-                            itemIndex: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full rounded-lg border border-stroke bg-slate-50 px-2 py-2 text-xs outline-none"
-                      >
-                        {(order.items || []).map((it, idx) => {
-                          const totalQty = Number(it.quantity || 0);
-                          const cancelledQty = Number(it.cancelledQuantity || 0);
-                          const remaining = Math.max(0, totalQty - cancelledQty);
-                          return (
-                            <option key={idx} value={idx} disabled={remaining <= 0}>
-                              {it.name} (rem {remaining})
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={cancelState.openForOrderId === order._id ? cancelState.cancelQuantity : 1}
-                          onChange={(e) =>
-                            setCancelState((p) => ({
-                              ...p,
-                              openForOrderId: order._id,
-                              cancelQuantity: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-lg border border-stroke bg-slate-50 px-2 py-2 text-xs outline-none"
-                          placeholder="Qty"
-                        />
-                        <button
-                          onClick={() => cancelOrderItem(order)}
-                          disabled={cancelState.submitting || cancelState.openForOrderId !== order._id}
-                          className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                        >
-                          {cancelState.submitting && cancelState.openForOrderId === order._id
-                            ? 'Cancelling...'
-                            : 'Cancel'}
-                        </button>
-                      </div>
-                      <textarea
-                        rows={2}
-                        value={cancelState.openForOrderId === order._id ? cancelState.reason : ''}
-                        onChange={(e) =>
-                          setCancelState((p) => ({
-                            ...p,
-                            openForOrderId: order._id,
-                            reason: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded-lg border border-stroke bg-slate-50 px-2 py-2 text-xs outline-none"
-                        placeholder="Reason"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Total & Payment */}
+                {/* Total & Payment (hidden for kitchen staff) */}
+                {!isKitchen && (
                 <div className="mb-3 flex items-center justify-between border-t border-stroke pt-2">
                   <span className="text-base font-bold text-slate-800">{formatCurrency(order.totalAmount)}</span>
                   <div className="flex items-center gap-2">
@@ -479,26 +332,19 @@ export default function StaffOrders() {
                     </button>
                   </div>
                 </div>
+                )}
 
-                {/* Status Actions */}
-                <div className="flex flex-wrap gap-2">
-                  {nextStatus && (
+                {/* Status Actions: kitchen may only move CONFIRMED -> READY */}
+                {nextStatus && (
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => updateStatus(order._id, nextStatus)}
                       className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white transition hover:bg-primary-dark cursor-pointer"
                     >
-                      Mark {nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}
+                      Mark Ready
                     </button>
-                  )}
-                  {order.status !== 'cancelled' && order.status !== 'served' && (
-                    <button
-                      onClick={() => updateStatus(order._id, 'cancelled')}
-                      className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Time */}
                 <div className="mt-2 text-[10px] text-slate-400">

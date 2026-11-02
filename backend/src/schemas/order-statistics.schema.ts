@@ -33,15 +33,11 @@ export class OrderStatistics {
 
   @ApiProperty()
   @Prop({ default: 0 })
-  preparingOrderCount: number;
-
-  @ApiProperty()
-  @Prop({ default: 0 })
   readyOrderCount: number;
 
   @ApiProperty()
   @Prop({ default: 0 })
-  servedOrderCount: number;
+  completedOrderCount: number;
 
   @ApiProperty()
   @Prop({ default: 0 })

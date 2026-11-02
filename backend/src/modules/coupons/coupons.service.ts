@@ -180,7 +180,7 @@ export class CouponsService {
         restaurantId: new Types.ObjectId(restaurantId),
         isAvailable: true,
       })
-      .select('name price itemType discountType discountValue');
+      .select('name price itemType gstRate vatRate discountType discountValue');
     const menuItemsById = new Map(menuItems.map((item) => [item._id.toString(), item]));
     return items.map((item) => {
       const menuItem = menuItemsById.get(item.menuItemId);
@@ -209,6 +209,8 @@ export class CouponsService {
         price: unitPrice,
         quantity: Number(item.quantity),
         itemType: menuItem.itemType || 'food',
+        gstRate: menuItem.gstRate != null ? Number(menuItem.gstRate) : undefined,
+        vatRate: menuItem.vatRate != null ? Number(menuItem.vatRate) : undefined,
         spiceLevel: item.spiceLevel
           ? {
               name: item.spiceLevel.name,

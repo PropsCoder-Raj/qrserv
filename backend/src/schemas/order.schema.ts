@@ -6,10 +6,26 @@ import { mongoose3DecimalSetter } from '../common/utils/precision';
 export enum OrderStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
-  PREPARING = 'preparing',
   READY = 'ready',
-  SERVED = 'served',
+  COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+}
+
+// Order lifecycle: PENDING -> CONFIRMED -> READY -> COMPLETED.
+// Any non-terminal status may also move to CANCELLED.
+export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.READY, OrderStatus.CANCELLED],
+  [OrderStatus.READY]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+  [OrderStatus.COMPLETED]: [],
+  [OrderStatus.CANCELLED]: [],
+};
+
+export function canTransitionOrderStatus(
+  from: OrderStatus,
+  to: OrderStatus,
+): boolean {
+  return ORDER_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
 export enum PaymentStatus {
@@ -87,6 +103,12 @@ export class OrderItem {
   @ApiProperty()
   itemType: string;
 
+  @ApiProperty({ required: false })
+  gstRate?: number;
+
+  @ApiProperty({ required: false })
+  vatRate?: number;
+
   @ApiProperty({ required: false, type: SelectedSpiceLevel })
   spiceLevel?: SelectedSpiceLevel;
 
@@ -154,6 +176,8 @@ export class Order {
         cancelledBy: { type: MongooseSchema.Types.ObjectId, ref: 'User', required: false },
         cancelledAt: { type: Date, required: false },
         itemType: { type: String, default: 'food' },
+        gstRate: { type: Number, set: mongoose3DecimalSetter },
+        vatRate: { type: Number, set: mongoose3DecimalSetter },
         spiceLevel: {
           type: {
             name: String,
@@ -239,6 +263,86 @@ export class Order {
   @ApiProperty()
   @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
   liquorSubtotal: number;
+
+  @ApiProperty({ description: 'Taxable base of items taxed under the GST profile' })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
+  gstBase: number;
+
+  @ApiProperty({ description: 'Taxable base of items taxed under the VAT profile' })
+  @Prop({ default: 0, type: Number, set: mongoose3DecimalSetter })
+  vatBase: number;
+
+  @ApiProperty({ description: 'VAT collected grouped by rate and tax type' })
+  @Prop({
+    type: [
+      {
+        rate: { type: Number, set: mongoose3DecimalSetter },
+        taxType: String,
+        base: { type: Number, set: mongoose3DecimalSetter },
+        taxAmount: { type: Number, set: mongoose3DecimalSetter },
+        _id: false,
+      },
+    ],
+    default: [],
+  })
+  vatBreakdown: Array<{ rate: number; taxType: string; base: number; taxAmount: number }>;
+
+  @ApiProperty({ description: 'GST taxable base and tax grouped by item GST rate' })
+  @Prop({
+    type: [
+      {
+        rate: { type: Number, set: mongoose3DecimalSetter },
+        taxType: String,
+        base: { type: Number, set: mongoose3DecimalSetter },
+        taxAmount: { type: Number, set: mongoose3DecimalSetter },
+        _id: false,
+      },
+    ],
+    default: [],
+  })
+  gstBreakdown: Array<{ rate: number; taxType: string; base: number; taxAmount: number }>;
+
+  @ApiProperty({ description: 'Per-line tax snapshot persisted when the order is completed' })
+  @Prop({
+    type: [
+      {
+        menuItemId: { type: MongooseSchema.Types.ObjectId, ref: 'MenuItem' },
+        name: String,
+        quantity: Number,
+        grossAmount: { type: Number, set: mongoose3DecimalSetter },
+        gstRate: { type: Number, set: mongoose3DecimalSetter },
+        vatRate: { type: Number, set: mongoose3DecimalSetter },
+        taxableBase: { type: Number, set: mongoose3DecimalSetter },
+        cgstAmount: { type: Number, set: mongoose3DecimalSetter },
+        sgstAmount: { type: Number, set: mongoose3DecimalSetter },
+        gstAmount: { type: Number, set: mongoose3DecimalSetter },
+        vatAmount: { type: Number, set: mongoose3DecimalSetter },
+        taxAmount: { type: Number, set: mongoose3DecimalSetter },
+        lineTotal: { type: Number, set: mongoose3DecimalSetter },
+        _id: false,
+      },
+    ],
+    default: [],
+  })
+  lineTaxes: Array<{
+    menuItemId?: Types.ObjectId;
+    name?: string;
+    quantity: number;
+    grossAmount: number;
+    gstRate: number;
+    vatRate: number;
+    taxableBase: number;
+    cgstAmount: number;
+    sgstAmount: number;
+    gstAmount: number;
+    vatAmount: number;
+    taxAmount: number;
+    lineTotal: number;
+  }>;
+
+  @ApiProperty({ required: false })
+  @Prop()
+  taxSnapshotAt?: Date;
 
   @ApiProperty({ required: false })
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Coupon', required: false })

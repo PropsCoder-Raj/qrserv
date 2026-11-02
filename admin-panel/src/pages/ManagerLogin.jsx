@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { HiOutlineBackspace } from 'react-icons/hi';
 import api from '../services/api';
+import { registerPushAfterLogin } from '../services/notificationService';
 
 const PIN_LENGTH = 6;
 
@@ -44,6 +45,7 @@ export default function ManagerLogin() {
         return;
       }
       toast.success('Login successful!');
+      registerPushAfterLogin(result.user).catch(() => {});
       navigate('/staff/orders');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid passcode');

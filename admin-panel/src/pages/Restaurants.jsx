@@ -11,6 +11,7 @@ import Modal from '../components/Modal';
 import SearchSelect from '../components/SearchSelect';
 import ExcelImportModal from '../components/ExcelImportModal';
 import DatePresetFilter from '../components/DatePresetFilter';
+import { getMenuPdfAccess } from '../utils/menuPdf';
 
 const CUSTOMER_APP_URL = import.meta.env.VITE_CUSTOMER_APP_URL || 'https://customer.qrserv.in';
 
@@ -55,29 +56,6 @@ export default function Restaurants() {
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
   const [datePreset, setDatePreset] = useState('');
-
-  const getMenuPdfAccess = (restaurant) => {
-    console.log("🚀 ~ getMenuPdfAccess ~ restaurant:", restaurant)
-    const organization = restaurant?.organizationId;
-    const subscriptionPlan = organization?.subscriptionPlan;
-    const subscriptionExpiry = organization?.subscriptionExpiry;
-    const hasActivePlan = Boolean(
-      subscriptionPlan &&
-      (!subscriptionExpiry || new Date(subscriptionExpiry) >= new Date())
-    );
-    const isMenuPdfEnabled = Boolean(
-      hasActivePlan && subscriptionPlan?.isMenuPdfEnabled
-    );
-    const hasMenuPdf = Boolean(restaurant?.menuPdf);
-
-      console.log("🚀 ~ getMenuPdfAccess ~ isMenuPdfEnabled:", isMenuPdfEnabled)
-      console.log("🚀 ~ getMenuPdfAccess ~ hasMenuPdf:", hasMenuPdf)
-    return {
-      isMenuPdfEnabled,
-      hasMenuPdf,
-      canShowPdfQr: isMenuPdfEnabled && hasMenuPdf,
-    };
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -406,7 +384,17 @@ export default function Restaurants() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Phone</label>
-              <input value={form.phone} onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setForm({ ...form, phone: v }); }} pattern="^[6-9]\d{9}$" title="Enter 10-digit number starting with 6, 7, 8 or 9" maxLength={10} placeholder="e.g. 9876543210" className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary" />
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => {
+                  // Allows numbers, spaces, +, -, and ()
+                  const v = e.target.value.replace(/[^0-9+\s\-()]/g, '');
+                  setForm({ ...form, phone: v });
+                }}
+                placeholder="e.g. +1 555-123-4567"
+                className="w-full rounded-lg border border-stroke px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>

@@ -70,7 +70,7 @@ export default function OrderStatistics() {
             />
             <p className="text-sm text-slate-600">
               Are you sure you want to reset the order statistics? All
-              pending, confirmed, preparing, ready, served, and cancelled
+              pending, confirmed, ready, completed, and cancelled
               order counts will be reset to zero.
             </p>
           </div>

@@ -1,14 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import QRCode from 'qrcode';
 import {
   HiOutlineOfficeBuilding,
   HiOutlineCheck,
   HiOutlineDocumentText,
   HiOutlineInformationCircle,
+  HiOutlineQrcode,
+  HiOutlineDownload,
 } from 'react-icons/hi';
 import { useAuth } from '../contexts/AuthContext';
 import restaurantService from '../services/restaurantService';
 import SearchSelect from '../components/SearchSelect';
+import Modal from '../components/Modal';
+import { getMenuPdfAccess } from '../utils/menuPdf';
 
 export default function RestaurantProfileSettings() {
   const { user } = useAuth();
@@ -27,6 +32,75 @@ export default function RestaurantProfileSettings() {
     gst_no: '',
     vat_no: '',
   });
+
+  const [qrModal, setQrModal] = useState({
+    open: false,
+    restaurant: null,
+    managerQr: '',
+    staffQr: '',
+    customerQr: '',
+    pdfQr: '',
+    managerUrl: '',
+    staffUrl: '',
+    customerUrl: '',
+    pdfUrl: '',
+  });
+
+  const CUSTOMER_APP_URL =
+    import.meta.env.VITE_CUSTOMER_APP_URL ||
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:5174'
+      : 'https://customer.qrserv.in');
+
+  const showQrCodes = async (r) => {
+    const target = r || restaurants.find((item) => item._id === selectedId);
+    if (!target) return;
+    try {
+      const origin = window.location.origin;
+      const managerUrl = `${origin}/captain-login/${target._id}`;
+      const staffUrl = `${origin}/kitchen-login/${target._id}`;
+      const customerUrl = `${CUSTOMER_APP_URL}/restaurant/${target._id}`;
+      const pdfUrl = `${CUSTOMER_APP_URL}/restaurant/${target._id}/menu-pdf`;
+      const menuPdfAccess = getMenuPdfAccess(target);
+      const qrOptions = {
+        width: 512,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' },
+      };
+      const [managerQr, staffQr, customerQr, pdfQr] = await Promise.all([
+        QRCode.toDataURL(managerUrl, qrOptions),
+        QRCode.toDataURL(staffUrl, qrOptions),
+        QRCode.toDataURL(customerUrl, qrOptions),
+        menuPdfAccess.canShowPdfQr
+          ? QRCode.toDataURL(pdfUrl, qrOptions)
+          : Promise.resolve(''),
+      ]);
+      setQrModal({
+        open: true,
+        restaurant: target,
+        managerQr,
+        staffQr,
+        customerQr,
+        pdfQr,
+        managerUrl,
+        staffUrl,
+        customerUrl,
+        pdfUrl,
+      });
+    } catch {
+      toast.error('Failed to generate QR codes');
+    }
+  };
+
+  const downloadQr = (dataUrl, label) => {
+    if (!dataUrl) return;
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `${
+      qrModal.restaurant?.name || 'restaurant'
+    }-${label}-qr.png`;
+    link.click();
+  };
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -131,14 +205,27 @@ export default function RestaurantProfileSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-bold text-slate-800">
-          Restaurant Profile Settings
-        </h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Manage commercial compliance (CR Number) and customize the invoice &
-          receipt header for your restaurant.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-slate-800">
+            Restaurant Profile Settings
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage commercial compliance (CR Number) and customize the invoice &
+            receipt header for your restaurant.
+          </p>
+        </div>
+
+        {user?.role === 'restaurant_owner' && (
+          <button
+            type="button"
+            onClick={() => showQrCodes()}
+            className="inline-flex items-center gap-1.5 self-start rounded-lg border border-primary/20 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer sm:self-auto"
+          >
+            <HiOutlineQrcode size={16} />
+            <span>View QR Codes</span>
+          </button>
+        )}
       </div>
 
       {restaurants.length > 1 && (
@@ -377,7 +464,7 @@ export default function RestaurantProfileSettings() {
               </div>
               <div className="flex justify-between text-[11px]">
                 <span>Date: 18/10/2026</span>
-                <span>Status: Served</span>
+                <span>Status: Completed</span>
               </div>
               <div className="text-[11px]">
                 Customer: Rohit Pandit
@@ -409,6 +496,116 @@ export default function RestaurantProfileSettings() {
           </div>
         </div>
       </div>
+
+      {/* QR Codes Modal */}
+      <Modal
+        isOpen={qrModal.open}
+        onClose={() =>
+          setQrModal({
+            open: false,
+            restaurant: null,
+            managerQr: '',
+            staffQr: '',
+            customerQr: '',
+            pdfQr: '',
+            managerUrl: '',
+            staffUrl: '',
+            customerUrl: '',
+            pdfUrl: '',
+          })
+        }
+        title={`QR Codes — ${qrModal.restaurant?.name || ''}`}
+      >
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-5">
+          {/* Captain QR */}
+          <div className="flex flex-col items-center gap-3">
+            <h3 className="text-sm font-semibold text-blue-600">Captain Login</h3>
+            {qrModal.managerQr && (
+              <img
+                src={qrModal.managerQr}
+                alt="Captain QR"
+                className="h-40 w-40"
+              />
+            )}
+            <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
+              {qrModal.managerUrl}
+            </p>
+            <button
+              onClick={() => downloadQr(qrModal.managerQr, 'captain-login')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              <HiOutlineDownload size={14} /> Download
+            </button>
+          </div>
+          {/* Kitchen QR */}
+          <div className="flex flex-col items-center gap-3">
+            <h3 className="text-sm font-semibold text-green-600">Kitchen Login</h3>
+            {qrModal.staffQr && (
+              <img
+                src={qrModal.staffQr}
+                alt="Kitchen QR"
+                className="h-40 w-40"
+              />
+            )}
+            <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
+              {qrModal.staffUrl}
+            </p>
+            <button
+              onClick={() => downloadQr(qrModal.staffQr, 'kitchen-login')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 cursor-pointer"
+            >
+              <HiOutlineDownload size={14} /> Download
+            </button>
+          </div>
+        </div>
+        <hr />
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mt-5">
+          {/* Customer Order QR */}
+          <div className="flex flex-col items-center gap-3">
+            <h3 className="text-sm font-semibold text-purple-600">
+              Customer Order
+            </h3>
+            {qrModal.customerQr && (
+              <img
+                src={qrModal.customerQr}
+                alt="Customer Order QR"
+                className="h-40 w-40"
+              />
+            )}
+            <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
+              {qrModal.customerUrl}
+            </p>
+            <button
+              onClick={() => downloadQr(qrModal.customerQr, 'customer-order')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-xs font-medium text-white hover:bg-purple-700 cursor-pointer"
+            >
+              <HiOutlineDownload size={14} /> Download
+            </button>
+          </div>
+
+          {getMenuPdfAccess(qrModal.restaurant || {}).canShowPdfQr && (
+            <div className="flex flex-col items-center gap-3">
+              <h3 className="text-sm font-semibold text-slate-700">Menu PDF</h3>
+              {qrModal.pdfQr && (
+                <img
+                  src={qrModal.pdfQr}
+                  alt="Menu PDF QR"
+                  className="h-40 w-40"
+                />
+              )}
+              <p className="max-w-full break-all rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
+                {qrModal.pdfUrl}
+              </p>
+              <button
+                onClick={() => downloadQr(qrModal.pdfQr, 'menu-pdf')}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <HiOutlineDocumentText size={14} /> Download
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

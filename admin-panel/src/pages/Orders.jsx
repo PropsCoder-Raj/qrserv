@@ -28,7 +28,7 @@ import { formatCurrency, roundTo3 } from '../utils/formatCurrency';
 import subscriptionService from '../services/subscriptionService';
 import DatePresetFilter from '../components/DatePresetFilter';
 
-const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled'];
+const ORDER_STATUSES = ['pending', 'confirmed', 'ready', 'completed', 'cancelled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
 const CREATE_PAYMENT_STATUSES = ['pending', 'paid'];
 const EMPTY_OPEN_FOOD_FORM = {
@@ -712,9 +712,8 @@ export default function Orders() {
     const map = {
       pending: 'bg-yellow-100 text-yellow-700',
       confirmed: 'bg-blue-100 text-blue-700',
-      preparing: 'bg-purple-100 text-purple-700',
       ready: 'bg-green-100 text-green-700',
-      served: 'bg-slate-100 text-slate-700',
+      completed: 'bg-slate-100 text-slate-700',
       cancelled: 'bg-red-100 text-red-700',
     };
     return map[status] || map.pending;
@@ -797,7 +796,7 @@ export default function Orders() {
 
   const isOrderEditable = (order) =>
     canEditOrder &&
-    ['pending', 'confirmed', 'preparing'].includes(order?.status) &&
+    ['pending', 'confirmed'].includes(order?.status) &&
     order?.paymentStatus !== 'paid' &&
     !(order?.items || []).some((item) => Number(item.cancelledQuantity || 0) > 0);
 
@@ -1186,8 +1185,8 @@ export default function Orders() {
                       <option value="liquor">Liquor</option>
                     </select>
                   </label>
-                  <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-                    Category
+                  <div className="text-xs font-medium text-slate-600 sm:col-span-2">
+                    <span className="block">Category</span>
                     <SearchSelect
                       options={[
                         { value: '__new__', label: '+ Create new category' },
@@ -1197,7 +1196,7 @@ export default function Orders() {
                       onChange={(categoryId) => setOpenFoodForm((current) => ({ ...current, categoryId }))}
                       placeholder="Search or create category..."
                     />
-                  </label>
+                  </div>
                   {openFoodForm.categoryId === '__new__' && (
                     <label className="text-xs font-medium text-slate-600 sm:col-span-2">
                       New category name
@@ -1397,7 +1396,7 @@ export default function Orders() {
             <h4 className="font-semibold text-slate-700">Order Summary</h4>
             <div className="flex justify-between text-slate-600">
               <span>Subtotal / Order Total:</span>
-              <span>₹{formatAmount(orderEstimate.subtotal)}</span>
+              <span>{formatAmount(orderEstimate.subtotal)}</span>
             </div>
 
             {/* Manual Discount Controls / Applied Line */}
@@ -1407,7 +1406,7 @@ export default function Orders() {
                   <span className="font-medium">
                     Manual Discount ({manualDiscount.type === 'PERCENTAGE' ? `${manualDiscount.value}%` : 'Fixed'}):
                   </span>
-                  <span className="font-semibold">-₹{formatAmount(orderEstimate.manualDiscountAmount)}</span>
+                  <span className="font-semibold">-{formatAmount(orderEstimate.manualDiscountAmount)}</span>
                   {manualDiscount.reason && (
                     <span className="text-xs text-slate-500 font-normal">
                       [Reason: {manualDiscount.reason}]
@@ -1448,7 +1447,7 @@ export default function Orders() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Fixed Amount (₹)
+                      Fixed Amount
                     </button>
                   </div>
                 </div>
@@ -1462,7 +1461,7 @@ export default function Orders() {
                       max={manualDiscount.type === 'PERCENTAGE' ? 100 : orderEstimate.subtotal}
                       value={manualDiscount.value}
                       onChange={(e) => setManualDiscount((prev) => ({ ...prev, value: e.target.value }))}
-                      placeholder={manualDiscount.type === 'PERCENTAGE' ? 'Discount % (e.g. 10)' : 'Amount ₹ (e.g. 50.000)'}
+                      placeholder={manualDiscount.type === 'PERCENTAGE' ? 'Discount % (e.g. 10)' : 'Amount (e.g. 50.000)'}
                       className="w-full rounded-lg border border-stroke bg-white px-3 py-1.5 text-xs outline-none"
                     />
                   </div>
@@ -1490,11 +1489,11 @@ export default function Orders() {
               </div>
             )}
 
-            {restaurantTax?.taxEnabled && <div className="flex justify-between text-slate-600"><span>GST{restaurantTax.taxType === 'inclusive' ? ' (included)' : ''}</span><span>₹{formatAmount(orderEstimate.foodTax)}</span></div>}
-            {restaurantTax?.vatEnabled && <div className="flex justify-between text-slate-600"><span>VAT{restaurantTax.vatType === 'inclusive' ? ' (included)' : ''}</span><span>₹{formatAmount(orderEstimate.vatTax)}</span></div>}
-            <div className="flex justify-between text-slate-600"><span>Taxes / Other Charges:</span><span>₹{formatAmount(orderEstimate.tax)}</span></div>
-            {appliedCoupon && <div className="flex justify-between text-green-700"><span>Coupon discount ({appliedCoupon.code})</span><span>-₹{formatAmount(orderEstimate.couponDiscount)}</span></div>}
-            <div className="flex justify-between border-t border-stroke pt-2 font-semibold text-slate-800"><span>Final Total:</span><span>₹{formatAmount(orderEstimate.total)}</span></div>
+            {restaurantTax?.taxEnabled && <div className="flex justify-between text-slate-600"><span>GST{restaurantTax.taxType === 'inclusive' ? ' (included)' : ''}</span><span>{formatAmount(orderEstimate.foodTax)}</span></div>}
+            {restaurantTax?.vatEnabled && <div className="flex justify-between text-slate-600"><span>VAT{restaurantTax.vatType === 'inclusive' ? ' (included)' : ''}</span><span>{formatAmount(orderEstimate.vatTax)}</span></div>}
+            <div className="flex justify-between text-slate-600"><span>Taxes / Other Charges:</span><span>{formatAmount(orderEstimate.tax)}</span></div>
+            {appliedCoupon && <div className="flex justify-between text-green-700"><span>Coupon discount ({appliedCoupon.code})</span><span>-{formatAmount(orderEstimate.couponDiscount)}</span></div>}
+            <div className="flex justify-between border-t border-stroke pt-2 font-semibold text-slate-800"><span>Final Total:</span><span>{formatAmount(orderEstimate.total)}</span></div>
             <p className="text-xs text-slate-500">Final amount is calculated by the server when the order is created.</p>
           </div>
 
@@ -1609,7 +1608,7 @@ export default function Orders() {
                 return (
                   <>
                     {/* Cancel single item */}
-                    {['pending', 'confirmed', 'preparing'].includes(o.status) && (
+                    {['pending', 'confirmed'].includes(o.status) && (
                       <div className="mb-3 rounded-lg border border-stroke bg-slate-50 p-3">
                         <div className="mb-2 text-xs font-semibold text-slate-600">
                           Cancel item (partial qty allowed)

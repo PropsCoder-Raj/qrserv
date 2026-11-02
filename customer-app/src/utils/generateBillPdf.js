@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { formatCurrency, roundTo3 } from './formatCurrency';
+import { computeTaxBreakdown } from './tax';
 
 const PAGE_WIDTH = 58;
 const MARGIN = 4;
@@ -183,7 +184,7 @@ export default function generateBillPdf(order, customRestaurant = {}) {
 
   addWrappedLeftText(orderIdText, 7, 'normal');
 
-  const rawStatus = order.status || 'served';
+  const rawStatus = order.status || 'completed';
   const statusFormatted =
     rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
   const statusText = `Status: ${statusFormatted}`;
@@ -208,19 +209,28 @@ export default function generateBillPdf(order, customRestaurant = {}) {
   addLeftRight('ITEM', 'AMT', 7);
   addDashLine();
 
-  const gstIncl = hasGst && (order.taxType || 'exclusive') === 'inclusive';
-  const vatIncl = hasVat && (order.vatType || 'exclusive') === 'inclusive';
-  const rate = order.taxRate || 0;
-  const cgstR = order.cgstRate || 0;
-  const sgstR = order.sgstRate || 0;
-  const vatR = order.vatRate || 0;
+  const taxSettings = {
+    taxEnabled: (order.taxRate || 0) > 0,
+    taxRate: order.taxRate,
+    taxType: order.taxType,
+    vatEnabled: (order.vatRate || 0) > 0,
+    vatRate: order.vatRate,
+    vatType: order.vatType,
+  };
+  const itemTaxLine = (item, remainingQty) => computeTaxBreakdown(taxSettings, [{
+    menuItemId: item.menuItemId,
+    name: item.name,
+    price: item.price,
+    quantity: remainingQty,
+    gstRate: item.gstRate,
+    vatRate: item.vatRate,
+  }]).lines[0];
 
   items.forEach((item) => {
     const totalQty = Number(item.quantity || 0);
     const cancelledQty = Number(item.cancelledQuantity || 0);
     const remainingQty = Math.max(0, totalQty - cancelledQty);
     const amount = roundTo3(item.price * remainingQty);
-    const isLiquor = (item.itemType || 'food') === 'liquor';
 
     addWrappedLeftText(getItemLabel(item), 7, 'bold');
     addLeftRight(`  ${remainingQty} x ${formatCurrency(item.price)}`, formatCurrency(amount));
@@ -237,43 +247,35 @@ export default function generateBillPdf(order, customRestaurant = {}) {
       }
     }
 
-    if (isLiquor && hasVat) {
-      const base = vatIncl
-        ? roundTo3(amount / (1 + vatR / 100))
-        : amount;
-      const itemVat = vatIncl
-        ? roundTo3(amount - base)
-        : roundTo3((base * vatR) / 100);
-      addLeftText(`  Base:${formatCurrency(base)} VAT:${formatCurrency(itemVat)}`, 6);
-    } else if (!isLiquor && hasGst) {
-      const base = gstIncl
-        ? roundTo3(amount / (1 + rate / 100))
-        : amount;
-      let itemCgst;
-      let itemSgst;
-      if (gstIncl) {
-        const tax = roundTo3(amount - base);
-        itemCgst = roundTo3(tax / 2);
-        itemSgst = roundTo3(tax - itemCgst);
-      } else {
-        itemCgst = roundTo3((base * cgstR) / 100);
-        itemSgst = roundTo3((base * sgstR) / 100);
+    const itemTax = itemTaxLine(item, remainingQty);
+    if (itemTax) {
+      addLeftText(`  Base:${formatCurrency(itemTax.taxableBase)}`, 6);
+      if (itemTax.gstAmount > 0) {
+        addLeftText(`  GST ${item.gstRate}%: ${formatCurrency(itemTax.gstAmount)}`, 6);
       }
-      addLeftText(`  Base:${formatCurrency(base)} C:${formatCurrency(itemCgst)} S:${formatCurrency(itemSgst)}`, 6);
+      if (itemTax.vatAmount > 0) {
+        addLeftText(`  VAT ${item.vatRate}%: ${formatCurrency(itemTax.vatAmount)}`, 6);
+      }
     }
   });
 
   addDashLine();
-  if (hasGst) {
-    addLeftRight('FOOD SUBTOTAL', `Rs.${formatCurrency(order.foodSubtotal || 0)}`, 8);
-    if (gstIncl) addLeftText('INCL. GST BREAKUP:', 7);
-    addLeftRight(`CGST (${cgstR}%)`, `Rs.${formatCurrency(order.cgstAmount || 0)}`, 8);
-    addLeftRight(`SGST (${sgstR}%)`, `Rs.${formatCurrency(order.sgstAmount || 0)}`, 8);
+  const gstGroups = order.gstBreakdown || [];
+  const vatGroups = order.vatBreakdown || [];
+  addLeftRight('TAXABLE SUBTOTAL', `Rs.${formatCurrency(order.subtotalAmount || 0)}`, 8);
+  if (gstGroups.length > 0) {
+    gstGroups.forEach((g) => {
+      addLeftRight(`GST (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8);
+    });
+  } else if (hasGst) {
+    addLeftRight('CGST', `Rs.${formatCurrency(order.cgstAmount || 0)}`, 8);
+    addLeftRight('SGST', `Rs.${formatCurrency(order.sgstAmount || 0)}`, 8);
   }
-  if (hasVat) {
-    addLeftRight('LIQUOR SUBTOTAL', `Rs.${formatCurrency(order.liquorSubtotal || 0)}`, 8);
-    if (vatIncl) addLeftText('INCL. VAT BREAKUP:', 7);
-    addLeftRight(`VAT (${vatR}%)`, `Rs.${formatCurrency(order.vatAmount || 0)}`, 8);
+  vatGroups.forEach((g) => {
+    addLeftRight(`VAT (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8);
+  });
+  if (order.taxAmount > 0) {
+    addLeftRight('TOTAL TAX', `Rs.${formatCurrency(order.taxAmount)}`, 8);
   }
   if (order.discountAmount && Number(order.discountAmount) > 0) {
     addLeftRight(

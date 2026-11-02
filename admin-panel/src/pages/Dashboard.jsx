@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   HiOutlineClipboardList,
-  HiOutlineCurrencyRupee,
   HiOutlineCheckCircle,
   HiOutlineCreditCard,
   HiOutlineDownload,
-  HiCash
+  HiCash,
+  HiOutlineCash
 } from 'react-icons/hi';
 import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
@@ -61,8 +61,9 @@ export default function Dashboard() {
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
   const [restaurantsLoaded, setRestaurantsLoaded] = useState(false);
   const [stats, setStats] = useState({
-    totalServedOrders: 0,
-    totalServedSales: 0,
+    totalCompletedOrders: 0,
+    totalCompletedSales: 0,
+    averageOrderValue: 0,
     mostSoldItems: [],
   });
   const [revenueData, setRevenueData] = useState({
@@ -191,8 +192,9 @@ export default function Dashboard() {
         const summary = statsRes.value?.data?.data;
         if (summary) {
           setStats({
-            totalServedOrders: summary.totalServedOrders || 0,
-            totalServedSales: summary.totalServedSales || 0,
+            totalCompletedOrders: summary.totalCompletedOrders || 0,
+            totalCompletedSales: summary.totalCompletedSales || 0,
+            averageOrderValue: summary.averageOrderValue || 0,
             mostSoldItems: summary.mostSoldItems || [],
           });
           setRevenueData({
@@ -451,8 +453,9 @@ export default function Dashboard() {
             {
               Role: isOrgAdmin ? 'Organization Admin' : 'Restaurant Owner',
               Restaurant: getRestaurantName(selectedRestaurant),
-              'Total Served Orders': stats.totalServedOrders || 0,
-              'Total Served Sales': stats.totalServedSales || 0,
+              'Total Completed Orders': stats.totalCompletedOrders || 0,
+              'Total Completed Sales': stats.totalCompletedSales || 0,
+              'Average Order Value': stats.averageOrderValue || 0,
               'Recent Orders Loaded': orders.length,
               'Full Orders Exported': orderRows.length,
               'Exported At': formatDateTime(new Date()),
@@ -865,16 +868,22 @@ export default function Dashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatsCard
-                title="Served Orders"
-                value={stats.totalServedOrders.toLocaleString()}
+                title="Completed Orders"
+                value={stats.totalCompletedOrders.toLocaleString()}
                 icon={HiOutlineClipboardList}
                 color="blue"
               />
               <StatsCard
-                title="Served Sales"
-                value={formatCurrency(stats.totalServedSales)}
-                icon={HiOutlineCurrencyRupee}
+                title="Completed Sales"
+                value={formatCurrency(stats.totalCompletedSales)}
+                icon={HiOutlineCash}
                 color="green"
+              />
+              <StatsCard
+                title="Average Order Value"
+                value={formatCurrency(stats.averageOrderValue)}
+                icon={HiOutlineCash}
+                color="purple"
               />
             </div>
           </div>
@@ -1118,9 +1127,8 @@ function StatusBadge({ status }) {
   const colors = {
     pending: 'bg-yellow-100 text-yellow-700',
     confirmed: 'bg-blue-100 text-blue-700',
-    preparing: 'bg-purple-100 text-purple-700',
     ready: 'bg-green-100 text-green-700',
-    served: 'bg-slate-100 text-slate-700',
+    completed: 'bg-slate-100 text-slate-700',
     cancelled: 'bg-red-100 text-red-700',
   };
 

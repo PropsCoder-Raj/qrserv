@@ -6,6 +6,7 @@ export enum OrderEvent {
   STATUS_CHANGED = 'order.status.changed',
   PAYMENT_STATUS_CHANGED = 'order.payment-status.changed',
   UPDATED = 'order.updated',
+  WAITER_CALLED = 'waiter.called',
 }
 
 export class OrderCreatedEvent {
@@ -26,6 +27,15 @@ export class OrderStatusChangedEvent {
     public readonly newStatus: OrderStatus,
     public readonly orgId?: string | Types.ObjectId,
     public readonly totalAmount?: number,
+    public readonly orderNumber?: string,
+  ) {}
+}
+
+export class WaiterCalledEvent {
+  constructor(
+    public readonly restaurantId: string,
+    public readonly tableId: string,
+    public readonly tableNumber: string,
   ) {}
 }
 
