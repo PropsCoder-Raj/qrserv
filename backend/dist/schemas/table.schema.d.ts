@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare class Table {
     tableNumber: string;
     capacity: number;
@@ -7,7 +7,7 @@ export declare class Table {
     isActive: boolean;
 }
 export type TableDocument = Table & Document;
-export declare const TableSchema: import("mongoose").Schema<Table, import("mongoose").Model<Table, any, any, any, (Document<unknown, any, Table, any, import("mongoose").DefaultSchemaOptions> & Table & {
+export declare const TableSchema: MongooseSchema<Table, import("mongoose").Model<Table, any, any, any, (Document<unknown, any, Table, any, import("mongoose").DefaultSchemaOptions> & Table & {
     _id: Types.ObjectId;
 } & {
     __v: number;

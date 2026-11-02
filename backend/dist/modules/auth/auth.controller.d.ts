@@ -28,6 +28,30 @@ export declare class AuthController {
             restaurantId: import("mongoose").Types.ObjectId;
         };
     }>;
+    loginCaptain(passcodeLoginDto: PasscodeLoginDto): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            name: string;
+            email: string;
+            role: import("../../schemas").UserRole;
+            organizationId: import("mongoose").Types.ObjectId;
+            restaurantId: import("mongoose").Types.ObjectId;
+        };
+    }>;
+    loginKitchen(passcodeLoginDto: PasscodeLoginDto): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            name: string;
+            email: string;
+            role: import("../../schemas").UserRole;
+            organizationId: import("mongoose").Types.ObjectId;
+            restaurantId: import("mongoose").Types.ObjectId;
+        };
+    }>;
     loginManager(passcodeLoginDto: PasscodeLoginDto): Promise<{
         accessToken: string;
         refreshToken: string;

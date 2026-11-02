@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum OrderStatus {
     PENDING = "pending",
     CONFIRMED = "confirmed",
@@ -12,9 +12,18 @@ export declare enum PaymentStatus {
     PAID = "paid",
     FAILED = "failed"
 }
+export declare enum PaymentMethod {
+    CASH = "CASH",
+    CARD = "CARD",
+    ONLINE = "ONLINE"
+}
 export declare enum OrderItemStatus {
     ACTIVE = "active",
     CANCELLED = "cancelled"
+}
+export declare enum ManualDiscountType {
+    PERCENTAGE = "PERCENTAGE",
+    FIXED = "FIXED"
 }
 export declare class SelectedAddOn {
     name: string;
@@ -40,13 +49,16 @@ export declare class OrderItem {
     spiceLevel?: SelectedSpiceLevel;
     addOns?: SelectedAddOn[];
     specialInstructions?: string;
+    cookingNote?: string;
+    instruction?: string;
+    notes?: string;
 }
 export declare class Order {
     orderNumber: string;
     restaurantId: Types.ObjectId;
     tableId: Types.ObjectId;
     orderType: string;
-    paymentMethod: string;
+    paymentMethod: PaymentMethod;
     items: OrderItem[];
     totalAmount: number;
     subtotalAmount: number;
@@ -65,6 +77,14 @@ export declare class Order {
     couponId?: Types.ObjectId;
     couponCode?: string;
     discountAmount: number;
+    manualDiscountType?: ManualDiscountType | null;
+    manualDiscountValue?: number;
+    manualDiscountAmount?: number;
+    manualDiscountReason?: string;
+    manual_discount_type?: ManualDiscountType | null;
+    manual_discount_value?: number;
+    manual_discount_amount?: number;
+    manual_discount_reason?: string;
     status: OrderStatus;
     customerName: string;
     customerPhone: string;
@@ -73,9 +93,12 @@ export declare class Order {
     razorpayOrderId: string;
     razorpayPaymentId: string;
     paymentId: string;
+    order_instructions: string;
+    orderInstructions?: string;
+    orderNotes?: string;
 }
 export type OrderDocument = Order & Document;
-export declare const OrderSchema: import("mongoose").Schema<Order, import("mongoose").Model<Order, any, any, any, (Document<unknown, any, Order, any, import("mongoose").DefaultSchemaOptions> & Order & {
+export declare const OrderSchema: MongooseSchema<Order, import("mongoose").Model<Order, any, any, any, (Document<unknown, any, Order, any, import("mongoose").DefaultSchemaOptions> & Order & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -130,7 +153,7 @@ export declare const OrderSchema: import("mongoose").Schema<Order, import("mongo
     }, "id"> & {
         id: string;
     }>;
-    paymentMethod?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+    paymentMethod?: import("mongoose").SchemaDefinitionProperty<PaymentMethod, Order, Document<unknown, {}, Order, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
         _id: Types.ObjectId;
@@ -301,6 +324,78 @@ export declare const OrderSchema: import("mongoose").Schema<Order, import("mongo
     }, "id"> & {
         id: string;
     }>;
+    manualDiscountType?: import("mongoose").SchemaDefinitionProperty<ManualDiscountType, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manualDiscountValue?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manualDiscountAmount?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manualDiscountReason?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manual_discount_type?: import("mongoose").SchemaDefinitionProperty<ManualDiscountType, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manual_discount_value?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manual_discount_amount?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    manual_discount_reason?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
     status?: import("mongoose").SchemaDefinitionProperty<OrderStatus, Order, Document<unknown, {}, Order, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
@@ -365,6 +460,33 @@ export declare const OrderSchema: import("mongoose").Schema<Order, import("mongo
         id: string;
     }>;
     paymentId?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    order_instructions?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    orderInstructions?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    orderNotes?: import("mongoose").SchemaDefinitionProperty<string, Order, Document<unknown, {}, Order, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
         _id: Types.ObjectId;

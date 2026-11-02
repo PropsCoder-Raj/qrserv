@@ -88,16 +88,23 @@ let AuthService = class AuthService {
             ...tokens,
         };
     }
+    async loginCaptain(dto) {
+        return this.loginWithRole(dto, user_schema_1.UserRole.CAPTAIN);
+    }
+    async loginKitchen(dto) {
+        return this.loginWithRole(dto, user_schema_1.UserRole.KITCHEN);
+    }
     async loginManager(dto) {
-        return this.loginWithRole(dto, user_schema_1.UserRole.MANAGER);
+        return this.loginWithRole(dto, user_schema_1.UserRole.CAPTAIN);
     }
     async loginStaff(dto) {
-        return this.loginWithRole(dto, user_schema_1.UserRole.STAFF);
+        return this.loginWithRole(dto, user_schema_1.UserRole.KITCHEN);
     }
     async loginWithRole(dto, role) {
         const restaurantObjectId = this.toObjectId(dto.restaurantId, 'restaurantId');
+        const roles = Array.isArray(role) ? role : [role];
         const query = {
-            role,
+            role: { $in: roles },
             isActive: true,
             restaurantId: restaurantObjectId,
             passcode: { $exists: true, $ne: null },

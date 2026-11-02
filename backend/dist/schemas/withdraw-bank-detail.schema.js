@@ -23,12 +23,12 @@ let WithdrawBankDetail = class WithdrawBankDetail {
 exports.WithdrawBankDetail = WithdrawBankDetail;
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Organization', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Organization', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawBankDetail.prototype, "organizationId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawBankDetail.prototype, "userId", void 0);
 __decorate([

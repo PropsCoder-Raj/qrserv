@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubscriptionSchema = exports.Subscription = exports.SubscriptionOffer = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const swagger_1 = require("@nestjs/swagger");
+const precision_1 = require("../common/utils/precision");
 class SubscriptionOffer {
 }
 exports.SubscriptionOffer = SubscriptionOffer;
@@ -36,7 +37,7 @@ __decorate([
 ], Subscription.prototype, "name", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)({ required: true, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Subscription.prototype, "price", void 0);
 __decorate([
@@ -53,7 +54,7 @@ __decorate([
         description: 'Flat amount or percentage (%) based on discountType',
         default: 0,
     }),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Subscription.prototype, "discountValue", void 0);
 __decorate([

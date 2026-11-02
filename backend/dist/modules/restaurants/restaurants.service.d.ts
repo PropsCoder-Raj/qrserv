@@ -83,6 +83,8 @@ export declare class RestaurantsService {
         email: string;
         gst_no: string;
         vat_no: string;
+        cr_number?: string;
+        receipt_header_note?: string;
         taxEnabled: boolean;
         taxRate: number;
         taxType: import("../../schemas/restaurant.schema").TaxType;
@@ -126,6 +128,8 @@ export declare class RestaurantsService {
         email: string;
         gst_no: string;
         vat_no: string;
+        cr_number?: string;
+        receipt_header_note?: string;
         taxEnabled: boolean;
         taxRate: number;
         taxType: import("../../schemas/restaurant.schema").TaxType;

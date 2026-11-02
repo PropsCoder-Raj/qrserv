@@ -13,6 +13,7 @@ exports.WithdrawRequestSchema = exports.WithdrawRequest = exports.WithdrawReques
 const mongoose_1 = require("@nestjs/mongoose");
 const swagger_1 = require("@nestjs/swagger");
 const mongoose_2 = require("mongoose");
+const precision_1 = require("../common/utils/precision");
 var WithdrawRequestStatus;
 (function (WithdrawRequestStatus) {
     WithdrawRequestStatus["PENDING"] = "pending";
@@ -25,47 +26,47 @@ let WithdrawRequest = class WithdrawRequest {
 exports.WithdrawRequest = WithdrawRequest;
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Organization', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Organization', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawRequest.prototype, "organizationId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawRequest.prototype, "requestedByUserId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ required: true, min: 1 }),
+    (0, mongoose_1.Prop)({ required: true, min: 0.001, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "amount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "chargePercentage", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "chargeBaseAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "chargeGstPercentage", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "chargeGstAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "chargeAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], WithdrawRequest.prototype, "netAmount", void 0);
 __decorate([
@@ -75,7 +76,7 @@ __decorate([
 ], WithdrawRequest.prototype, "note", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'WithdrawBankDetail', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'WithdrawBankDetail', default: null }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawRequest.prototype, "bankDetailId", void 0);
 __decorate([
@@ -108,7 +109,7 @@ __decorate([
 ], WithdrawRequest.prototype, "status", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'User', default: null }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawRequest.prototype, "approvedByUserId", void 0);
 __decorate([
@@ -123,7 +124,7 @@ __decorate([
 ], WithdrawRequest.prototype, "approvalNote", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'User', default: null }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], WithdrawRequest.prototype, "paidByUserId", void 0);
 __decorate([

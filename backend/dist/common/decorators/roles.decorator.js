@@ -7,6 +7,8 @@ var Role;
     Role["SUPER_ADMIN"] = "super_admin";
     Role["ORG_ADMIN"] = "org_admin";
     Role["RESTAURANT_OWNER"] = "restaurant_owner";
+    Role["CAPTAIN"] = "captain";
+    Role["KITCHEN"] = "kitchen";
     Role["MANAGER"] = "manager";
     Role["STAFF"] = "staff";
 })(Role || (exports.Role = Role = {}));

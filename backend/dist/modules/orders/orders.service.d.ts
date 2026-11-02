@@ -5,8 +5,10 @@ import { OrganizationDocument } from '../../schemas/organization.schema';
 import { SubscriptionDocument } from '../../schemas/subscription.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemDto } from './dto/create-order.dto';
+import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { PaymentsService } from '../payments/payments.service';
@@ -64,6 +66,14 @@ export declare class OrdersService {
     } & {
         id: string;
     }>;
+    updateOrderItems(id: string, dto: UpdateOrderItemsDto, role: string, organizationId?: string, userRestaurantId?: string): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    private calculateManualDiscount;
     private computeTotalsForItems;
     cancelOrderItem(id: string, dto: CancelOrderItemDto, userId: string): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
@@ -113,6 +123,13 @@ export declare class OrdersService {
     } & {
         id: string;
     }>;
+    getInvoice(id: string): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
     getStatus(id: string): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
     }> & {
@@ -128,6 +145,13 @@ export declare class OrdersService {
         id: string;
     }>;
     updatePaymentStatus(id: string, dto: UpdatePaymentStatusDto): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    updatePaymentMethod(id: string, dto: UpdatePaymentMethodDto): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;
@@ -239,4 +263,8 @@ export declare class OrdersService {
         }[];
     }>;
     private getStatsWithMatch;
+    remove(id: string, role: string, organizationId?: string, userRestaurantId?: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
 }

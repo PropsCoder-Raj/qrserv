@@ -2,7 +2,7 @@ import { Model, Types } from 'mongoose';
 import { Category, CategoryDocument } from '../../schemas/category.schema';
 import { MenuItem, MenuItemDocument } from '../../schemas/menu-item.schema';
 import { RestaurantDocument } from '../../schemas/restaurant.schema';
-import { OrganizationDocument } from '../../schemas/organization.schema';
+import { Organization, OrganizationDocument } from '../../schemas/organization.schema';
 import { CacheService } from '../../common/cache/cache.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -16,9 +16,25 @@ export declare class MenusService {
     private organizationModel;
     private cacheService;
     constructor(categoryModel: Model<CategoryDocument>, menuItemModel: Model<MenuItemDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, cacheService: CacheService);
+    private validatePriceDrop;
     validateOrgRestaurant(restaurantId: string, organizationId: string): Promise<void>;
     validateActiveSubscription(restaurantId: string): Promise<void>;
+    getRestaurantOrgWithPlan(restaurantId: string | Types.ObjectId): Promise<import("mongoose").Document<unknown, {}, OrganizationDocument, {}, import("mongoose").DefaultSchemaOptions> & Organization & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    enforcePlanLimit({ restaurantId, field, model, errorMessage, }: {
+        restaurantId: string | Types.ObjectId;
+        field: string;
+        model: any;
+        errorMessage: string;
+    }): Promise<void>;
+    private getMenuItemUploadsDir;
     private removeMenuItemImageFile;
+    private cleanupOrphanFilesByPrefix;
     createCategory(dto: CreateCategoryDto, organizationId: string): Promise<import("mongoose").Document<unknown, {}, CategoryDocument, {}, import("mongoose").DefaultSchemaOptions> & Category & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
     }> & {
@@ -79,6 +95,10 @@ export declare class MenusService {
     uploadMenuItemImage(id: string, file: any): Promise<{
         message: string;
         image: string;
+    }>;
+    removeMenuItemImage(id: string): Promise<{
+        message: string;
+        image: any;
     }>;
     removeMenuItem(id: string): Promise<{
         message: string;

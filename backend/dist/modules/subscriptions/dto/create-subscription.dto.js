@@ -42,7 +42,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 999 }),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 3 }),
     __metadata("design:type", Number)
 ], CreateSubscriptionDto.prototype, "price", void 0);
 __decorate([
@@ -61,7 +61,7 @@ __decorate([
         description: 'Discount value. When discountType=flat =>  amount. When percentage => 0-100.',
     }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 3 }),
     __metadata("design:type", Number)
 ], CreateSubscriptionDto.prototype, "discountValue", void 0);
 __decorate([

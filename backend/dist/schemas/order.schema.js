@@ -9,10 +9,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OrderSchema = exports.Order = exports.OrderItem = exports.SelectedSpiceLevel = exports.SelectedAddOn = exports.OrderItemStatus = exports.PaymentStatus = exports.OrderStatus = void 0;
+exports.OrderSchema = exports.Order = exports.OrderItem = exports.SelectedSpiceLevel = exports.SelectedAddOn = exports.ManualDiscountType = exports.OrderItemStatus = exports.PaymentMethod = exports.PaymentStatus = exports.OrderStatus = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
+const precision_1 = require("../common/utils/precision");
 var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "pending";
@@ -28,11 +29,22 @@ var PaymentStatus;
     PaymentStatus["PAID"] = "paid";
     PaymentStatus["FAILED"] = "failed";
 })(PaymentStatus || (exports.PaymentStatus = PaymentStatus = {}));
+var PaymentMethod;
+(function (PaymentMethod) {
+    PaymentMethod["CASH"] = "CASH";
+    PaymentMethod["CARD"] = "CARD";
+    PaymentMethod["ONLINE"] = "ONLINE";
+})(PaymentMethod || (exports.PaymentMethod = PaymentMethod = {}));
 var OrderItemStatus;
 (function (OrderItemStatus) {
     OrderItemStatus["ACTIVE"] = "active";
     OrderItemStatus["CANCELLED"] = "cancelled";
 })(OrderItemStatus || (exports.OrderItemStatus = OrderItemStatus = {}));
+var ManualDiscountType;
+(function (ManualDiscountType) {
+    ManualDiscountType["PERCENTAGE"] = "PERCENTAGE";
+    ManualDiscountType["FIXED"] = "FIXED";
+})(ManualDiscountType || (exports.ManualDiscountType = ManualDiscountType = {}));
 class SelectedAddOn {
 }
 exports.SelectedAddOn = SelectedAddOn;
@@ -118,6 +130,18 @@ __decorate([
     (0, swagger_1.ApiProperty)({ required: false }),
     __metadata("design:type", String)
 ], OrderItem.prototype, "specialInstructions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], OrderItem.prototype, "cookingNote", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], OrderItem.prototype, "instruction", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", String)
+], OrderItem.prototype, "notes", void 0);
 let Order = class Order {
 };
 exports.Order = Order;
@@ -128,12 +152,12 @@ __decorate([
 ], Order.prototype, "orderNumber", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Restaurant', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Restaurant', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Order.prototype, "restaurantId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Table', required: false }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Table', required: false }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Order.prototype, "tableId", void 0);
 __decorate([
@@ -142,8 +166,20 @@ __decorate([
     __metadata("design:type", String)
 ], Order.prototype, "orderType", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 'cash' }),
+    (0, swagger_1.ApiProperty)({ enum: [PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.ONLINE] }),
+    (0, mongoose_1.Prop)({
+        type: String,
+        enum: [
+            PaymentMethod.CASH,
+            PaymentMethod.CARD,
+            PaymentMethod.ONLINE,
+            'cash',
+            'card',
+            'online',
+        ],
+        default: PaymentMethod.CASH,
+        set: (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+    }),
     __metadata("design:type", String)
 ], Order.prototype, "paymentMethod", void 0);
 __decorate([
@@ -151,21 +187,21 @@ __decorate([
     (0, mongoose_1.Prop)({
         type: [
             {
-                menuItemId: { type: mongoose_2.Types.ObjectId, ref: 'MenuItem' },
+                menuItemId: { type: mongoose_2.Schema.Types.ObjectId, ref: 'MenuItem' },
                 name: String,
-                price: Number,
+                price: { type: Number, set: precision_1.mongoose3DecimalSetter },
                 quantity: Number,
                 status: { type: String, default: OrderItemStatus.ACTIVE },
                 cancelledQuantity: { type: Number, default: 0 },
                 cancelReason: { type: String, default: '' },
-                cancelledBy: { type: mongoose_2.Types.ObjectId, ref: 'User', required: false },
+                cancelledBy: { type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: false },
                 cancelledAt: { type: Date, required: false },
                 itemType: { type: String, default: 'food' },
                 spiceLevel: {
                     type: {
                         name: String,
                         emoji: { type: String, default: '' },
-                        priceDelta: { type: Number, default: 0 },
+                        priceDelta: { type: Number, default: 0, set: precision_1.mongoose3DecimalSetter },
                     },
                     required: false,
                     _id: false,
@@ -175,13 +211,16 @@ __decorate([
                         {
                             name: String,
                             emoji: { type: String, default: '' },
-                            priceDelta: { type: Number, default: 0 },
+                            priceDelta: { type: Number, default: 0, set: precision_1.mongoose3DecimalSetter },
                             _id: false,
                         },
                     ],
                     default: [],
                 },
                 specialInstructions: { type: String, default: '' },
+                cookingNote: { type: String, default: '' },
+                instruction: { type: String, default: '' },
+                notes: { type: String, default: '' },
             },
         ],
         required: true,
@@ -190,42 +229,42 @@ __decorate([
 ], Order.prototype, "items", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)({ required: true, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "totalAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "subtotalAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "taxAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "taxRate", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "cgstRate", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "sgstRate", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "cgstAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "sgstAmount", void 0);
 __decorate([
@@ -235,12 +274,12 @@ __decorate([
 ], Order.prototype, "taxType", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "vatAmount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "vatRate", void 0);
 __decorate([
@@ -250,17 +289,17 @@ __decorate([
 ], Order.prototype, "vatType", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "foodSubtotal", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "liquorSubtotal", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ required: false }),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Coupon', required: false }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Coupon', required: false }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Order.prototype, "couponId", void 0);
 __decorate([
@@ -270,9 +309,49 @@ __decorate([
 ], Order.prototype, "couponCode", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ default: 0 }),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "discountAmount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: ManualDiscountType, required: false }),
+    (0, mongoose_1.Prop)({ enum: ManualDiscountType, required: false, default: null }),
+    __metadata("design:type", String)
+], Order.prototype, "manualDiscountType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "manualDiscountValue", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "manualDiscountAmount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: '' }),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Order.prototype, "manualDiscountReason", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: ManualDiscountType, required: false }),
+    (0, mongoose_1.Prop)({ enum: ManualDiscountType, required: false, default: null }),
+    __metadata("design:type", String)
+], Order.prototype, "manual_discount_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "manual_discount_value", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "manual_discount_amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: '' }),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Order.prototype, "manual_discount_reason", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ enum: OrderStatus }),
     (0, mongoose_1.Prop)({ enum: OrderStatus, default: OrderStatus.PENDING }),
@@ -316,8 +395,34 @@ __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], Order.prototype, "paymentId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: '' }),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Order.prototype, "order_instructions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: '' }),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Order.prototype, "orderInstructions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, default: '' }),
+    (0, mongoose_1.Prop)({ default: '' }),
+    __metadata("design:type", String)
+], Order.prototype, "orderNotes", void 0);
 exports.Order = Order = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Order);
 exports.OrderSchema = mongoose_1.SchemaFactory.createForClass(Order);
+exports.OrderSchema.pre('validate', function () {
+    if (this.paymentMethod && typeof this.paymentMethod === 'string') {
+        this.paymentMethod = this.paymentMethod.toUpperCase();
+    }
+    if (this.paymentStatus && typeof this.paymentStatus === 'string') {
+        this.paymentStatus = this.paymentStatus.toLowerCase();
+    }
+    if (this.status && typeof this.status === 'string') {
+        this.status = this.status.toLowerCase();
+    }
+});
 //# sourceMappingURL=order.schema.js.map

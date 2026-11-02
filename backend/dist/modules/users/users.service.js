@@ -21,7 +21,7 @@ const bcrypt = require("bcrypt");
 const user_schema_1 = require("../../schemas/user.schema");
 const restaurant_schema_1 = require("../../schemas/restaurant.schema");
 const date_range_1 = require("../../common/utils/date-range");
-const isStaffRole = (role) => role === user_schema_1.UserRole.MANAGER || role === user_schema_1.UserRole.STAFF;
+const isStaffRole = (role) => role === user_schema_1.UserRole.CAPTAIN || role === user_schema_1.UserRole.KITCHEN;
 let UsersService = UsersService_1 = class UsersService {
     constructor(userModel, restaurantModel) {
         this.userModel = userModel;
@@ -60,8 +60,12 @@ let UsersService = UsersService_1 = class UsersService {
         const restaurant = await this.restaurantModel
             .findById(restaurantObjectId)
             .select('organizationId');
+        const restaurantOrgId = restaurant?.organizationId?._id?.toString?.() ??
+            restaurant?.organizationId?.toString?.() ??
+            (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
         if (!restaurant ||
-            !restaurant.organizationId?.equals(organizationObjectId)) {
+            !restaurantOrgId ||
+            restaurantOrgId !== organizationObjectId.toString()) {
             throw new common_1.ForbiddenException('Restaurant does not belong to your organization');
         }
     }
@@ -73,14 +77,21 @@ let UsersService = UsersService_1 = class UsersService {
             .select('organizationId restaurantId');
         if (!targetUser)
             throw new common_1.NotFoundException('User not found');
-        if (targetUser.organizationId?.equals(organizationObjectId))
+        const userOrgId = targetUser.organizationId?._id?.toString?.() ??
+            targetUser.organizationId?.toString?.() ??
+            (targetUser.organizationId ? String(targetUser.organizationId) : undefined);
+        if (userOrgId && userOrgId === organizationObjectId.toString())
             return;
         if (targetUser.restaurantId) {
             const restaurant = await this.restaurantModel
                 .findById(targetUser.restaurantId)
                 .select('organizationId');
+            const restOrgId = restaurant?.organizationId?._id?.toString?.() ??
+                restaurant?.organizationId?.toString?.() ??
+                (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
             if (restaurant &&
-                restaurant.organizationId?.equals(organizationObjectId))
+                restOrgId &&
+                restOrgId === organizationObjectId.toString())
                 return;
         }
         throw new common_1.ForbiddenException('User does not belong to your organization');
@@ -262,7 +273,12 @@ let UsersService = UsersService_1 = class UsersService {
     async validatePasscodeUnique(passcode, restaurantId, excludeUserId) {
         const query = {
             restaurantId,
-            role: { $in: [user_schema_1.UserRole.MANAGER, user_schema_1.UserRole.STAFF] },
+            role: {
+                $in: [
+                    user_schema_1.UserRole.CAPTAIN,
+                    user_schema_1.UserRole.KITCHEN,
+                ],
+            },
             passcode: { $exists: true, $ne: null },
         };
         if (excludeUserId) {

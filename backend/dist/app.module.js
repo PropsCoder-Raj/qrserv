@@ -28,6 +28,7 @@ const organizations_module_1 = require("./modules/organizations/organizations.mo
 const contact_module_1 = require("./modules/contact/contact.module");
 const withdraw_requests_module_1 = require("./modules/withdraw-requests/withdraw-requests.module");
 const coupons_module_1 = require("./modules/coupons/coupons.module");
+const analytics_module_1 = require("./modules/analytics/analytics.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -59,6 +60,7 @@ exports.AppModule = AppModule = __decorate([
             contact_module_1.ContactModule,
             withdraw_requests_module_1.WithdrawRequestsModule,
             coupons_module_1.CouponsModule,
+            analytics_module_1.AnalyticsModule,
         ],
         providers: [
             {

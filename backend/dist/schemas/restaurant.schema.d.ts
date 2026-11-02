@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum RestaurantType {
     SMALL_CART_STALL = "small cart stall",
     DINING = "dining",
@@ -20,6 +20,8 @@ export declare class Restaurant {
     email: string;
     gst_no: string;
     vat_no: string;
+    cr_number?: string;
+    receipt_header_note?: string;
     taxEnabled: boolean;
     taxRate: number;
     taxType: TaxType;
@@ -32,7 +34,7 @@ export declare class Restaurant {
     menuPdf?: string;
 }
 export type RestaurantDocument = Restaurant & Document;
-export declare const RestaurantSchema: import("mongoose").Schema<Restaurant, import("mongoose").Model<Restaurant, any, any, any, (Document<unknown, any, Restaurant, any, import("mongoose").DefaultSchemaOptions> & Restaurant & {
+export declare const RestaurantSchema: MongooseSchema<Restaurant, import("mongoose").Model<Restaurant, any, any, any, (Document<unknown, any, Restaurant, any, import("mongoose").DefaultSchemaOptions> & Restaurant & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -142,6 +144,24 @@ export declare const RestaurantSchema: import("mongoose").Schema<Restaurant, imp
         id: string;
     }>;
     vat_no?: import("mongoose").SchemaDefinitionProperty<string, Restaurant, Document<unknown, {}, Restaurant, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Restaurant & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    cr_number?: import("mongoose").SchemaDefinitionProperty<string, Restaurant, Document<unknown, {}, Restaurant, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Restaurant & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    receipt_header_note?: import("mongoose").SchemaDefinitionProperty<string, Restaurant, Document<unknown, {}, Restaurant, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Restaurant & {
         _id: Types.ObjectId;

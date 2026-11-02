@@ -1,10 +1,10 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum UserRole {
     SUPER_ADMIN = "super_admin",
     ORG_ADMIN = "org_admin",
     RESTAURANT_OWNER = "restaurant_owner",
-    MANAGER = "manager",
-    STAFF = "staff"
+    CAPTAIN = "captain",
+    KITCHEN = "kitchen"
 }
 export declare class User {
     name: string;
@@ -20,7 +20,7 @@ export declare class User {
     refreshToken: string;
 }
 export type UserDocument = User & Document;
-export declare const UserSchema: import("mongoose").Schema<User, import("mongoose").Model<User, any, any, any, (Document<unknown, any, User, any, import("mongoose").DefaultSchemaOptions> & User & {
+export declare const UserSchema: MongooseSchema<User, import("mongoose").Model<User, any, any, any, (Document<unknown, any, User, any, import("mongoose").DefaultSchemaOptions> & User & {
     _id: Types.ObjectId;
 } & {
     __v: number;

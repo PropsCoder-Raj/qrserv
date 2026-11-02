@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum WithdrawRequestStatus {
     PENDING = "pending",
     APPROVED = "approved",
@@ -33,7 +33,7 @@ export declare class WithdrawRequest {
     paymentProofName: string;
 }
 export type WithdrawRequestDocument = WithdrawRequest & Document;
-export declare const WithdrawRequestSchema: import("mongoose").Schema<WithdrawRequest, import("mongoose").Model<WithdrawRequest, any, any, any, (Document<unknown, any, WithdrawRequest, any, import("mongoose").DefaultSchemaOptions> & WithdrawRequest & {
+export declare const WithdrawRequestSchema: MongooseSchema<WithdrawRequest, import("mongoose").Model<WithdrawRequest, any, any, any, (Document<unknown, any, WithdrawRequest, any, import("mongoose").DefaultSchemaOptions> & WithdrawRequest & {
     _id: Types.ObjectId;
 } & {
     __v: number;

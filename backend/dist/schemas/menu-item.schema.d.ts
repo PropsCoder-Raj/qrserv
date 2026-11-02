@@ -1,14 +1,18 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum ItemType {
     FOOD = "food",
     LIQUOR = "liquor"
+}
+export declare enum PriceDropType {
+    PERCENTAGE = "percentage",
+    FIXED = "fixed"
 }
 export declare class CustomizationOption {
     name: string;
     emoji: string;
     priceDelta: number;
 }
-export declare const CustomizationOptionSchema: import("mongoose").Schema<CustomizationOption, import("mongoose").Model<CustomizationOption, any, any, any, (Document<unknown, any, CustomizationOption, any, import("mongoose").DefaultSchemaOptions> & CustomizationOption & {
+export declare const CustomizationOptionSchema: MongooseSchema<CustomizationOption, import("mongoose").Model<CustomizationOption, any, any, any, (Document<unknown, any, CustomizationOption, any, import("mongoose").DefaultSchemaOptions> & CustomizationOption & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -60,7 +64,7 @@ export declare class MenuItemCustomization {
     addOns: CustomizationOption[];
     allowSpecialInstructions: boolean;
 }
-export declare const MenuItemCustomizationSchema: import("mongoose").Schema<MenuItemCustomization, import("mongoose").Model<MenuItemCustomization, any, any, any, (Document<unknown, any, MenuItemCustomization, any, import("mongoose").DefaultSchemaOptions> & MenuItemCustomization & {
+export declare const MenuItemCustomizationSchema: MongooseSchema<MenuItemCustomization, import("mongoose").Model<MenuItemCustomization, any, any, any, (Document<unknown, any, MenuItemCustomization, any, import("mongoose").DefaultSchemaOptions> & MenuItemCustomization & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -112,6 +116,8 @@ export declare class MenuItem {
     description: string;
     ingredients: string;
     price: number;
+    discountType?: PriceDropType;
+    discountValue: number;
     image: string;
     categoryId: Types.ObjectId;
     restaurantId: Types.ObjectId;
@@ -122,7 +128,7 @@ export declare class MenuItem {
     customization: MenuItemCustomization;
 }
 export type MenuItemDocument = MenuItem & Document;
-export declare const MenuItemSchema: import("mongoose").Schema<MenuItem, import("mongoose").Model<MenuItem, any, any, any, (Document<unknown, any, MenuItem, any, import("mongoose").DefaultSchemaOptions> & MenuItem & {
+export declare const MenuItemSchema: MongooseSchema<MenuItem, import("mongoose").Model<MenuItem, any, any, any, (Document<unknown, any, MenuItem, any, import("mongoose").DefaultSchemaOptions> & MenuItem & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -169,6 +175,24 @@ export declare const MenuItemSchema: import("mongoose").Schema<MenuItem, import(
         id: string;
     }>;
     price?: import("mongoose").SchemaDefinitionProperty<number, MenuItem, Document<unknown, {}, MenuItem, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    discountType?: import("mongoose").SchemaDefinitionProperty<PriceDropType, MenuItem, Document<unknown, {}, MenuItem, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    discountValue?: import("mongoose").SchemaDefinitionProperty<number, MenuItem, Document<unknown, {}, MenuItem, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
         _id: Types.ObjectId;

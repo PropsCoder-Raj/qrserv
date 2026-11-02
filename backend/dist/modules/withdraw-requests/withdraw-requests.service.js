@@ -24,6 +24,7 @@ const order_schema_1 = require("../../schemas/order.schema");
 const restaurant_schema_1 = require("../../schemas/restaurant.schema");
 const withdraw_bank_detail_schema_1 = require("../../schemas/withdraw-bank-detail.schema");
 const withdraw_request_schema_1 = require("../../schemas/withdraw-request.schema");
+const precision_1 = require("../../common/utils/precision");
 let WithdrawRequestsService = class WithdrawRequestsService {
     constructor(configService, withdrawBankDetailModel, withdrawRequestModel, restaurantModel, orderModel) {
         this.configService = configService;
@@ -47,13 +48,13 @@ let WithdrawRequestsService = class WithdrawRequestsService {
         return Math.max(0, configuredValue);
     }
     calculateWithdrawAmounts(amount) {
-        const requestAmount = Number(amount || 0);
+        const requestAmount = (0, precision_1.roundTo3)(amount || 0);
         const chargePercentage = this.getWithdrawChargePercentage();
         const chargeGstPercentage = this.getWithdrawChargeGstPercentage();
-        const chargeBaseAmount = Number(((requestAmount * chargePercentage) / 100).toFixed(2));
-        const chargeGstAmount = Number(((chargeBaseAmount * chargeGstPercentage) / 100).toFixed(2));
-        const chargeAmount = Number((chargeBaseAmount + chargeGstAmount).toFixed(2));
-        const netAmount = Number((requestAmount - chargeAmount).toFixed(2));
+        const chargeBaseAmount = (0, precision_1.roundTo3)((requestAmount * chargePercentage) / 100);
+        const chargeGstAmount = (0, precision_1.roundTo3)((chargeBaseAmount * chargeGstPercentage) / 100);
+        const chargeAmount = (0, precision_1.roundTo3)(chargeBaseAmount + chargeGstAmount);
+        const netAmount = (0, precision_1.roundTo3)(requestAmount - chargeAmount);
         return {
             chargePercentage,
             chargeBaseAmount,

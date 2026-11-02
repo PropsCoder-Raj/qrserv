@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum WithdrawBankDetailType {
     PERSONAL = "personal",
     OTHER = "other"
@@ -14,7 +14,7 @@ export declare class WithdrawBankDetail {
     ifscCode: string;
 }
 export type WithdrawBankDetailDocument = WithdrawBankDetail & Document;
-export declare const WithdrawBankDetailSchema: import("mongoose").Schema<WithdrawBankDetail, import("mongoose").Model<WithdrawBankDetail, any, any, any, (Document<unknown, any, WithdrawBankDetail, any, import("mongoose").DefaultSchemaOptions> & WithdrawBankDetail & {
+export declare const WithdrawBankDetailSchema: MongooseSchema<WithdrawBankDetail, import("mongoose").Model<WithdrawBankDetail, any, any, any, (Document<unknown, any, WithdrawBankDetail, any, import("mongoose").DefaultSchemaOptions> & WithdrawBankDetail & {
     _id: Types.ObjectId;
 } & {
     __v: number;

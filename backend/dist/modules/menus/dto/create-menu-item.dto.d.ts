@@ -1,4 +1,4 @@
-import { ItemType } from '../../../schemas/menu-item.schema';
+import { ItemType, PriceDropType } from '../../../schemas/menu-item.schema';
 export declare class CustomizationOptionDto {
     name: string;
     emoji?: string;
@@ -14,7 +14,9 @@ export declare class CreateMenuItemDto {
     description?: string;
     ingredients?: string;
     price: number;
-    image?: string;
+    discountType?: PriceDropType | null;
+    discountValue?: number;
+    image?: string | null;
     categoryId: string;
     restaurantId: string;
     isVeg?: boolean;

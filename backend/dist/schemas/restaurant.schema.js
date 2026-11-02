@@ -13,6 +13,7 @@ exports.RestaurantSchema = exports.Restaurant = exports.TaxType = exports.Restau
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
+const precision_1 = require("../common/utils/precision");
 var RestaurantType;
 (function (RestaurantType) {
     RestaurantType["SMALL_CART_STALL"] = "small cart stall";
@@ -87,13 +88,23 @@ __decorate([
     __metadata("design:type", String)
 ], Restaurant.prototype, "vat_no", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, mongoose_1.Prop)({ maxlength: 100 }),
+    __metadata("design:type", String)
+], Restaurant.prototype, "cr_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, mongoose_1.Prop)({ maxlength: 255 }),
+    __metadata("design:type", String)
+], Restaurant.prototype, "receipt_header_note", void 0);
+__decorate([
     (0, swagger_1.ApiProperty)(),
     (0, mongoose_1.Prop)({ default: false }),
     __metadata("design:type", Boolean)
 ], Restaurant.prototype, "taxEnabled", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Restaurant.prototype, "taxRate", void 0);
 __decorate([
@@ -108,7 +119,7 @@ __decorate([
 ], Restaurant.prototype, "vatEnabled", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Restaurant.prototype, "vatRate", void 0);
 __decorate([
@@ -118,12 +129,12 @@ __decorate([
 ], Restaurant.prototype, "vatType", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Restaurant.prototype, "ownerId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Organization', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Organization', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Restaurant.prototype, "organizationId", void 0);
 __decorate([

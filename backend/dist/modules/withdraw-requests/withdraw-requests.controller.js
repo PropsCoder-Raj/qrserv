@@ -130,7 +130,7 @@ __decorate([
 ], WithdrawRequestsController.prototype, "removeBankDetail", null);
 __decorate([
     (0, common_1.Get)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({
         summary: 'List withdraw requests with role-based organization scoping',
     }),
@@ -144,7 +144,7 @@ __decorate([
 ], WithdrawRequestsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('summary'),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({
         summary: 'Get available withdraw amount summary for the current organization',
     }),

@@ -33,6 +33,30 @@ export declare class AuthService {
             restaurantId: Types.ObjectId;
         };
     }>;
+    loginCaptain(dto: PasscodeLoginDto): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: Types.ObjectId;
+            name: string;
+            email: string;
+            role: UserRole;
+            organizationId: Types.ObjectId;
+            restaurantId: Types.ObjectId;
+        };
+    }>;
+    loginKitchen(dto: PasscodeLoginDto): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: Types.ObjectId;
+            name: string;
+            email: string;
+            role: UserRole;
+            organizationId: Types.ObjectId;
+            restaurantId: Types.ObjectId;
+        };
+    }>;
     loginManager(dto: PasscodeLoginDto): Promise<{
         accessToken: string;
         refreshToken: string;

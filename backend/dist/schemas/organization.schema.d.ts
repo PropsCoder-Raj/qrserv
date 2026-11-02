@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare class Organization {
     name: string;
     slug: string;
@@ -16,7 +16,7 @@ export declare class Organization {
     isActive: boolean;
 }
 export type OrganizationDocument = Organization & Document;
-export declare const OrganizationSchema: import("mongoose").Schema<Organization, import("mongoose").Model<Organization, any, any, any, (Document<unknown, any, Organization, any, import("mongoose").DefaultSchemaOptions> & Organization & {
+export declare const OrganizationSchema: MongooseSchema<Organization, import("mongoose").Model<Organization, any, any, any, (Document<unknown, any, Organization, any, import("mongoose").DefaultSchemaOptions> & Organization & {
     _id: Types.ObjectId;
 } & {
     __v: number;

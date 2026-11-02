@@ -9,15 +9,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MenuItemSchema = exports.MenuItem = exports.MenuItemCustomizationSchema = exports.MenuItemCustomization = exports.CustomizationOptionSchema = exports.CustomizationOption = exports.ItemType = void 0;
+exports.MenuItemSchema = exports.MenuItem = exports.MenuItemCustomizationSchema = exports.MenuItemCustomization = exports.CustomizationOptionSchema = exports.CustomizationOption = exports.PriceDropType = exports.ItemType = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
+const precision_1 = require("../common/utils/precision");
 var ItemType;
 (function (ItemType) {
     ItemType["FOOD"] = "food";
     ItemType["LIQUOR"] = "liquor";
 })(ItemType || (exports.ItemType = ItemType = {}));
+var PriceDropType;
+(function (PriceDropType) {
+    PriceDropType["PERCENTAGE"] = "percentage";
+    PriceDropType["FIXED"] = "fixed";
+})(PriceDropType || (exports.PriceDropType = PriceDropType = {}));
 let CustomizationOption = class CustomizationOption {
 };
 exports.CustomizationOption = CustomizationOption;
@@ -33,7 +39,7 @@ __decorate([
 ], CustomizationOption.prototype, "emoji", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ default: 0 }),
-    (0, mongoose_1.Prop)({ default: 0 }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], CustomizationOption.prototype, "priceDelta", void 0);
 exports.CustomizationOption = CustomizationOption = __decorate([
@@ -82,9 +88,19 @@ __decorate([
 ], MenuItem.prototype, "ingredients", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)({ required: true, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], MenuItem.prototype, "price", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: PriceDropType }),
+    (0, mongoose_1.Prop)({ enum: PriceDropType }),
+    __metadata("design:type", String)
+], MenuItem.prototype, "discountType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: 0 }),
+    (0, mongoose_1.Prop)({ min: 0, default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], MenuItem.prototype, "discountValue", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, mongoose_1.Prop)(),
@@ -92,12 +108,12 @@ __decorate([
 ], MenuItem.prototype, "image", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Category', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Category', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], MenuItem.prototype, "categoryId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Restaurant', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Restaurant', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], MenuItem.prototype, "restaurantId", void 0);
 __decorate([

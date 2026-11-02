@@ -22,6 +22,7 @@ const subscription_schema_1 = require("../../schemas/subscription.schema");
 const organization_schema_1 = require("../../schemas/organization.schema");
 const subscription_history_schema_1 = require("../../schemas/subscription-history.schema");
 const date_range_1 = require("../../common/utils/date-range");
+const precision_1 = require("../../common/utils/precision");
 let SubscriptionsService = class SubscriptionsService {
     async getTrialDaysForOrg(organizationId) {
         const alreadyPurchased = await this.subscriptionHistoryModel.exists({
@@ -57,11 +58,11 @@ let SubscriptionsService = class SubscriptionsService {
         if (type === 'none' || value <= 0)
             return base;
         if (type === 'flat') {
-            return Math.max(0, base - value);
+            return (0, precision_1.roundTo3)(Math.max(0, base - value));
         }
         const pct = Math.min(100, Math.max(0, value));
         const discount = (base * pct) / 100;
-        return Math.max(0, base - discount);
+        return (0, precision_1.roundTo3)(Math.max(0, base - discount));
     }
     normalizeOffers(offers) {
         if (!offers)
@@ -97,8 +98,8 @@ let SubscriptionsService = class SubscriptionsService {
         const base = Number(amount) || 0;
         const pct = Math.min(100, Math.max(0, Number(percent) || 0));
         if (base <= 0 || pct <= 0)
-            return base;
-        return Math.max(0, base - (base * pct) / 100);
+            return (0, precision_1.roundTo3)(base);
+        return (0, precision_1.roundTo3)(Math.max(0, base - (base * pct) / 100));
     }
     getMaxOfferPercent(plan) {
         const offers = Array.isArray(plan?.offers) ? plan.offers : [];
@@ -264,7 +265,7 @@ let SubscriptionsService = class SubscriptionsService {
         return plans.map((plan) => {
             const price = Number(plan?.price) || 0;
             const maxOfferPercent = this.getMaxOfferPercent(plan);
-            const perMonthPriceAfterOffer = Number(this.applyPercentDiscount(price, maxOfferPercent).toFixed(2));
+            const perMonthPriceAfterOffer = (0, precision_1.roundTo3)(this.applyPercentDiscount(price, maxOfferPercent));
             return {
                 ...plan,
                 maxOfferPercent,

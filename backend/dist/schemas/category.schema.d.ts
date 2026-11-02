@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare class Category {
     name: string;
     description: string;
@@ -8,7 +8,7 @@ export declare class Category {
     isActive: boolean;
 }
 export type CategoryDocument = Category & Document;
-export declare const CategorySchema: import("mongoose").Schema<Category, import("mongoose").Model<Category, any, any, any, (Document<unknown, any, Category, any, import("mongoose").DefaultSchemaOptions> & Category & {
+export declare const CategorySchema: MongooseSchema<Category, import("mongoose").Model<Category, any, any, any, (Document<unknown, any, Category, any, import("mongoose").DefaultSchemaOptions> & Category & {
     _id: Types.ObjectId;
 } & {
     __v: number;

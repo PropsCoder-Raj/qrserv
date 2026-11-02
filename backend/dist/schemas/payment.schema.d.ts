@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum PaymentSchemaStatus {
     CREATED = "created",
     CAPTURED = "captured",
@@ -15,7 +15,7 @@ export declare class Payment {
     status: PaymentSchemaStatus;
 }
 export type PaymentDocument = Payment & Document;
-export declare const PaymentSchema: import("mongoose").Schema<Payment, import("mongoose").Model<Payment, any, any, any, (Document<unknown, any, Payment, any, import("mongoose").DefaultSchemaOptions> & Payment & {
+export declare const PaymentSchema: MongooseSchema<Payment, import("mongoose").Model<Payment, any, any, any, (Document<unknown, any, Payment, any, import("mongoose").DefaultSchemaOptions> & Payment & {
     _id: Types.ObjectId;
 } & {
     __v: number;

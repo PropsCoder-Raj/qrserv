@@ -23,4 +23,38 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateMenuItemDto.prototype, "isAvailable", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({ example: '60d0fe4f5311236168a109ca' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsMongoId)(),
+    __metadata("design:type", String)
+], UpdateMenuItemDto.prototype, "categoryId", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({
+        description: 'URL of the menu item image or null to remove',
+        nullable: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateMenuItemDto.prototype, "image", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({
+        description: 'Set to true to remove the existing image',
+        example: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateMenuItemDto.prototype, "remove_image", void 0);
+__decorate([
+    (0, swagger_2.ApiPropertyOptional)({
+        description: 'Alias for remove_image',
+        example: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateMenuItemDto.prototype, "removeImage", void 0);
 //# sourceMappingURL=update-menu-item.dto.js.map

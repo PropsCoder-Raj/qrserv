@@ -19,9 +19,11 @@ const orders_service_1 = require("./orders.service");
 const create_order_dto_1 = require("./dto/create-order.dto");
 const update_order_status_dto_1 = require("./dto/update-order-status.dto");
 const update_payment_status_dto_1 = require("./dto/update-payment-status.dto");
+const update_payment_method_dto_1 = require("./dto/update-payment-method.dto");
 const cancel_order_item_dto_1 = require("./dto/cancel-order-item.dto");
 const rollback_failed_order_dto_1 = require("./dto/rollback-failed-order.dto");
 const update_customer_order_items_dto_1 = require("./dto/update-customer-order-items.dto");
+const update_order_items_dto_1 = require("./dto/update-order-items.dto");
 const decorators_1 = require("../../common/decorators");
 const order_schema_1 = require("../../schemas/order.schema");
 const pagination_query_dto_1 = require("../../common/dto/pagination-query.dto");
@@ -72,6 +74,9 @@ let OrdersController = class OrdersController {
     findByPhone(phone) {
         return this.ordersService.findByPhone(phone);
     }
+    getInvoice(id) {
+        return this.ordersService.getInvoice(id);
+    }
     getStatus(id) {
         return this.ordersService.getStatus(id);
     }
@@ -84,15 +89,25 @@ let OrdersController = class OrdersController {
     updatePaymentStatus(id, dto) {
         return this.ordersService.updatePaymentStatus(id, dto);
     }
+    updatePaymentMethod(id, dto) {
+        return this.ordersService.updatePaymentMethod(id, dto);
+    }
+    updateOrderItems(id, dto, role, organizationId, restaurantId) {
+        return this.ordersService.updateOrderItems(id, dto, role, organizationId, restaurantId);
+    }
     cancelOrderItem(id, dto, userId) {
         return this.ordersService.cancelOrderItem(id, dto, userId);
+    }
+    remove(id, role, organizationId, restaurantId) {
+        return this.ordersService.remove(id, role, organizationId, restaurantId);
     }
 };
 exports.OrdersController = OrdersController;
 __decorate([
-    (0, decorators_1.Public)(),
     (0, common_1.Post)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Place a new order (public, no auth)' }),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
+    (0, swagger_1.ApiOperation)({ summary: 'Create an order from the admin panel' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_order_dto_1.CreateOrderDto]),
@@ -135,7 +150,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({ summary: 'Get orders (filtered by restaurant/status)' }),
     __param(0, (0, common_1.Query)('restaurantId')),
     __param(1, (0, common_1.Query)('status')),
@@ -150,7 +165,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('stats'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({ summary: 'Get order statistics and revenue data' }),
     __param(0, (0, common_1.Query)('restaurantId')),
     __param(1, (0, common_1.Query)()),
@@ -173,6 +188,15 @@ __decorate([
 ], OrdersController.prototype, "findByPhone", null);
 __decorate([
     (0, decorators_1.Public)(),
+    (0, common_1.Get)(':id/invoice'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get order invoice payload (public)' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], OrdersController.prototype, "getInvoice", null);
+__decorate([
+    (0, decorators_1.Public)(),
     (0, common_1.Get)(':id/status'),
     (0, swagger_1.ApiOperation)({ summary: 'Track order status (public)' }),
     __param(0, (0, common_1.Param)('id')),
@@ -192,7 +216,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/status'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({ summary: 'Update order status' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -203,7 +227,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/payment-status'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({ summary: 'Update payment status' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -212,11 +236,36 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "updatePaymentStatus", null);
 __decorate([
+    (0, common_1.Patch)(':id/payment-method'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
+    (0, swagger_1.ApiOperation)({ summary: 'Update payment method' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_payment_method_dto_1.UpdatePaymentMethodDto]),
+    __metadata("design:returntype", void 0)
+], OrdersController.prototype, "updatePaymentMethod", null);
+__decorate([
+    (0, common_1.Patch)(':id/items'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
+    (0, swagger_1.ApiOperation)({ summary: 'Update order items and coupon code' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, decorators_1.CurrentUser)('role')),
+    __param(3, (0, decorators_1.CurrentUser)('organizationId')),
+    __param(4, (0, decorators_1.CurrentUser)('restaurantId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_order_items_dto_1.UpdateOrderItemsDto, String, String, String]),
+    __metadata("design:returntype", void 0)
+], OrdersController.prototype, "updateOrderItems", null);
+__decorate([
     (0, common_1.Patch)(':id/items/cancel'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER, decorators_1.Role.KITCHEN, decorators_1.Role.STAFF),
     (0, swagger_1.ApiOperation)({
-        summary: 'Cancel single order item quantity (manager/staff)',
+        summary: 'Cancel single order item quantity (captain/kitchen/manager/staff)',
     }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -225,6 +274,19 @@ __decorate([
     __metadata("design:paramtypes", [String, cancel_order_item_dto_1.CancelOrderItemDto, String]),
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "cancelOrderItem", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete a cancelled order (admin/captain/manager)' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, decorators_1.CurrentUser)('role')),
+    __param(2, (0, decorators_1.CurrentUser)('organizationId')),
+    __param(3, (0, decorators_1.CurrentUser)('restaurantId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", void 0)
+], OrdersController.prototype, "remove", null);
 exports.OrdersController = OrdersController = __decorate([
     (0, swagger_1.ApiTags)('Orders'),
     (0, common_1.Controller)('api/orders'),

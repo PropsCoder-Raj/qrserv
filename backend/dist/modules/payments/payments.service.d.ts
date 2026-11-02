@@ -7,6 +7,7 @@ import { OrganizationDocument } from '../../schemas/organization.schema';
 import { SubscriptionDocument } from '../../schemas/subscription.schema';
 import { CreatePaymentOrderDto } from './dto/create-payment-order.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 export declare class PaymentsService {
     private paymentModel;
     private orderModel;
@@ -14,8 +15,9 @@ export declare class PaymentsService {
     private organizationModel;
     private subscriptionModel;
     private configService;
+    private eventEmitter?;
     private razorpay;
-    constructor(paymentModel: Model<PaymentDocument>, orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, configService: ConfigService);
+    constructor(paymentModel: Model<PaymentDocument>, orderModel: Model<OrderDocument>, restaurantModel: Model<RestaurantDocument>, organizationModel: Model<OrganizationDocument>, subscriptionModel: Model<SubscriptionDocument>, configService: ConfigService, eventEmitter?: EventEmitter2);
     private isPaymentGatewayAllocatedForOrder;
     createOrderForOrder(order: any): Promise<{
         paymentId: import("mongoose").Types.ObjectId;

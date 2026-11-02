@@ -1,4 +1,4 @@
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare class SubscriptionHistory {
     organizationId: Types.ObjectId;
     subscriptionId: Types.ObjectId;
@@ -16,7 +16,7 @@ export declare class SubscriptionHistory {
     paymentStatus: string;
 }
 export type SubscriptionHistoryDocument = SubscriptionHistory & Document;
-export declare const SubscriptionHistorySchema: import("mongoose").Schema<SubscriptionHistory, import("mongoose").Model<SubscriptionHistory, any, any, any, (Document<unknown, any, SubscriptionHistory, any, import("mongoose").DefaultSchemaOptions> & SubscriptionHistory & {
+export declare const SubscriptionHistorySchema: MongooseSchema<SubscriptionHistory, import("mongoose").Model<SubscriptionHistory, any, any, any, (Document<unknown, any, SubscriptionHistory, any, import("mongoose").DefaultSchemaOptions> & SubscriptionHistory & {
     _id: Types.ObjectId;
 } & {
     __v: number;

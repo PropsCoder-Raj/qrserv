@@ -36,12 +36,13 @@ let TablesService = class TablesService {
             throw new common_1.BadRequestException('Invalid organizationId');
         }
         const restaurantObjectId = new mongoose_2.Types.ObjectId(restaurantId);
-        const organizationObjectId = new mongoose_2.Types.ObjectId(organizationId);
         const restaurant = await this.restaurantModel
             .findById(restaurantObjectId)
             .select('organizationId');
-        if (!restaurant ||
-            !restaurant.organizationId?.equals(organizationObjectId)) {
+        const restaurantOrgId = restaurant?.organizationId?._id?.toString?.() ??
+            restaurant?.organizationId?.toString?.() ??
+            (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+        if (!restaurant || !restaurantOrgId || restaurantOrgId !== organizationId.toString()) {
             throw new common_1.ForbiddenException('Restaurant does not belong to your organization');
         }
     }

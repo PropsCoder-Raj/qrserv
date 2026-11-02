@@ -74,7 +74,7 @@ let UsersController = class UsersController {
 exports.UsersController = UsersController;
 __decorate([
     (0, common_1.Get)('notification-settings'),
-    (0, decorators_1.Roles)(decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.CAPTAIN, decorators_1.Role.KITCHEN),
     (0, swagger_1.ApiOperation)({ summary: 'Get notification settings for the current user' }),
     __param(0, (0, decorators_1.CurrentUser)('userId')),
     __metadata("design:type", Function),
@@ -83,7 +83,7 @@ __decorate([
 ], UsersController.prototype, "getNotificationSettings", null);
 __decorate([
     (0, common_1.Patch)('notification-settings'),
-    (0, decorators_1.Roles)(decorators_1.Role.MANAGER, decorators_1.Role.STAFF),
+    (0, decorators_1.Roles)(decorators_1.Role.CAPTAIN, decorators_1.Role.KITCHEN),
     (0, swagger_1.ApiOperation)({ summary: 'Update notification settings for the current user' }),
     __param(0, (0, decorators_1.CurrentUser)('userId')),
     __param(1, (0, common_1.Body)()),

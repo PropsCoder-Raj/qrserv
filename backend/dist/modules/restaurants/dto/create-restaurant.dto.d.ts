@@ -11,6 +11,8 @@ export declare class CreateRestaurantDto {
     email?: string;
     gst_no?: string;
     vat_no?: string;
+    cr_number?: string;
+    receipt_header_note?: string;
     taxEnabled?: boolean;
     taxRate?: number;
     taxType?: TaxType;

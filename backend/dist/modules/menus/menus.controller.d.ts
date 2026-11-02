@@ -65,9 +65,20 @@ export declare class MenusController {
     } & {
         id: string;
     }>;
+    updateMenuItemPut(id: string, dto: UpdateMenuItemDto): Promise<import("mongoose").Document<unknown, {}, import("../../schemas").MenuItemDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas").MenuItem & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
     uploadMenuItemImage(id: string, file: any): Promise<{
         message: string;
         image: string;
+    }>;
+    removeMenuItemImage(id: string): Promise<{
+        message: string;
+        image: any;
     }>;
     removeMenuItem(id: string): Promise<{
         message: string;

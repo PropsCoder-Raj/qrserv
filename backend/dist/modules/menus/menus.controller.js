@@ -75,8 +75,14 @@ let MenusController = class MenusController {
     updateMenuItem(id, dto) {
         return this.menusService.updateMenuItem(id, dto);
     }
+    updateMenuItemPut(id, dto) {
+        return this.menusService.updateMenuItem(id, dto);
+    }
     uploadMenuItemImage(id, file) {
         return this.menusService.uploadMenuItemImage(id, file);
+    }
+    removeMenuItemImage(id) {
+        return this.menusService.removeMenuItemImage(id);
     }
     removeMenuItem(id) {
         return this.menusService.removeMenuItem(id);
@@ -95,7 +101,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('categories'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Create a category' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, decorators_1.CurrentUser)('role')),
@@ -122,7 +128,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)('categories/:id'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Update a category' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -133,7 +139,7 @@ __decorate([
 __decorate([
     (0, common_1.Delete)('categories/:id'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Delete a category' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -143,7 +149,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('menu-items'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Create a menu item' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, decorators_1.CurrentUser)('role')),
@@ -171,7 +177,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)('menu-items/:id'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Update a menu item' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -180,9 +186,20 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], MenusController.prototype, "updateMenuItem", null);
 __decorate([
+    (0, common_1.Put)('menu-items/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
+    (0, swagger_1.ApiOperation)({ summary: 'Update a menu item (PUT alias)' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_menu_item_dto_1.UpdateMenuItemDto]),
+    __metadata("design:returntype", void 0)
+], MenusController.prototype, "updateMenuItemPut", null);
+__decorate([
     (0, common_1.Post)('menu-items/:id/image'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Upload or replace a menu item image' }),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiBody)({
@@ -216,9 +233,19 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], MenusController.prototype, "uploadMenuItemImage", null);
 __decorate([
+    (0, common_1.Delete)('menu-items/:id/image'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
+    (0, swagger_1.ApiOperation)({ summary: 'Remove a menu item image' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], MenusController.prototype, "removeMenuItemImage", null);
+__decorate([
     (0, common_1.Delete)('menu-items/:id'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Delete a menu item' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -227,7 +254,7 @@ __decorate([
 ], MenusController.prototype, "removeMenuItem", null);
 exports.MenusController = MenusController = __decorate([
     (0, swagger_1.ApiTags)('Menus'),
-    (0, common_1.Controller)('api'),
+    (0, common_1.Controller)(['api', 'api/admin']),
     __metadata("design:paramtypes", [menus_service_1.MenusService])
 ], MenusController);
 //# sourceMappingURL=menus.controller.js.map

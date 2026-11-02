@@ -30,7 +30,8 @@ __decorate([
 ], CreateUserDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: 'password123' }),
-    (0, class_validator_1.ValidateIf)((o) => o.role !== user_schema_1.UserRole.MANAGER && o.role !== user_schema_1.UserRole.STAFF),
+    (0, class_validator_1.ValidateIf)((o) => o.role !== user_schema_1.UserRole.CAPTAIN &&
+        o.role !== user_schema_1.UserRole.KITCHEN),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(6),
@@ -38,7 +39,8 @@ __decorate([
 ], CreateUserDto.prototype, "password", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: '1234' }),
-    (0, class_validator_1.ValidateIf)((o) => o.role === user_schema_1.UserRole.MANAGER || o.role === user_schema_1.UserRole.STAFF),
+    (0, class_validator_1.ValidateIf)((o) => o.role === user_schema_1.UserRole.CAPTAIN ||
+        o.role === user_schema_1.UserRole.KITCHEN),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Length)(4, 6),

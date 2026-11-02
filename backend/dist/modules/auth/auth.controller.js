@@ -31,6 +31,12 @@ let AuthController = class AuthController {
     login(loginDto) {
         return this.authService.login(loginDto);
     }
+    loginCaptain(passcodeLoginDto) {
+        return this.authService.loginCaptain(passcodeLoginDto);
+    }
+    loginKitchen(passcodeLoginDto) {
+        return this.authService.loginKitchen(passcodeLoginDto);
+    }
     loginManager(passcodeLoginDto) {
         return this.authService.loginManager(passcodeLoginDto);
     }
@@ -62,8 +68,26 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, decorators_1.Public)(),
+    (0, common_1.Post)('login-captain'),
+    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (captain only)' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [passcode_login_dto_1.PasscodeLoginDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "loginCaptain", null);
+__decorate([
+    (0, decorators_1.Public)(),
+    (0, common_1.Post)('login-kitchen'),
+    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (kitchen only)' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [passcode_login_dto_1.PasscodeLoginDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "loginKitchen", null);
+__decorate([
+    (0, decorators_1.Public)(),
     (0, common_1.Post)('login-manager'),
-    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (manager only)' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (captain/manager)' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [passcode_login_dto_1.PasscodeLoginDto]),
@@ -72,7 +96,7 @@ __decorate([
 __decorate([
     (0, decorators_1.Public)(),
     (0, common_1.Post)('login-staff'),
-    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (staff only)' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Login with passcode (kitchen/staff)' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [passcode_login_dto_1.PasscodeLoginDto]),

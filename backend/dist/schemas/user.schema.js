@@ -18,8 +18,8 @@ var UserRole;
     UserRole["SUPER_ADMIN"] = "super_admin";
     UserRole["ORG_ADMIN"] = "org_admin";
     UserRole["RESTAURANT_OWNER"] = "restaurant_owner";
-    UserRole["MANAGER"] = "manager";
-    UserRole["STAFF"] = "staff";
+    UserRole["CAPTAIN"] = "captain";
+    UserRole["KITCHEN"] = "kitchen";
 })(UserRole || (exports.UserRole = UserRole = {}));
 let User = class User {
 };
@@ -49,17 +49,17 @@ __decorate([
 ], User.prototype, "phone", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ enum: UserRole }),
-    (0, mongoose_1.Prop)({ required: true, enum: UserRole, default: UserRole.STAFF }),
+    (0, mongoose_1.Prop)({ required: true, enum: UserRole, default: UserRole.KITCHEN }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Organization', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Organization', default: null }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], User.prototype, "organizationId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Restaurant', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Restaurant', default: null }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], User.prototype, "restaurantId", void 0);
 __decorate([

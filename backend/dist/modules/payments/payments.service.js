@@ -23,14 +23,17 @@ const order_schema_1 = require("../../schemas/order.schema");
 const restaurant_schema_1 = require("../../schemas/restaurant.schema");
 const organization_schema_1 = require("../../schemas/organization.schema");
 const subscription_schema_1 = require("../../schemas/subscription.schema");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const order_events_1 = require("../../common/events/order-events");
 let PaymentsService = class PaymentsService {
-    constructor(paymentModel, orderModel, restaurantModel, organizationModel, subscriptionModel, configService) {
+    constructor(paymentModel, orderModel, restaurantModel, organizationModel, subscriptionModel, configService, eventEmitter) {
         this.paymentModel = paymentModel;
         this.orderModel = orderModel;
         this.restaurantModel = restaurantModel;
         this.organizationModel = organizationModel;
         this.subscriptionModel = subscriptionModel;
         this.configService = configService;
+        this.eventEmitter = eventEmitter;
         const Razorpay = require('razorpay');
         this.razorpay = new Razorpay({
             key_id: this.configService.get('razorpay.keyId'),
@@ -122,11 +125,18 @@ let PaymentsService = class PaymentsService {
         }, { new: true });
         if (!payment)
             throw new common_1.NotFoundException('Payment not found');
-        await this.orderModel.findByIdAndUpdate(payment.orderId, {
+        const updatedOrder = await this.orderModel.findByIdAndUpdate(payment.orderId, {
             paymentStatus: order_schema_1.PaymentStatus.PAID,
             paymentId: dto.razorpayPaymentId,
             razorpayPaymentId: dto.razorpayPaymentId,
-        });
+        }, { new: true });
+        if (updatedOrder && this.eventEmitter) {
+            const restaurant = await this.restaurantModel
+                .findById(updatedOrder.restaurantId)
+                .select('organizationId')
+                .lean();
+            this.eventEmitter.emit(order_events_1.OrderEvent.PAYMENT_STATUS_CHANGED, new order_events_1.OrderPaymentStatusChangedEvent(updatedOrder._id.toString(), updatedOrder.restaurantId?.toString(), order_schema_1.PaymentStatus.PENDING, order_schema_1.PaymentStatus.PAID, restaurant?.organizationId, updatedOrder.totalAmount));
+        }
         return { message: 'Payment verified successfully', payment };
     }
     async handleWebhook(body) {
@@ -140,11 +150,18 @@ let PaymentsService = class PaymentsService {
             });
             const payment = await this.paymentModel.findOne({ razorpayOrderId });
             if (payment) {
-                await this.orderModel.findByIdAndUpdate(payment.orderId, {
+                const updatedOrder = await this.orderModel.findByIdAndUpdate(payment.orderId, {
                     paymentStatus: order_schema_1.PaymentStatus.PAID,
                     paymentId: razorpayPaymentId,
                     razorpayPaymentId,
-                });
+                }, { new: true });
+                if (updatedOrder && this.eventEmitter) {
+                    const restaurant = await this.restaurantModel
+                        .findById(updatedOrder.restaurantId)
+                        .select('organizationId')
+                        .lean();
+                    this.eventEmitter.emit(order_events_1.OrderEvent.PAYMENT_STATUS_CHANGED, new order_events_1.OrderPaymentStatusChangedEvent(updatedOrder._id.toString(), updatedOrder.restaurantId?.toString(), order_schema_1.PaymentStatus.PENDING, order_schema_1.PaymentStatus.PAID, restaurant?.organizationId, updatedOrder.totalAmount));
+                }
             }
         }
         if (event === 'payment.failed') {
@@ -173,6 +190,7 @@ exports.PaymentsService = PaymentsService = __decorate([
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        event_emitter_1.EventEmitter2])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

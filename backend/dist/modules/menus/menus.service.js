@@ -32,6 +32,17 @@ let MenusService = class MenusService {
         this.organizationModel = organizationModel;
         this.cacheService = cacheService;
     }
+    validatePriceDrop(discountType, discountValue) {
+        if (!discountType)
+            return;
+        const value = Number(discountValue);
+        if (!Number.isFinite(value) || value <= 0) {
+            throw new common_1.BadRequestException('Discount value must be greater than 0');
+        }
+        if (discountType === menu_item_schema_1.PriceDropType.PERCENTAGE && value > 100) {
+            throw new common_1.BadRequestException('Percentage discount cannot exceed 100%');
+        }
+    }
     async validateOrgRestaurant(restaurantId, organizationId) {
         if (!mongoose_2.Types.ObjectId.isValid(restaurantId)) {
             throw new common_1.BadRequestException('Invalid restaurantId');
@@ -40,12 +51,13 @@ let MenusService = class MenusService {
             throw new common_1.BadRequestException('Invalid organizationId');
         }
         const restaurantObjectId = new mongoose_2.Types.ObjectId(restaurantId);
-        const organizationObjectId = new mongoose_2.Types.ObjectId(organizationId);
         const restaurant = await this.restaurantModel
             .findById(restaurantObjectId)
             .select('organizationId');
-        if (!restaurant ||
-            !restaurant.organizationId?.equals(organizationObjectId)) {
+        const restaurantOrgId = restaurant?.organizationId?._id?.toString?.() ??
+            restaurant?.organizationId?.toString?.() ??
+            (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+        if (!restaurant || !restaurantOrgId || restaurantOrgId !== organizationId.toString()) {
             throw new common_1.ForbiddenException('Restaurant does not belong to your organization');
         }
     }
@@ -66,13 +78,82 @@ let MenusService = class MenusService {
             throw new common_1.BadRequestException('Your subscription plan has expired. Please renew your plan.');
         }
     }
+    async getRestaurantOrgWithPlan(restaurantId) {
+        const restaurant = await this.restaurantModel
+            .findById(restaurantId)
+            .select('organizationId');
+        if (!restaurant?.organizationId)
+            return null;
+        return this.organizationModel
+            .findById(restaurant.organizationId)
+            .populate('subscriptionPlan');
+    }
+    async enforcePlanLimit({ restaurantId, field, model, errorMessage, }) {
+        const org = await this.getRestaurantOrgWithPlan(restaurantId);
+        if (!org?.subscriptionPlan)
+            return;
+        const limit = org.subscriptionPlan[field];
+        if (limit === undefined || limit === null || limit <= 0)
+            return;
+        const currentCount = await model.countDocuments({
+            restaurantId,
+        });
+        if (currentCount >= limit) {
+            throw new common_1.BadRequestException(errorMessage);
+        }
+    }
+    async getMenuItemUploadsDir() {
+        const candidates = [
+            path.resolve(process.cwd(), 'uploads', 'menu_items'),
+            path.resolve(process.cwd(), 'backend', 'uploads', 'menu_items'),
+            path.resolve(__dirname, '../../../uploads/menu_items'),
+            path.resolve(__dirname, '../../../../uploads/menu_items'),
+        ];
+        for (const dir of candidates) {
+            try {
+                const parent = path.dirname(dir);
+                await fs.access(parent);
+                await fs.mkdir(dir, { recursive: true });
+                return dir;
+            }
+            catch {
+            }
+        }
+        const fallback = candidates[0];
+        await fs.mkdir(fallback, { recursive: true });
+        return fallback;
+    }
     async removeMenuItemImageFile(imagePath) {
         if (!imagePath)
             return;
-        const normalizedPath = imagePath.replace(/^\/+/, '');
-        const diskPath = path.resolve(process.cwd(), normalizedPath);
+        const cleanPath = imagePath.replace(/^https?:\/\/[^/]+/, '');
+        const relativePath = cleanPath
+            .replace(/^\/api\/uploads\//, 'uploads/')
+            .replace(/^\/uploads\//, 'uploads/')
+            .replace(/^\/+/, '');
+        const candidates = [
+            path.resolve(process.cwd(), relativePath),
+            path.resolve(process.cwd(), 'backend', relativePath),
+            path.resolve(__dirname, '../../../', relativePath),
+            path.resolve(__dirname, '../../../../', relativePath),
+        ];
+        for (const diskPath of candidates) {
+            try {
+                await fs.unlink(diskPath);
+                break;
+            }
+            catch {
+            }
+        }
+    }
+    async cleanupOrphanFilesByPrefix(dirPath, prefix) {
         try {
-            await fs.unlink(diskPath);
+            const files = await fs.readdir(dirPath);
+            for (const file of files) {
+                if (file.startsWith(prefix)) {
+                    await fs.unlink(path.join(dirPath, file)).catch(() => { });
+                }
+            }
         }
         catch {
         }
@@ -165,6 +246,7 @@ let MenusService = class MenusService {
         return { message: 'Category and its items deleted' };
     }
     async createMenuItem(dto, organizationId) {
+        this.validatePriceDrop(dto.discountType, dto.discountValue);
         if (!mongoose_2.Types.ObjectId.isValid(dto.restaurantId)) {
             throw new common_1.BadRequestException('Invalid restaurantId');
         }
@@ -246,7 +328,35 @@ let MenusService = class MenusService {
         };
     }
     async updateMenuItem(id, dto) {
-        const item = await this.menuItemModel.findByIdAndUpdate(id, dto, {
+        const existing = await this.menuItemModel.findById(id);
+        if (!existing)
+            throw new common_1.NotFoundException('Menu item not found');
+        const discountType = dto.discountType === null
+            ? undefined
+            : dto.discountType ?? existing.discountType;
+        const discountValue = dto.discountType === null
+            ? 0
+            : dto.discountValue ?? existing.discountValue;
+        this.validatePriceDrop(discountType, discountValue);
+        const updatePayload = { ...dto };
+        delete updatePayload.remove_image;
+        delete updatePayload.removeImage;
+        const shouldRemoveImage = dto.remove_image === true ||
+            dto.removeImage === true ||
+            dto.image === null ||
+            dto.image === '';
+        if (shouldRemoveImage) {
+            if (existing.image) {
+                await this.removeMenuItemImageFile(existing.image);
+            }
+            const uploadsDir = await this.getMenuItemUploadsDir();
+            await this.cleanupOrphanFilesByPrefix(uploadsDir, existing._id.toString());
+            updatePayload.image = null;
+        }
+        if (dto.categoryId && mongoose_2.Types.ObjectId.isValid(dto.categoryId)) {
+            updatePayload.categoryId = new mongoose_2.Types.ObjectId(dto.categoryId);
+        }
+        const item = await this.menuItemModel.findByIdAndUpdate(id, updatePayload, {
             new: true,
         });
         if (!item)
@@ -265,11 +375,13 @@ let MenusService = class MenusService {
         if (!item) {
             throw new common_1.NotFoundException('Menu item not found');
         }
-        const uploadsDir = path.resolve(process.cwd(), 'uploads', 'menu_items');
-        await fs.mkdir(uploadsDir, { recursive: true });
-        await this.removeMenuItemImageFile(item.image);
+        const uploadsDir = await this.getMenuItemUploadsDir();
+        if (item.image) {
+            await this.removeMenuItemImageFile(item.image);
+        }
+        await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
         const extension = path.extname(file.originalname || '').toLowerCase() || '.png';
-        const filename = `${item._id}${extension}`;
+        const filename = `${item._id}-${Date.now()}${extension}`;
         const diskPath = path.join(uploadsDir, filename);
         await fs.writeFile(diskPath, file.buffer);
         item.image = `/uploads/menu_items/${filename}`;
@@ -280,11 +392,32 @@ let MenusService = class MenusService {
             image: item.image,
         };
     }
+    async removeMenuItemImage(id) {
+        const item = await this.menuItemModel.findById(id);
+        if (!item)
+            throw new common_1.NotFoundException('Menu item not found');
+        if (item.image) {
+            await this.removeMenuItemImageFile(item.image);
+        }
+        const uploadsDir = await this.getMenuItemUploadsDir();
+        await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
+        item.image = null;
+        await item.save();
+        this.cacheService.delByPrefix(`menu:${item.restaurantId}`);
+        return {
+            message: 'Menu item image removed successfully',
+            image: null,
+        };
+    }
     async removeMenuItem(id) {
         const item = await this.menuItemModel.findByIdAndDelete(id);
         if (!item)
             throw new common_1.NotFoundException('Menu item not found');
-        await this.removeMenuItemImageFile(item.image);
+        if (item.image) {
+            await this.removeMenuItemImageFile(item.image);
+        }
+        const uploadsDir = await this.getMenuItemUploadsDir();
+        await this.cleanupOrphanFilesByPrefix(uploadsDir, item._id.toString());
         this.cacheService.delByPrefix(`menu:${item.restaurantId}`);
         return { message: 'Menu item deleted' };
     }

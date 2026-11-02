@@ -13,6 +13,7 @@ exports.PaymentSchema = exports.Payment = exports.PaymentSchemaStatus = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
+const precision_1 = require("../common/utils/precision");
 var PaymentSchemaStatus;
 (function (PaymentSchemaStatus) {
     PaymentSchemaStatus["CREATED"] = "created";
@@ -24,12 +25,12 @@ let Payment = class Payment {
 exports.Payment = Payment;
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Order', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Order', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Payment.prototype, "orderId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Restaurant', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Restaurant', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Payment.prototype, "restaurantId", void 0);
 __decorate([
@@ -49,7 +50,7 @@ __decorate([
 ], Payment.prototype, "razorpaySignature", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ required: true }),
+    (0, mongoose_1.Prop)({ required: true, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Payment.prototype, "amount", void 0);
 __decorate([

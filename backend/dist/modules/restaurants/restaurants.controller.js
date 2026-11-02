@@ -58,6 +58,9 @@ let RestaurantsController = class RestaurantsController {
         }
         return this.restaurantsService.update(id, updateRestaurantDto);
     }
+    async updatePut(id, updateRestaurantDto, role, organizationId) {
+        return this.update(id, updateRestaurantDto, role, organizationId);
+    }
     remove(id) {
         return this.restaurantsService.remove(id);
     }
@@ -148,6 +151,19 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], RestaurantsController.prototype, "update", null);
 __decorate([
+    (0, common_1.Put)(':id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER),
+    (0, swagger_1.ApiOperation)({ summary: 'Update a restaurant (PUT alias)' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, decorators_1.CurrentUser)('role')),
+    __param(3, (0, decorators_1.CurrentUser)('organizationId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_restaurant_dto_1.UpdateRestaurantDto, String, String]),
+    __metadata("design:returntype", Promise)
+], RestaurantsController.prototype, "updatePut", null);
+__decorate([
     (0, common_1.Delete)(':id'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN),
@@ -193,7 +209,7 @@ __decorate([
 ], RestaurantsController.prototype, "uploadMenuPdf", null);
 exports.RestaurantsController = RestaurantsController = __decorate([
     (0, swagger_1.ApiTags)('Restaurants'),
-    (0, common_1.Controller)('api/restaurants'),
+    (0, common_1.Controller)(['api/restaurants', 'api/admin/restaurants']),
     __metadata("design:paramtypes", [restaurants_service_1.RestaurantsService])
 ], RestaurantsController);
 //# sourceMappingURL=restaurants.controller.js.map

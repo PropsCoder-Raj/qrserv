@@ -38,7 +38,7 @@ __decorate([
 ], Category.prototype, "sortOrder", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Restaurant', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Restaurant', required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Category.prototype, "restaurantId", void 0);
 __decorate([

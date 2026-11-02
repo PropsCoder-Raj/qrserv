@@ -58,7 +58,7 @@ let TablesController = class TablesController {
 exports.TablesController = TablesController;
 __decorate([
     (0, common_1.Post)(),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Create a table' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, decorators_1.CurrentUser)()),
@@ -100,7 +100,7 @@ __decorate([
 ], TablesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Update a table' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -110,7 +110,7 @@ __decorate([
 ], TablesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
-    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.MANAGER),
+    (0, decorators_1.Roles)(decorators_1.Role.SUPER_ADMIN, decorators_1.Role.ORG_ADMIN, decorators_1.Role.RESTAURANT_OWNER, decorators_1.Role.CAPTAIN, decorators_1.Role.MANAGER),
     (0, swagger_1.ApiOperation)({ summary: 'Delete a table' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),

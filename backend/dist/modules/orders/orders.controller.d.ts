@@ -2,9 +2,11 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { CancelOrderItemDto } from './dto/cancel-order-item.dto';
 import { RollbackFailedOrderDto } from './dto/rollback-failed-order.dto';
 import { UpdateCustomerOrderItemsDto } from './dto/update-customer-order-items.dto';
+import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import { OrderStatus } from '../../schemas/order.schema';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 export declare class OrdersController {
@@ -96,6 +98,13 @@ export declare class OrdersController {
     } & {
         id: string;
     })[]>;
+    getInvoice(id: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
     getStatus(id: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
@@ -124,11 +133,29 @@ export declare class OrdersController {
     } & {
         id: string;
     }>;
+    updatePaymentMethod(id: string, dto: UpdatePaymentMethodDto): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    updateOrderItems(id: string, dto: UpdateOrderItemsDto, role: string, organizationId?: string, restaurantId?: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
     cancelOrderItem(id: string, dto: CancelOrderItemDto, userId: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas/order.schema").OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas/order.schema").Order & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;
     } & {
         id: string;
+    }>;
+    remove(id: string, role: string, organizationId?: string, restaurantId?: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

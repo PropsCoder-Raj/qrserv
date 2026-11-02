@@ -32,7 +32,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: 20, default: 0 }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 3 }),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CustomizationOptionDto.prototype, "priceDelta", void 0);
@@ -85,12 +85,25 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 250 }),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 3 }),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateMenuItemDto.prototype, "price", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
+    (0, swagger_1.ApiPropertyOptional)({ enum: menu_item_schema_1.PriceDropType }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(menu_item_schema_1.PriceDropType),
+    __metadata("design:type", String)
+], CreateMenuItemDto.prototype, "discountType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: 0 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 3 }),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateMenuItemDto.prototype, "discountValue", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

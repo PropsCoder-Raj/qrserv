@@ -68,6 +68,8 @@ export declare class RestaurantsController {
         email: string;
         gst_no: string;
         vat_no: string;
+        cr_number?: string;
+        receipt_header_note?: string;
         taxEnabled: boolean;
         taxRate: number;
         taxType: import("../../schemas").TaxType;
@@ -111,6 +113,8 @@ export declare class RestaurantsController {
         email: string;
         gst_no: string;
         vat_no: string;
+        cr_number?: string;
+        receipt_header_note?: string;
         taxEnabled: boolean;
         taxRate: number;
         taxType: import("../../schemas").TaxType;
@@ -140,6 +144,13 @@ export declare class RestaurantsController {
         id: string;
     }>;
     update(id: string, updateRestaurantDto: UpdateRestaurantDto, role?: string, organizationId?: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas").RestaurantDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas").Restaurant & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    updatePut(id: string, updateRestaurantDto: UpdateRestaurantDto, role?: string, organizationId?: string): Promise<import("mongoose").Document<unknown, {}, import("../../schemas").RestaurantDocument, {}, import("mongoose").DefaultSchemaOptions> & import("../../schemas").Restaurant & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {
         __v: number;

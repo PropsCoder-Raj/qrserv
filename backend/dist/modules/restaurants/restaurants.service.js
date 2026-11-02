@@ -41,12 +41,13 @@ let RestaurantsService = class RestaurantsService {
             throw new common_1.BadRequestException('Invalid organizationId');
         }
         const restaurantObjectId = new mongoose_2.Types.ObjectId(restaurantId);
-        const organizationObjectId = new mongoose_2.Types.ObjectId(organizationId);
         const restaurant = await this.restaurantModel
             .findById(restaurantObjectId)
             .select('organizationId');
-        if (!restaurant ||
-            !restaurant.organizationId?.equals(organizationObjectId)) {
+        const restaurantOrgId = restaurant?.organizationId?._id?.toString?.() ??
+            restaurant?.organizationId?.toString?.() ??
+            (restaurant?.organizationId ? String(restaurant.organizationId) : undefined);
+        if (!restaurant || !restaurantOrgId || restaurantOrgId !== organizationId.toString()) {
             throw new common_1.ForbiddenException('Restaurant does not belong to your organization');
         }
     }
@@ -212,7 +213,7 @@ let RestaurantsService = class RestaurantsService {
     async getPublicInfo(id) {
         const restaurant = await this.restaurantModel
             .findById(id)
-            .select('name logo address gst_no vat_no taxEnabled taxRate taxType vatEnabled vatRate vatType menuPdf organizationId isActive');
+            .select('name logo address phone email gst_no vat_no cr_number receipt_header_note taxEnabled taxRate taxType vatEnabled vatRate vatType menuPdf organizationId isActive');
         if (!restaurant) {
             throw new common_1.NotFoundException('Restaurant not found');
         }
