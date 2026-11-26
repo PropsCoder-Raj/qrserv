@@ -39,11 +39,12 @@ export default function generateBillPdf(order, customRestaurant = {}) {
 
     return item.name + (isLiquor ? ' [L]' : '') + (isFullyCancelled ? ' [CANCELLED]' : '');
   };
+  const lineStep = 3.8;
   const longItemNameHeight = items.reduce((extraHeight, item) => {
     const labelLength = getItemLabel(item).length;
     const extraLines = Math.max(0, Math.ceil(labelLength / ITEM_NAME_CHARS_PER_LINE) - 1);
 
-    return extraHeight + extraLines * 3.5;
+    return extraHeight + extraLines * lineStep;
   }, 0);
 
   const headerNoteLines = restaurant.receipt_header_note
@@ -53,10 +54,10 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     ? Math.ceil(restaurant.address.length / ITEM_NAME_CHARS_PER_LINE)
     : 0;
   const extraHeaderHeight =
-    headerNoteLines * 3.5 +
-    (restaurant.cr_number ? 4 : 0) +
-    addressLinesCount * 3.5 +
-    (restaurant.phone || restaurant.gst_no || restaurant.vat_no ? 4 : 0);
+    headerNoteLines * lineStep +
+    (restaurant.cr_number ? 4.5 : 0) +
+    addressLinesCount * lineStep +
+    (restaurant.phone || restaurant.gst_no || restaurant.vat_no ? 4.5 : 0);
 
   const orderNum = String(order.orderNumber || '');
   const orderIdText = orderNum.startsWith('#')
@@ -67,48 +68,57 @@ export default function generateBillPdf(order, customRestaurant = {}) {
   const customerExtraLines = Math.max(0, Math.ceil(`Customer: ${custName}`.length / ITEM_NAME_CHARS_PER_LINE) - 1);
   const tableNumber = getTableNumber(order);
   const extraOrderMetaHeight =
-    orderIdExtraLines * 3.5 +
-    customerExtraLines * 3.5 +
-    (order.customerPhone ? 4 : 0) +
-    (tableNumber ? 4 : 0);
+    orderIdExtraLines * lineStep +
+    customerExtraLines * lineStep +
+    (order.customerPhone ? 4.5 : 0) +
+    (tableNumber ? 4.5 : 0);
 
   const orderNote = (order.order_instructions || order.orderInstructions || order.notes || '').trim();
   const orderNoteLines = orderNote ? Math.ceil(orderNote.length / ITEM_NAME_CHARS_PER_LINE) : 0;
-  const extraOrderNoteHeight = orderNote ? (orderNoteLines * 3.5 + 8) : 0;
+  const extraOrderNoteHeight = orderNote ? (orderNoteLines * lineStep + 9) : 0;
   const itemNotesHeight = items.reduce((acc, it) => {
     const n = (it.cookingNote || it.specialInstructions || it.notes || '').trim();
-    return acc + (n ? (Math.ceil(n.length / ITEM_NAME_CHARS_PER_LINE) * 3 + 3) : 0);
+    return acc + (n ? (Math.ceil(n.length / ITEM_NAME_CHARS_PER_LINE) * 3.5 + 3.5) : 0);
   }, 0);
 
-  const pageHeight =
-    75 +
-    extraHeaderHeight +
-    extraOrderMetaHeight +
-    itemCount * (hasTax ? 16 : 12) +
-    longItemNameHeight +
-    extraOrderNoteHeight +
-    itemNotesHeight +
-    (hasGst ? 16 : 0) +
-    (hasVat ? 12 : 0);
+  const pageHeight = Math.max(
+    110,
+    85 +
+      extraHeaderHeight +
+      extraOrderMetaHeight +
+      itemCount * (hasTax ? 18 : 14) +
+      longItemNameHeight +
+      extraOrderNoteHeight +
+      itemNotesHeight +
+      (hasGst ? 18 : 0) +
+      (hasVat ? 14 : 0),
+  );
 
   const doc = new jsPDF({
     unit: 'mm',
     format: [PAGE_WIDTH, pageHeight],
   });
 
+  // Solid pure white background and pure black bold ink for thermal/scanner clarity
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, PAGE_WIDTH, pageHeight, 'F');
+  doc.setTextColor(0, 0, 0);
+
   let y = 6;
   const centerX = PAGE_WIDTH / 2;
+  const baseFontSize = 7.5;
+  const subFontSize = 7;
 
-  const addCenteredText = (text, size, style = 'normal') => {
+  const addCenteredText = (text, size = baseFontSize, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     doc.text(String(text || ''), centerX, y, { align: 'center' });
-    y += size * 0.4 + 0.5;
+    y += size * 0.42 + 0.6;
   };
 
-  const addLeftRight = (left, right, size = 7) => {
+  const addLeftRight = (left, right, size = baseFontSize, style = 'bold') => {
     doc.setFontSize(size);
-    doc.setFont('courier', 'normal');
+    doc.setFont('courier', style);
     const rightStr = String(right || '');
     const maxLeftWidth = CONTENT_WIDTH - (doc.getTextWidth(rightStr) + 2);
     let leftStr = String(left || '');
@@ -120,39 +130,39 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     }
     doc.text(leftStr, MARGIN, y);
     doc.text(rightStr, PAGE_WIDTH - MARGIN, y, { align: 'right' });
-    y += size * 0.4 + 0.5;
+    y += size * 0.42 + 0.6;
   };
 
-  const addLeftText = (text, size = 7, style = 'normal') => {
+  const addLeftText = (text, size = baseFontSize, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     doc.text(String(text || ''), MARGIN, y);
-    y += size * 0.4 + 0.5;
+    y += size * 0.42 + 0.6;
   };
 
-  const addWrappedLeftText = (text, size = 7, style = 'normal') => {
+  const addWrappedLeftText = (text, size = baseFontSize, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     const lines = doc.splitTextToSize(String(text || ''), CONTENT_WIDTH);
     doc.text(lines, MARGIN, y);
-    y += lines.length * (size * 0.4 + 0.5);
+    y += lines.length * (size * 0.42 + 0.6);
   };
 
-  const addDashLine = () => addCenteredText(DASH_LINE, 7);
+  const addDashLine = () => addCenteredText(DASH_LINE, subFontSize, 'bold');
 
   // --- Restaurant Header ---
-  addCenteredText(restaurant.name || 'Restaurant', 9, 'bold');
+  addCenteredText(restaurant.name || 'Restaurant', 10, 'bold');
   if (restaurant.receipt_header_note) {
     const noteLines = doc.splitTextToSize(
       String(restaurant.receipt_header_note),
       CONTENT_WIDTH,
     );
     noteLines.forEach((line) => {
-      addCenteredText(line, 6.5, 'normal');
+      addCenteredText(line, subFontSize, 'bold');
     });
   }
   if (restaurant.cr_number) {
-    addCenteredText(`CR No: ${restaurant.cr_number}`, 6.5, 'normal');
+    addCenteredText(`CR No: ${restaurant.cr_number}`, subFontSize, 'bold');
   }
   if (restaurant.address) {
     const addressLines = doc.splitTextToSize(
@@ -160,7 +170,7 @@ export default function generateBillPdf(order, customRestaurant = {}) {
       CONTENT_WIDTH,
     );
     addressLines.forEach((line) => {
-      addCenteredText(line, 6.5, 'normal');
+      addCenteredText(line, subFontSize, 'bold');
     });
   }
   if (restaurant.phone || restaurant.gst_no || restaurant.vat_no) {
@@ -170,7 +180,7 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     if (restaurant.vat_no) parts.push(`VAT: ${restaurant.vat_no}`);
     const taxContactLines = doc.splitTextToSize(parts.join(' | '), CONTENT_WIDTH);
     taxContactLines.forEach((line) => {
-      addCenteredText(line, 6, 'normal');
+      addCenteredText(line, subFontSize, 'bold');
     });
   }
 
@@ -182,31 +192,31 @@ export default function generateBillPdf(order, customRestaurant = {}) {
   const year = dateObj.getFullYear();
   const dateStr = `${day}/${month}/${year}`;
 
-  addWrappedLeftText(orderIdText, 7, 'normal');
+  addWrappedLeftText(orderIdText, baseFontSize, 'bold');
 
   const rawStatus = order.status || 'completed';
   const statusFormatted =
     rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
   const statusText = `Status: ${statusFormatted}`;
-  addLeftRight(`Date: ${dateStr}`, statusText, 7);
+  addLeftRight(`Date: ${dateStr}`, statusText, baseFontSize, 'bold');
 
   const customerName = order.customerName || '';
   if (customerName) {
-    addWrappedLeftText(`Customer: ${customerName}`, 7, 'normal');
+    addWrappedLeftText(`Customer: ${customerName}`, baseFontSize, 'bold');
   } else {
-    addWrappedLeftText('Customer: -', 7, 'normal');
+    addWrappedLeftText('Customer: -', baseFontSize, 'bold');
   }
 
   if (order.customerPhone) {
-    addWrappedLeftText(`Customer Phone: ${order.customerPhone}`, 7, 'normal');
+    addWrappedLeftText(`Customer Phone: ${order.customerPhone}`, baseFontSize, 'bold');
   }
 
   if (tableNumber) {
-    addWrappedLeftText(`Table: ${tableNumber}`, 7, 'normal');
+    addWrappedLeftText(`Table: ${tableNumber}`, baseFontSize, 'bold');
   }
 
   addDashLine();
-  addLeftRight('ITEM', 'AMT', 7);
+  addLeftRight('ITEM', 'AMT', baseFontSize, 'bold');
   addDashLine();
 
   const taxSettings = {
@@ -232,29 +242,29 @@ export default function generateBillPdf(order, customRestaurant = {}) {
     const remainingQty = Math.max(0, totalQty - cancelledQty);
     const amount = roundTo3(item.price * remainingQty);
 
-    addWrappedLeftText(getItemLabel(item), 7, 'bold');
-    addLeftRight(`  ${remainingQty} x ${formatCurrency(item.price)}`, formatCurrency(amount));
+    addWrappedLeftText(getItemLabel(item), baseFontSize, 'bold');
+    addLeftRight(`  ${remainingQty} x ${formatCurrency(item.price)}`, formatCurrency(amount), baseFontSize, 'bold');
 
     const itemNote = (item.cookingNote || item.specialInstructions || item.notes || '').trim();
     if (itemNote) {
-      addWrappedLeftText(`  Note: ${itemNote}`, 6, 'italic');
+      addWrappedLeftText(`  Note: ${itemNote}`, subFontSize, 'bold');
     }
 
     if (cancelledQty > 0) {
-      addLeftText(`  Cancelled: ${cancelledQty}/${totalQty}`, 6);
+      addLeftText(`  Cancelled: ${cancelledQty}/${totalQty}`, subFontSize, 'bold');
       if (item.cancelReason) {
-        addLeftText(`  Reason: ${String(item.cancelReason).slice(0, 28)}`, 6);
+        addLeftText(`  Reason: ${String(item.cancelReason).slice(0, 28)}`, subFontSize, 'bold');
       }
     }
 
     const itemTax = itemTaxLine(item, remainingQty);
     if (itemTax) {
-      addLeftText(`  Base:${formatCurrency(itemTax.taxableBase)}`, 6);
+      addLeftText(`  Base:${formatCurrency(itemTax.taxableBase)}`, subFontSize, 'bold');
       if (itemTax.gstAmount > 0) {
-        addLeftText(`  GST ${item.gstRate}%: ${formatCurrency(itemTax.gstAmount)}`, 6);
+        addLeftText(`  GST ${item.gstRate}%: ${formatCurrency(itemTax.gstAmount)}`, subFontSize, 'bold');
       }
       if (itemTax.vatAmount > 0) {
-        addLeftText(`  VAT ${item.vatRate}%: ${formatCurrency(itemTax.vatAmount)}`, 6);
+        addLeftText(`  VAT ${item.vatRate}%: ${formatCurrency(itemTax.vatAmount)}`, subFontSize, 'bold');
       }
     }
   });
@@ -262,46 +272,47 @@ export default function generateBillPdf(order, customRestaurant = {}) {
   addDashLine();
   const gstGroups = order.gstBreakdown || [];
   const vatGroups = order.vatBreakdown || [];
-  addLeftRight('TAXABLE SUBTOTAL', `Rs.${formatCurrency(order.subtotalAmount || 0)}`, 8);
+  addLeftRight('TAXABLE SUBTOTAL', `Rs.${formatCurrency(order.subtotalAmount || 0)}`, 8, 'bold');
   if (gstGroups.length > 0) {
     gstGroups.forEach((g) => {
-      addLeftRight(`GST (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8);
+      addLeftRight(`GST (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8, 'bold');
     });
   } else if (hasGst) {
-    addLeftRight('CGST', `Rs.${formatCurrency(order.cgstAmount || 0)}`, 8);
-    addLeftRight('SGST', `Rs.${formatCurrency(order.sgstAmount || 0)}`, 8);
+    addLeftRight('CGST', `Rs.${formatCurrency(order.cgstAmount || 0)}`, 8, 'bold');
+    addLeftRight('SGST', `Rs.${formatCurrency(order.sgstAmount || 0)}`, 8, 'bold');
   }
   vatGroups.forEach((g) => {
-    addLeftRight(`VAT (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8);
+    addLeftRight(`VAT (${g.rate}%)`, `Rs.${formatCurrency(g.taxAmount || 0)}`, 8, 'bold');
   });
   if (order.taxAmount > 0) {
-    addLeftRight('TOTAL TAX', `Rs.${formatCurrency(order.taxAmount)}`, 8);
+    addLeftRight('TOTAL TAX', `Rs.${formatCurrency(order.taxAmount)}`, 8, 'bold');
   }
   if (order.discountAmount && Number(order.discountAmount) > 0) {
     addLeftRight(
       order.couponCode ? `DISCOUNT (${order.couponCode})` : 'DISCOUNT',
       `-Rs.${formatCurrency(order.discountAmount)}`,
       8,
+      'bold',
     );
   }
 
   doc.setFont('courier', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.text('TOTAL', MARGIN, y);
   doc.text(`Rs.${formatCurrency(order.totalAmount)}`, PAGE_WIDTH - MARGIN, y, { align: 'right' });
-  y += 4.5;
+  y += 5;
 
-  addLeftRight('Payment:', order.paymentStatus || 'pending');
+  addLeftRight('Payment:', order.paymentStatus || 'pending', baseFontSize, 'bold');
 
   if (orderNote) {
     addDashLine();
-    addCenteredText('*** SPECIAL INSTRUCTIONS ***', 7, 'bold');
-    addWrappedLeftText(orderNote, 6.5, 'normal');
+    addCenteredText('*** SPECIAL INSTRUCTIONS ***', baseFontSize, 'bold');
+    addWrappedLeftText(orderNote, subFontSize, 'bold');
   }
 
   addDashLine();
   y += 1;
-  addCenteredText('Thank you! Visit again', 7, 'bold');
+  addCenteredText('Thank you! Visit again', baseFontSize, 'bold');
 
   doc.save(`bill-${order.orderNumber}.pdf`);
 }

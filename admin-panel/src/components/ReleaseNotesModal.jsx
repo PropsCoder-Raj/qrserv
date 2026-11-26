@@ -15,7 +15,7 @@ import {
   APP_VERSION,
   RELEASE_DATE,
   RELEASE_STORAGE_KEY,
-  RELEASE_NOTES,
+  RELEASE_HISTORY,
 } from '../config/version';
 
 const TAG_STYLES = {
@@ -150,60 +150,94 @@ export default function ReleaseNotesModal({ isOpen: controlledOpen, onClose }) {
             </p>
           </div>
 
-          <div className="space-y-3.5">
-            {RELEASE_NOTES.map((note) => {
-              const styles = TAG_STYLES[note.tagColor] || TAG_STYLES.blue;
-              return (
-                <div
-                  key={note.id}
-                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs hover:border-slate-300 transition-colors"
-                >
-                  <div className="flex items-start gap-3.5">
-                    {/* Icon */}
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${styles.iconBg}`}
+          <div className="space-y-6">
+            {RELEASE_HISTORY.map((release) => (
+              <section key={release.version} className="space-y-3">
+                {/* Version Section Header */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-bold border ${
+                        release.isLatest
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
                     >
-                      {renderItemIcon(note.icon)}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${styles.badge}`}
-                        >
-                          {note.tag}
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-900">
-                          {note.id}. {note.title}
-                        </h3>
-                      </div>
-
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        {note.description}
-                      </p>
-
-                      {note.highlights && note.highlights.length > 0 && (
-                        <ul className="mt-2.5 space-y-1.5 border-t border-slate-100 pt-2.5">
-                          {note.highlights.map((highlight, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-start gap-2 text-[11px] text-slate-700"
-                            >
-                              <HiOutlineCheckCircle
-                                size={14}
-                                className="shrink-0 text-emerald-500 mt-0.5"
-                              />
-                              <span className="leading-tight">{highlight}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+                      {release.version}
+                    </span>
+                    {release.isLatest && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        Latest
+                      </span>
+                    )}
+                    <span className="text-xs font-medium text-slate-500">
+                      {release.date}
+                    </span>
                   </div>
+                  {release.summary && (
+                    <p className="w-full text-xs text-slate-600">
+                      {release.summary}
+                    </p>
+                  )}
                 </div>
-              );
-            })}
+
+                <div className="space-y-3.5">
+                  {release.notes.map((note) => {
+                    const styles = TAG_STYLES[note.tagColor] || TAG_STYLES.blue;
+                    return (
+                      <div
+                        key={`${release.version}-${note.id}`}
+                        className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs hover:border-slate-300 transition-colors"
+                      >
+                        <div className="flex items-start gap-3.5">
+                          {/* Icon */}
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${styles.iconBg}`}
+                          >
+                            {renderItemIcon(note.icon)}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span
+                                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${styles.badge}`}
+                              >
+                                {note.tag}
+                              </span>
+                              <h3 className="text-sm font-bold text-slate-900">
+                                {note.id}. {note.title}
+                              </h3>
+                            </div>
+
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              {note.description}
+                            </p>
+
+                            {note.highlights && note.highlights.length > 0 && (
+                              <ul className="mt-2.5 space-y-1.5 border-t border-slate-100 pt-2.5">
+                                {note.highlights.map((highlight, idx) => (
+                                  <li
+                                    key={idx}
+                                    className="flex items-start gap-2 text-[11px] text-slate-700"
+                                  >
+                                    <HiOutlineCheckCircle
+                                      size={14}
+                                      className="shrink-0 text-emerald-500 mt-0.5"
+                                    />
+                                    <span className="leading-tight">{highlight}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
 
