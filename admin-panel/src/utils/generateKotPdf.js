@@ -67,21 +67,21 @@ export default function generateKotPdf(order, restaurant = {}) {
   let y = 6;
   const centerX = PAGE_WIDTH / 2;
 
-  const addCenteredText = (text, size = 8, style = 'normal') => {
+  const addCenteredText = (text, size = 8, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     doc.text(String(text || ''), centerX, y, { align: 'center' });
     y += size * 0.4 + 1;
   };
 
-  const addLeftText = (text, size = 8, style = 'normal') => {
+  const addLeftText = (text, size = 8, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     doc.text(String(text || ''), MARGIN, y);
     y += size * 0.4 + 1;
   };
 
-  const addWrappedLeftText = (text, size = 8, style = 'normal') => {
+  const addWrappedLeftText = (text, size = 8, style = 'bold') => {
     doc.setFontSize(size);
     doc.setFont('courier', style);
     const lines = doc.splitTextToSize(String(text || ''), CONTENT_WIDTH);
@@ -90,16 +90,16 @@ export default function generateKotPdf(order, restaurant = {}) {
   };
 
   const addDashLine = () => {
-    addCenteredText(DASH_LINE, 7, 'normal');
+    addCenteredText(DASH_LINE, 7.5, 'bold');
   };
 
   const addStarLine = () => {
-    addCenteredText(STAR_LINE, 7, 'normal');
+    addCenteredText(STAR_LINE, 7.5, 'bold');
   };
 
   // --- Header ---
   if (effectiveRestaurant.name) {
-    addCenteredText(effectiveRestaurant.name.toUpperCase(), 8, 'bold');
+    addCenteredText(effectiveRestaurant.name.toUpperCase(), 8.5, 'bold');
   }
   addCenteredText('KITCHEN ORDER TICKET (KOT)', 9, 'bold');
   addDashLine();
@@ -116,7 +116,7 @@ export default function generateKotPdf(order, restaurant = {}) {
   const month = String(dateObj.getMonth() + 1).padStart(2, '0');
   const dateStr = `${day}/${month} ${timeStr}`;
 
-  addLeftText(`Time: ${dateStr}`, 7.5, 'normal');
+  addLeftText(`Time: ${dateStr}`, 7.5, 'bold');
   if (tableNum) {
     addLeftText(`Table: Table ${tableNum}`, 9, 'bold');
   } else {
@@ -124,7 +124,7 @@ export default function generateKotPdf(order, restaurant = {}) {
   }
 
   if (order.customerName) {
-    addLeftText(`Customer: ${order.customerName}`, 7.5, 'normal');
+    addLeftText(`Customer: ${order.customerName}`, 7.5, 'bold');
   }
 
   // --- Items Section ---
@@ -144,13 +144,13 @@ export default function generateKotPdf(order, restaurant = {}) {
 
     // Spice & Addons
     if (item.spiceLevel?.name) {
-      addLeftText(`   Spice: ${item.spiceLevel.name}`, 7, 'normal');
+      addLeftText(`   Spice: ${item.spiceLevel.name}`, 7.5, 'bold');
     }
     if (item.addOns?.length) {
       addLeftText(
         `   Add-ons: ${item.addOns.map((a) => a.name).join(', ')}`,
-        7,
-        'normal',
+        7.5,
+        'bold',
       );
     }
 
@@ -185,7 +185,7 @@ export default function generateKotPdf(order, restaurant = {}) {
 
   // --- Footer ---
   y += 2;
-  addCenteredText('*** END OF KOT ***', 7, 'normal');
+  addCenteredText('*** END OF KOT ***', 7.5, 'bold');
 
   doc.save(`kot-${order.orderNumber}.pdf`);
 }

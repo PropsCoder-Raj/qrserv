@@ -106,7 +106,7 @@ export default function ThermalReceipt({
 
   return (
     <div
-      className={`thermal-paper-printable ${widthClass} thermal-font bg-white text-black text-[12px] leading-tight select-none thermal-paper-shadow relative mx-auto my-4 p-4`}
+      className={`thermal-paper-printable ${widthClass} thermal-font bg-white text-black font-bold text-[12px] leading-tight select-none thermal-paper-shadow relative mx-auto my-4 p-4`}
       style={{
         boxSizing: 'border-box',
         color: '#000000',
@@ -120,27 +120,27 @@ export default function ThermalReceipt({
           1. RESTAURANT / STORE HEADER
           ================================================================ */}
       <div className="text-center thermal-keep-together">
-        <h1 className="font-extrabold text-[16px] tracking-wider uppercase mb-0.5">
+        <h1 className="font-black text-[17px] tracking-wider uppercase mb-0.5">
           {effectiveRestaurant.name || 'POS RESTAURANT'}
         </h1>
 
         {effectiveRestaurant.receipt_header_note && (
-          <p className="text-[11px] font-medium italic mb-1">
+          <p className="text-[11px] font-bold mb-1">
             {effectiveRestaurant.receipt_header_note}
           </p>
         )}
 
         {effectiveRestaurant.cr_number && (
-          <p className="text-[10px]">CR No: {effectiveRestaurant.cr_number}</p>
+          <p className="text-[11px] font-bold">CR No: {effectiveRestaurant.cr_number}</p>
         )}
 
         {effectiveRestaurant.address && (
-          <p className="text-[10px] whitespace-pre-line leading-snug px-1">
+          <p className="text-[11px] font-bold whitespace-pre-line leading-snug px-1">
             {effectiveRestaurant.address}
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-x-2 text-[10px] mt-0.5">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 text-[11px] font-bold mt-0.5">
           {effectiveRestaurant.phone && <span>Ph: {effectiveRestaurant.phone}</span>}
           {effectiveRestaurant.gst_no && <span>GST: {effectiveRestaurant.gst_no}</span>}
           {effectiveRestaurant.vat_no && <span>VAT: {effectiveRestaurant.vat_no}</span>}
@@ -152,40 +152,40 @@ export default function ThermalReceipt({
       {/* ================================================================
           2. BILL & ORDER META
           ================================================================ */}
-      <div className="text-[11px] space-y-0.5 thermal-keep-together">
-        <div className="flex justify-between font-bold">
+      <div className="text-[11px] font-bold space-y-0.5 thermal-keep-together">
+        <div className="flex justify-between font-extrabold">
           <span>INVOICE: #{orderNumber}</span>
-          <span className="border border-black px-1 text-[10px] uppercase">
+          <span className="border-2 border-black px-1 text-[10px] font-extrabold uppercase">
             {orderType}
           </span>
         </div>
 
-        <div className="flex justify-between text-[10px]">
+        <div className="flex justify-between text-[11px] font-bold">
           <span>DATE: {dateFormatted}</span>
           <span>TIME: {timeFormatted}</span>
         </div>
 
         {tableNum ? (
-          <div className="flex justify-between font-bold text-[12px]">
+          <div className="flex justify-between font-extrabold text-[12px]">
             <span>TABLE: {tableNum}</span>
             {order.tokenNumber && <span>TOKEN: #{order.tokenNumber}</span>}
           </div>
         ) : (
           order.tokenNumber && (
-            <div className="font-bold text-[12px]">
+            <div className="font-extrabold text-[12px]">
               <span>TOKEN: #{order.tokenNumber}</span>
             </div>
           )
         )}
 
         {order.billedBy || order.serverName || order.captainName ? (
-          <div className="text-[10px]">
+          <div className="text-[11px] font-bold">
             <span>SERVER: {order.billedBy || order.serverName || order.captainName}</span>
           </div>
         ) : null}
 
         {(customerName || customerPhone) && (
-          <div className="text-[10px] pt-0.5">
+          <div className="text-[11px] font-bold pt-0.5">
             {customerName && <div>CUST: {customerName}</div>}
             {customerPhone && <div>PHONE: {customerPhone}</div>}
           </div>
@@ -199,7 +199,7 @@ export default function ThermalReceipt({
           ================================================================ */}
       <div className="thermal-keep-together">
         {/* Table Column Headers */}
-        <div className="flex justify-between font-bold text-[10px] pb-1 border-b border-dashed border-black">
+        <div className="flex justify-between font-extrabold text-[11px] pb-1 border-b border-dashed border-black">
           <span className="flex-1 text-left">ITEM</span>
           <span className="w-8 text-center">QTY</span>
           {!is58mm && <span className="w-14 text-right">RATE</span>}
@@ -207,7 +207,7 @@ export default function ThermalReceipt({
         </div>
 
         {/* Table Rows */}
-        <div className="divide-y divide-dashed divide-black/30 text-[11px]">
+        <div className="divide-y divide-dashed divide-black text-[11px] font-bold">
           {items.map((item, index) => {
             const qty = Number(item.quantity || 0);
             const cancelledQty = Number(item.cancelledQuantity || 0);
@@ -221,37 +221,37 @@ export default function ThermalReceipt({
             return (
               <div
                 key={item._id || index}
-                className={`py-1 ${isFullyCancelled ? 'opacity-60 line-through' : ''}`}
+                className={`py-1 ${isFullyCancelled ? 'line-through' : ''}`}
               >
                 {/* Item Line */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1 text-left pr-1">
-                    <span className="font-semibold uppercase">
+                    <span className="font-bold uppercase">
                       {item.name}
                       {isLiquor && ' [L]'}
                     </span>
                     {isFullyCancelled && (
-                      <span className="ml-1 text-[9px] font-bold text-red-600 border border-red-600 px-0.5">
+                      <span className="ml-1 text-[10px] font-extrabold text-red-600 border border-red-600 px-0.5">
                         CANCELLED
                       </span>
                     )}
                   </div>
-                  <span className="w-8 text-center font-bold">
+                  <span className="w-8 text-center font-extrabold">
                     {isPartialCancelled ? `${remainingQty} (${qty})` : (remainingQty || qty)}
                   </span>
                   {!is58mm && (
-                    <span className="w-14 text-right text-[10px]">
+                    <span className="w-14 text-right text-[11px] font-bold">
                       {formatCurrency(unitPrice)}
                     </span>
                   )}
-                  <span className="w-16 text-right font-medium">
+                  <span className="w-16 text-right text-[11px] font-bold">
                     {formatCurrency(isFullyCancelled ? 0 : itemTotal)}
                   </span>
                 </div>
 
                 {/* Variants / Addons */}
                 {(item.spiceLevel?.name || (item.addOns && item.addOns.length > 0)) && (
-                  <div className="text-[9px] pl-2 text-black/80">
+                  <div className="text-[10px] pl-2 font-bold text-black">
                     {item.spiceLevel?.name && (
                       <div>+ Spice: {item.spiceLevel.name}</div>
                     )}
@@ -267,14 +267,14 @@ export default function ThermalReceipt({
 
                 {/* Item Notes */}
                 {(item.cookingNote || item.specialInstructions || item.notes) && (
-                  <div className="text-[9px] pl-2 italic text-black/70">
+                  <div className="text-[10px] pl-2 font-bold text-black">
                     * {item.cookingNote || item.specialInstructions || item.notes}
                   </div>
                 )}
 
                 {/* Cancellation notice */}
                 {isPartialCancelled && (
-                  <div className="text-[9px] pl-2 text-red-600">
+                  <div className="text-[10px] pl-2 font-bold text-red-600">
                     * {cancelledQty} qty cancelled
                     {item.cancelReason && ` (${item.cancelReason})`}
                   </div>
@@ -290,7 +290,7 @@ export default function ThermalReceipt({
       {/* ================================================================
           4. FINANCIAL BREAKDOWN & TAXES
           ================================================================ */}
-      <div className="text-[11px] space-y-0.5 thermal-keep-together">
+      <div className="text-[11px] font-bold space-y-0.5 thermal-keep-together">
         {/* Subtotal */}
         <div className="flex justify-between">
           <span>SUBTOTAL:</span>
@@ -299,7 +299,7 @@ export default function ThermalReceipt({
 
         {/* Coupon Discount */}
         {couponDiscount > 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>COUPON {order.couponCode ? `(${order.couponCode})` : ''}:</span>
             <span>- {currencySymbol} {formatCurrency(couponDiscount)}</span>
           </div>
@@ -307,7 +307,7 @@ export default function ThermalReceipt({
 
         {/* Manual Discount */}
         {manualDiscount > 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>DISCOUNT {manualReason ? `(${manualReason})` : ''}:</span>
             <span>- {currencySymbol} {formatCurrency(manualDiscount)}</span>
           </div>
@@ -315,35 +315,35 @@ export default function ThermalReceipt({
 
         {/* Taxes Breakdown */}
         {cgstAmount > 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>CGST {cgstRate > 0 ? `(${cgstRate}%)` : ''}:</span>
             <span>{currencySymbol} {formatCurrency(cgstAmount)}</span>
           </div>
         )}
 
         {sgstAmount > 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>SGST {sgstRate > 0 ? `(${sgstRate}%)` : ''}:</span>
             <span>{currencySymbol} {formatCurrency(sgstAmount)}</span>
           </div>
         )}
 
         {vatAmount > 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>VAT {vatRate > 0 ? `(${vatRate}%)` : ''}:</span>
             <span>{currencySymbol} {formatCurrency(vatAmount)}</span>
           </div>
         )}
 
         {taxAmount > 0 && cgstAmount === 0 && vatAmount === 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>TAX {taxRate > 0 ? `(${taxRate}%)` : ''}:</span>
             <span>{currencySymbol} {formatCurrency(taxAmount)}</span>
           </div>
         )}
 
         {cgstAmount === 0 && sgstAmount === 0 && vatAmount === 0 && taxAmount === 0 && (
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-[11px] font-bold">
             <span>
               TAX {effectiveRestaurant.taxRate > 0 ? `(${effectiveRestaurant.taxRate}%)` : '(0%)'}:
             </span>
@@ -352,7 +352,7 @@ export default function ThermalReceipt({
         )}
 
         {(order.taxType || effectiveRestaurant.taxType) && (
-          <div className="text-[9px] text-black/60 italic text-right">
+          <div className="text-[10px] font-bold text-black text-right">
             * Tax: {(order.taxType || effectiveRestaurant.taxType).toUpperCase()}
           </div>
         )}
@@ -364,14 +364,14 @@ export default function ThermalReceipt({
           5. GRAND TOTAL BANNER
           ================================================================ */}
       <div className="thermal-keep-together">
-        <div className="flex items-center justify-between font-extrabold text-[15px] py-0.5">
+        <div className="flex items-center justify-between font-black text-[16px] py-0.5">
           <span>TOTAL:</span>
-          <span className="text-[17px] tracking-tight">
+          <span className="text-[18px] tracking-tight">
             {currencySymbol} {formatCurrency(totalAmount)}
           </span>
         </div>
 
-        <div className="flex justify-between text-[10px] text-black/80 font-medium">
+        <div className="flex justify-between text-[11px] text-black font-bold">
           <span>Total Items: {items.length}</span>
           <span>Total Qty: {totalQuantity}</span>
         </div>
@@ -382,11 +382,11 @@ export default function ThermalReceipt({
       {/* ================================================================
           6. PAYMENT & SETTLEMENT STATUS
           ================================================================ */}
-      <div className="text-[11px] thermal-keep-together space-y-0.5">
-        <div className="flex justify-between items-center font-bold">
+      <div className="text-[11px] font-bold thermal-keep-together space-y-0.5">
+        <div className="flex justify-between items-center font-extrabold">
           <span>PAYMENT STATUS:</span>
           <span
-            className={`border px-1 text-[10px] tracking-wide ${
+            className={`border-2 px-1 text-[10px] font-extrabold tracking-wide ${
               isPaid
                 ? 'border-black bg-black text-white'
                 : isCancelled
@@ -398,7 +398,7 @@ export default function ThermalReceipt({
           </span>
         </div>
 
-        <div className="flex justify-between text-[10px]">
+        <div className="flex justify-between text-[11px] font-bold">
           <span>MODE: {paymentMethod}</span>
           {order.paymentId && <span>REF: {String(order.paymentId).slice(-8)}</span>}
         </div>
@@ -408,9 +408,9 @@ export default function ThermalReceipt({
       {(order.order_instructions || order.orderInstructions || order.notes) && (
         <>
           <div className="thermal-dash" />
-          <div className="text-[10px] thermal-keep-together">
-            <span className="font-bold">NOTES: </span>
-            <span className="italic">
+          <div className="text-[11px] font-bold thermal-keep-together">
+            <span className="font-extrabold">NOTES: </span>
+            <span>
               {order.order_instructions || order.orderInstructions || order.notes}
             </span>
           </div>
@@ -425,17 +425,17 @@ export default function ThermalReceipt({
       <div className="text-center pt-1 space-y-1 thermal-keep-together">
         {/* Simulated Thermal POS Barcode */}
         <div className="mx-auto my-1 w-3/4 h-8 barcode-stripes" />
-        <div className="text-[9px] tracking-widest uppercase">
+        <div className="text-[10px] font-bold tracking-widest uppercase">
           *{orderNumber}*
         </div>
 
-        <p className="font-bold text-[11px] uppercase tracking-wide">
+        <p className="font-extrabold text-[12px] uppercase tracking-wide">
           THANK YOU FOR DINING WITH US!
         </p>
-        <p className="text-[9px] text-black/70">
+        <p className="text-[10px] font-bold text-black">
           Please visit again • No refund without receipt
         </p>
-        <p className="text-[8px] text-black/50">
+        <p className="text-[10px] font-bold text-black">
           POS Bill • {dateFormatted} {timeFormatted}
         </p>
       </div>

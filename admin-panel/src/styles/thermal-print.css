@@ -186,9 +186,21 @@
     break-inside: avoid !important;
   }
 
-  /* Ensure text is true black with no fading */
-  * {
+  /* Ensure text is true black, bold, and crisp with no anti-alias fading on thermal printers */
+  .thermal-paper-printable,
+  .thermal-paper-printable * {
     color: #000000 !important;
+    border-color: #000000 !important;
     text-shadow: none !important;
+    opacity: 1 !important;
+    -webkit-font-smoothing: none !important;
+    -moz-osx-font-smoothing: auto !important;
+    font-weight: 700 !important;
+  }
+
+  .thermal-paper-printable .font-extrabold,
+  .thermal-paper-printable .font-black,
+  .thermal-paper-printable h1 {
+    font-weight: 900 !important;
   }
 }
