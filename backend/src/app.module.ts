@@ -22,6 +22,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WaiterCallsModule } from './modules/waiter-calls/waiter-calls.module';
+import { DesignModule } from './modules/design/design.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { WaiterCallsModule } from './modules/waiter-calls/waiter-calls.module';
     AnalyticsModule,
     NotificationsModule,
     WaiterCallsModule,
+    DesignModule,
   ],
   providers: [
     {

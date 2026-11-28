@@ -1,7 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { cert, getApp, getApps, initializeApp, ServiceAccount } from 'firebase-admin/app';
+import {
+  cert,
+  getApp,
+  getApps,
+  initializeApp,
+  ServiceAccount,
+} from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';

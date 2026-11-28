@@ -13,6 +13,7 @@ import {
   HiOutlineCog,
   HiOutlineX,
   HiOutlineChartBar,
+  HiOutlineColorSwatch,
   HiSparkles,
 } from 'react-icons/hi';
 import useSubscription from '../hooks/useSubscription';
@@ -32,6 +33,7 @@ const allMenuItems = [
   { path: '/subscriptions', label: 'Subscriptions', icon: HiOutlineCreditCard, roles: ['super_admin'] },
   { path: '/subscription-histories', label: 'Sub. Histories', icon: HiOutlineCollection, roles: ['super_admin'] },
   { path: '/my-subscription', label: 'My Subscription', icon: HiOutlineCreditCard, roles: ['org_admin'] },
+  { path: '/design-studio', label: 'Design Studio', icon: HiOutlineColorSwatch, roles: ['super_admin', 'org_admin', 'restaurant_owner'] },
   { path: '/settings', label: 'Settings', icon: HiOutlineCog, roles: ['org_admin', 'restaurant_owner'] },
 ];
 

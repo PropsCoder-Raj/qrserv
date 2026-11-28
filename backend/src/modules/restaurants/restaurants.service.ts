@@ -273,7 +273,7 @@ export class RestaurantsService {
     const restaurant = await this.restaurantModel
       .findById(id)
       .select(
-        'name logo address phone email gst_no vat_no cr_number receipt_header_note taxEnabled taxRate taxType vatEnabled vatRate vatType menuPdf organizationId isActive',
+        'name description logo address phone email gst_no vat_no cr_number receipt_header_note taxEnabled taxRate taxType vatEnabled vatRate vatType menuPdf organizationId isActive',
       );
     if (!restaurant) {
       throw new NotFoundException('Restaurant not found');

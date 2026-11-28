@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   HiOutlineClipboardList,
+  HiOutlineColorSwatch,
   HiOutlineOfficeBuilding,
   HiOutlineQrcode,
 } from 'react-icons/hi';
@@ -18,6 +19,11 @@ export default function Settings() {
           path: '/settings/restaurant-profile',
           label: 'Restaurant Profile',
           icon: HiOutlineOfficeBuilding,
+        },
+        {
+          path: '/design-studio',
+          label: 'Design Studio',
+          icon: HiOutlineColorSwatch,
         },
         ...(isRestaurantOwner
           ? [

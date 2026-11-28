@@ -27,6 +27,7 @@ import OrderStatistics from './pages/OrderStatistics';
 import OrderAnalytics from './pages/OrderAnalytics';
 import Coupons from './pages/Coupons';
 import AdminBillPrintPreview from './pages/AdminBillPrintPreview';
+import DesignStudio from './pages/DesignStudio';
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/subscription-histories" element={<SubscriptionHistories />} />
             <Route path="/my-subscription" element={<MySubscription />} />
             <Route path="/withdraw-requests" element={<WithdrawRequests />} />
+            <Route path="/design-studio" element={<DesignStudio />} />
             <Route path="/settings" element={<Settings />}>
               <Route index element={<Navigate to="restaurant-profile" replace />} />
               <Route path="restaurant-profile" element={<RestaurantProfileSettings />} />

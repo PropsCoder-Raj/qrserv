@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 export default function CategoryTabs({ categories, activeId, onSelect }) {
   const scrollRef = useRef(null);
@@ -23,28 +23,38 @@ export default function CategoryTabs({ categories, activeId, onSelect }) {
       {categories.map((cat) => {
         const isActive = activeId === cat._id;
         return (
-          <motion.button
+          <Motion.button
             key={cat._id}
             ref={isActive ? activeRef : null}
             whileTap={{ scale: 0.95 }}
             onClick={() => onSelect(cat._id)}
-            className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
-              isActive
-                ? 'bg-primary text-white shadow-md'
-                : 'bg-surface text-text-secondary border border-border hover:border-primary-100'
+            style={{
+              backgroundColor: isActive
+                ? 'var(--qr-primary, var(--color-primary))'
+                : 'var(--qr-surface, var(--color-surface))',
+              color: isActive
+                ? '#FFFFFF'
+                : 'var(--qr-text-muted, var(--color-text-secondary))',
+              borderColor: isActive
+                ? 'var(--qr-primary, var(--color-primary))'
+                : 'var(--qr-border, var(--color-border))',
+              borderRadius: 'var(--qr-btn-radius, 9999px)',
+            }}
+            className={`flex-shrink-0 border px-4 py-2 text-sm font-medium transition-all ${
+              isActive ? 'shadow-md' : ''
             }`}
           >
             {cat.name}
             {cat.itemCount > 0 && (
               <span
                 className={`ml-1.5 text-xs ${
-                  isActive ? 'text-white/70' : 'text-text-light'
+                  isActive ? 'text-white/75' : 'opacity-70'
                 }`}
               >
                 ({cat.itemCount})
               </span>
             )}
-          </motion.button>
+          </Motion.button>
         );
       })}
     </div>

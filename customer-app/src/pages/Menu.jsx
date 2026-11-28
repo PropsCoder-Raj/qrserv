@@ -1,24 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-  HiOutlineSearch,
-  HiX,
-  HiOutlineLocationMarker,
-  HiOutlineClock,
-  HiOutlineBell,
-} from 'react-icons/hi';
-import { MdTableBar, MdPeople } from 'react-icons/md';
+import { HiOutlineLocationMarker } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import menuService from '../services/menuService';
 import alertService from '../services/alertService';
 import restaurantService from '../services/restaurantService';
 import tableService from '../services/tableService';
+import designService from '../services/designService';
 import { useCart } from '../contexts/CartContext';
-import CategoryTabs from '../components/CategoryTabs';
-import MenuItemCard from '../components/MenuItemCard';
-import CartBar from '../components/CartBar';
 import Loader from '../components/Loader';
+import StorefrontThemeRenderer from '../components/themes/StorefrontThemeRenderer';
+import { DEFAULT_CLASSIC_CONFIG, mergeClassicConfig } from '../utils/designTheme';
 
 export default function Menu() {
   const { restaurantId } = useParams();
@@ -64,10 +56,16 @@ export default function Menu() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState('');
+  const [restaurantLogo, setRestaurantLogo] = useState('');
+  const [restaurantDescription, setRestaurantDescription] = useState('');
   const [crNumber, setCrNumber] = useState('');
   const [receiptHeaderNote, setReceiptHeaderNote] = useState('');
   const [gstNo, setGstNo] = useState('');
   const [vatNo, setVatNo] = useState('');
+  const [storeDesign, setStoreDesign] = useState({
+    activeTheme: 'classic',
+    classicConfig: DEFAULT_CLASSIC_CONFIG,
+  });
   const [tableNumber, setTableNumber] = useState('');
   const [tableCapacity, setTableCapacity] = useState(0);
   const [tableActive, setTableActive] = useState(true);
@@ -92,7 +90,10 @@ export default function Menu() {
         canLoadTableMenu = await loadTableInfo();
       }
 
-      const canLoadMenu = await loadRestaurantInfo();
+      const [canLoadMenu] = await Promise.all([
+        loadRestaurantInfo(),
+        loadStoreDesign(),
+      ]);
       if (canLoadMenu && canLoadTableMenu) {
         await loadMenu();
       } else {
@@ -109,11 +110,28 @@ export default function Menu() {
     setTableInfo(restaurantId, '', orderType);
   }, [restaurantId, hasTable, orderType, setTableInfo]);
 
+  const loadStoreDesign = async () => {
+    try {
+      const res = await designService.getByRestaurant(restaurantId);
+      const data = res.data?.data;
+      if (data) {
+        setStoreDesign({
+          activeTheme: data.activeTheme || 'classic',
+          classicConfig: mergeClassicConfig(data.classicConfig),
+        });
+      }
+    } catch {
+      // Silently fall back to Classic defaults if design config cannot be fetched
+    }
+  };
+
   const loadRestaurantInfo = async () => {
     try {
       const res = await restaurantService.getPublicInfo(restaurantId);
       const info = res.data.data;
       setRestaurantName(info.name);
+      setRestaurantLogo(info.logo || '');
+      setRestaurantDescription(info.description || '');
       setCrNumber(info.cr_number || '');
       setReceiptHeaderNote(info.receipt_header_note || '');
       setGstNo(info.gst_no);
@@ -291,171 +309,35 @@ export default function Menu() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-warm pb-24">
-      {restaurantName && (
-        <div className="bg-primary text-white">
-          <div className="mx-auto max-w-lg px-4 py-3">
-            <div className="flex items-center justify-center gap-1.5">
-              <HiOutlineLocationMarker size={18} className="flex-shrink-0" />
-              <h1 className="text-center text-lg font-bold">{restaurantName}</h1>
-            </div>
-            {receiptHeaderNote && (
-              <p className="text-center text-xs opacity-90 mt-0.5">{receiptHeaderNote}</p>
-            )}
-            {crNumber && (
-              <p className="text-center text-xs mt-0.5">CR No.: {crNumber}</p>
-            )}
-            {gstNo && <p className="text-center text-xs">GST No.: {gstNo}</p>}
-            {vatNo && <p className="text-center text-xs">VAT No.: {vatNo}</p>}
-            {tableNumber || tableId ? (
-              <div className="mt-1 flex items-center justify-center gap-3 text-xs text-white/80">
-                <span className="flex items-center gap-1">
-                  <MdTableBar size={14} />
-                  Table {tableNumber ? `#${tableNumber}` : `#${tableId.slice(-4)}`}
-                </span>
-                {tableCapacity > 0 && (
-                  <span className="flex items-center gap-1">
-                    <MdPeople size={14} />
-                    {tableCapacity} Seats
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="mt-2 flex justify-center">
-                {renderOrderTypeToggle()}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md">
-        <div className="mx-auto max-w-lg">
-          <div className="flex items-center justify-between px-4 py-3">
-            {!searchOpen ? (
-              <>
-                <div>
-                  <h1 className="text-lg font-bold text-text">Menu</h1>
-                  {!restaurantName && tableId && (
-                    <p className="text-xs text-text-light">
-                      Table {tableNumber ? `#${tableNumber}` : `#${tableId.slice(-4)}`}
-                    </p>
-                  )}
-                  {!restaurantName && !tableId && (
-                    <p className="mt-1 text-xs text-text-light">
-                      {orderType === 'dine_in' ? 'Dine In Order' : 'Takeaway Order'}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {!restaurantName &&
-                    !tableId &&
-                    renderOrderTypeToggle({
-                      containerClassName: 'bg-surface-cool',
-                      activeClassName: 'bg-surface text-text',
-                      idleClassName: 'text-text-light',
-                    })}
-                  {hasTable && (
-                    <button
-                      onClick={handleCallWaiter}
-                      disabled={waiterCooldown || callingWaiter}
-                      title={waiterCooldown ? 'Waiter has been notified' : 'Call waiter'}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-cool text-text-secondary disabled:opacity-50"
-                    >
-                      <HiOutlineBell size={18} />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => navigate('/orders')}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-cool text-text-secondary"
-                  >
-                    <HiOutlineClock size={18} />
-                  </button>
-                  <button
-                    onClick={() => setSearchOpen(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-cool text-text-secondary"
-                  >
-                    <HiOutlineSearch size={18} />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex w-full items-center gap-2"
-              >
-                <div className="relative flex-1">
-                  <HiOutlineSearch
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-light"
-                  />
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Search dishes..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-full bg-surface-cool py-2.5 pl-9 pr-4 text-sm outline-none placeholder:text-text-light focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    setSearchOpen(false);
-                    setSearchQuery('');
-                  }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary"
-                >
-                  <HiX size={18} />
-                </button>
-              </motion.div>
-            )}
-          </div>
-
-          {!searchOpen && categories.length > 0 && (
-            <CategoryTabs
-              categories={categories}
-              activeId={activeCategory}
-              onSelect={handleCategorySelect}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-lg px-4 pt-4">
-        {filteredMenu.length === 0 ? (
-          <div className="flex flex-col items-center py-20 text-center">
-            <span className="text-5xl">🍽️</span>
-            <p className="mt-3 text-sm text-text-light">
-              {searchQuery ? 'No dishes found' : 'Menu is empty'}
-            </p>
-          </div>
-        ) : (
-          filteredMenu.map((category) => (
-            <div
-              key={category._id}
-              ref={(el) => {
-                sectionRefs.current[category._id] = el;
-              }}
-              className="mb-6"
-            >
-              <div className="mb-3 flex items-center gap-2">
-                <h2 className="text-base font-bold text-text">{category.name}</h2>
-                <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary">
-                  {category.items?.length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {category.items?.map((item) => (
-                  <MenuItemCard key={item._id} item={item} />
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <CartBar />
-    </div>
+    <StorefrontThemeRenderer
+      activeTheme={storeDesign.activeTheme}
+      classicConfig={storeDesign.classicConfig}
+      restaurantName={restaurantName}
+      restaurantLogo={restaurantLogo}
+      restaurantDescription={restaurantDescription}
+      crNumber={crNumber}
+      receiptHeaderNote={receiptHeaderNote}
+      gstNo={gstNo}
+      vatNo={vatNo}
+      hasTable={hasTable}
+      tableId={tableId}
+      tableNumber={tableNumber}
+      tableCapacity={tableCapacity}
+      orderType={orderType}
+      renderOrderTypeToggle={renderOrderTypeToggle}
+      waiterCooldown={waiterCooldown}
+      callingWaiter={callingWaiter}
+      handleCallWaiter={handleCallWaiter}
+      onNavigateOrders={() => navigate('/orders')}
+      searchOpen={searchOpen}
+      setSearchOpen={setSearchOpen}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      categories={categories}
+      activeCategory={activeCategory}
+      onSelectCategory={handleCategorySelect}
+      filteredMenu={filteredMenu}
+      sectionRefs={sectionRefs}
+    />
   );
 }
