@@ -22,6 +22,10 @@ declare const _default: () => {
         chargePercentage: number;
         chargeGstPercentage: number;
     };
+    firebase: {
+        serviceAccountPath: string;
+        serviceAccountJson: string;
+    };
     mail: {
         host: string;
         port: number;

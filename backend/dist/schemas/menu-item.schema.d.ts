@@ -125,6 +125,8 @@ export declare class MenuItem {
     isAvailable: boolean;
     preparationTime: number;
     itemType: ItemType;
+    gstRate: number;
+    vatRate: number;
     customization: MenuItemCustomization;
 }
 export type MenuItemDocument = MenuItem & Document;
@@ -256,6 +258,24 @@ export declare const MenuItemSchema: MongooseSchema<MenuItem, import("mongoose")
         id: string;
     }>;
     itemType?: import("mongoose").SchemaDefinitionProperty<ItemType, MenuItem, Document<unknown, {}, MenuItem, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    gstRate?: import("mongoose").SchemaDefinitionProperty<number, MenuItem, Document<unknown, {}, MenuItem, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    vatRate?: import("mongoose").SchemaDefinitionProperty<number, MenuItem, Document<unknown, {}, MenuItem, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<MenuItem & {
         _id: Types.ObjectId;

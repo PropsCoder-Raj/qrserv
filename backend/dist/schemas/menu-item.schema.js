@@ -137,6 +137,16 @@ __decorate([
     __metadata("design:type", String)
 ], MenuItem.prototype, "itemType", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: 0, description: 'GST % applied to this item. 0 means no GST' }),
+    (0, mongoose_1.Prop)({ min: 0, default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], MenuItem.prototype, "gstRate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ default: 0, description: 'VAT % applied to this item. 0 means no VAT' }),
+    (0, mongoose_1.Prop)({ min: 0, default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], MenuItem.prototype, "vatRate", void 0);
+__decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: MenuItemCustomization }),
     (0, mongoose_1.Prop)({ type: exports.MenuItemCustomizationSchema, default: () => ({}) }),
     __metadata("design:type", MenuItemCustomization)

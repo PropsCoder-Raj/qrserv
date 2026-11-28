@@ -21,6 +21,7 @@ export declare class UsersController {
         restaurantId: import("mongoose").Types.ObjectId;
         isActive: boolean;
         notificationsEnabled: boolean;
+        fcmTokens: string[];
         _id: import("mongoose").Types.ObjectId;
         $locals: Record<string, unknown>;
         $op: "save" | "validate" | "remove" | null;

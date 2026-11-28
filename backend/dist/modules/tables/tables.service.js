@@ -131,7 +131,7 @@ let TablesService = class TablesService {
                 status: { $ne: order_schema_1.OrderStatus.CANCELLED },
                 $nor: [
                     {
-                        status: order_schema_1.OrderStatus.SERVED,
+                        status: order_schema_1.OrderStatus.COMPLETED,
                         paymentStatus: order_schema_1.PaymentStatus.PAID,
                     },
                 ],

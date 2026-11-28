@@ -9,7 +9,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OrderSchema = exports.Order = exports.OrderItem = exports.SelectedSpiceLevel = exports.SelectedAddOn = exports.ManualDiscountType = exports.OrderItemStatus = exports.PaymentMethod = exports.PaymentStatus = exports.OrderStatus = void 0;
+exports.OrderSchema = exports.Order = exports.OrderItem = exports.SelectedSpiceLevel = exports.SelectedAddOn = exports.ManualDiscountType = exports.OrderItemStatus = exports.PaymentMethod = exports.PaymentStatus = exports.ORDER_STATUS_TRANSITIONS = exports.OrderStatus = void 0;
+exports.canTransitionOrderStatus = canTransitionOrderStatus;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const swagger_1 = require("@nestjs/swagger");
@@ -18,11 +19,20 @@ var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "pending";
     OrderStatus["CONFIRMED"] = "confirmed";
-    OrderStatus["PREPARING"] = "preparing";
     OrderStatus["READY"] = "ready";
-    OrderStatus["SERVED"] = "served";
+    OrderStatus["COMPLETED"] = "completed";
     OrderStatus["CANCELLED"] = "cancelled";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
+exports.ORDER_STATUS_TRANSITIONS = {
+    [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+    [OrderStatus.CONFIRMED]: [OrderStatus.READY, OrderStatus.CANCELLED],
+    [OrderStatus.READY]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+    [OrderStatus.COMPLETED]: [],
+    [OrderStatus.CANCELLED]: [],
+};
+function canTransitionOrderStatus(from, to) {
+    return exports.ORDER_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+}
 var PaymentStatus;
 (function (PaymentStatus) {
     PaymentStatus["PENDING"] = "pending";
@@ -119,6 +129,14 @@ __decorate([
     __metadata("design:type", String)
 ], OrderItem.prototype, "itemType", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", Number)
+], OrderItem.prototype, "gstRate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    __metadata("design:type", Number)
+], OrderItem.prototype, "vatRate", void 0);
+__decorate([
     (0, swagger_1.ApiProperty)({ required: false, type: SelectedSpiceLevel }),
     __metadata("design:type", SelectedSpiceLevel)
 ], OrderItem.prototype, "spiceLevel", void 0);
@@ -197,6 +215,8 @@ __decorate([
                 cancelledBy: { type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: false },
                 cancelledAt: { type: Date, required: false },
                 itemType: { type: String, default: 'food' },
+                gstRate: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                vatRate: { type: Number, set: precision_1.mongoose3DecimalSetter },
                 spiceLevel: {
                     type: {
                         name: String,
@@ -297,6 +317,78 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
     __metadata("design:type", Number)
 ], Order.prototype, "liquorSubtotal", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Taxable base of items taxed under the GST profile' }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "gstBase", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Taxable base of items taxed under the VAT profile' }),
+    (0, mongoose_1.Prop)({ default: 0, type: Number, set: precision_1.mongoose3DecimalSetter }),
+    __metadata("design:type", Number)
+], Order.prototype, "vatBase", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'VAT collected grouped by rate and tax type' }),
+    (0, mongoose_1.Prop)({
+        type: [
+            {
+                rate: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxType: String,
+                base: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                _id: false,
+            },
+        ],
+        default: [],
+    }),
+    __metadata("design:type", Array)
+], Order.prototype, "vatBreakdown", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'GST taxable base and tax grouped by item GST rate' }),
+    (0, mongoose_1.Prop)({
+        type: [
+            {
+                rate: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxType: String,
+                base: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                _id: false,
+            },
+        ],
+        default: [],
+    }),
+    __metadata("design:type", Array)
+], Order.prototype, "gstBreakdown", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Per-line tax snapshot persisted when the order is completed' }),
+    (0, mongoose_1.Prop)({
+        type: [
+            {
+                menuItemId: { type: mongoose_2.Schema.Types.ObjectId, ref: 'MenuItem' },
+                name: String,
+                quantity: Number,
+                grossAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                gstRate: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                vatRate: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxableBase: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                cgstAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                sgstAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                gstAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                vatAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                taxAmount: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                lineTotal: { type: Number, set: precision_1.mongoose3DecimalSetter },
+                _id: false,
+            },
+        ],
+        default: [],
+    }),
+    __metadata("design:type", Array)
+], Order.prototype, "lineTaxes", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Date)
+], Order.prototype, "taxSnapshotAt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ required: false }),
     (0, mongoose_1.Prop)({ type: mongoose_2.Schema.Types.ObjectId, ref: 'Coupon', required: false }),

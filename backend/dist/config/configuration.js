@@ -24,6 +24,10 @@ exports.default = () => ({
         chargePercentage: parseFloat(process.env.WITHDRAW_CHARGE_PERCENTAGE || '2.5'),
         chargeGstPercentage: parseFloat(process.env.WITHDRAW_CHARGE_GST_PERCENTAGE || '18'),
     },
+    firebase: {
+        serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+        serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
+    },
     mail: {
         host: process.env.MAIL_HOST || '',
         port: parseInt(process.env.MAIL_PORT || '587', 10),

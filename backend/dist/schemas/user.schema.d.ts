@@ -18,6 +18,7 @@ export declare class User {
     isActive: boolean;
     notificationsEnabled: boolean;
     refreshToken: string;
+    fcmTokens: string[];
 }
 export type UserDocument = User & Document;
 export declare const UserSchema: MongooseSchema<User, import("mongoose").Model<User, any, any, any, (Document<unknown, any, User, any, import("mongoose").DefaultSchemaOptions> & User & {
@@ -130,6 +131,15 @@ export declare const UserSchema: MongooseSchema<User, import("mongoose").Model<U
         id: string;
     }>;
     refreshToken?: import("mongoose").SchemaDefinitionProperty<string, User, Document<unknown, {}, User, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<User & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    fcmTokens?: import("mongoose").SchemaDefinitionProperty<string[], User, Document<unknown, {}, User, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<User & {
         _id: Types.ObjectId;

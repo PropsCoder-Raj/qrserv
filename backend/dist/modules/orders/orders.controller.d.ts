@@ -64,8 +64,9 @@ export declare class OrdersController {
     getStats(restaurantId?: string, query?: PaginationQueryDto, user?: any, role?: string, organizationId?: string, userRestaurantId?: string): Promise<{
         totalOrders: any;
         totalSales: any;
-        totalServedOrders: number;
-        totalServedSales: number;
+        averageOrderValue: number;
+        totalCompletedOrders: number;
+        totalCompletedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;

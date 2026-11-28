@@ -2,11 +2,12 @@ import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 export declare enum OrderStatus {
     PENDING = "pending",
     CONFIRMED = "confirmed",
-    PREPARING = "preparing",
     READY = "ready",
-    SERVED = "served",
+    COMPLETED = "completed",
     CANCELLED = "cancelled"
 }
+export declare const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]>;
+export declare function canTransitionOrderStatus(from: OrderStatus, to: OrderStatus): boolean;
 export declare enum PaymentStatus {
     PENDING = "pending",
     PAID = "paid",
@@ -46,6 +47,8 @@ export declare class OrderItem {
     cancelledBy?: Types.ObjectId;
     cancelledAt?: Date;
     itemType: string;
+    gstRate?: number;
+    vatRate?: number;
     spiceLevel?: SelectedSpiceLevel;
     addOns?: SelectedAddOn[];
     specialInstructions?: string;
@@ -74,6 +77,36 @@ export declare class Order {
     vatType: string;
     foodSubtotal: number;
     liquorSubtotal: number;
+    gstBase: number;
+    vatBase: number;
+    vatBreakdown: Array<{
+        rate: number;
+        taxType: string;
+        base: number;
+        taxAmount: number;
+    }>;
+    gstBreakdown: Array<{
+        rate: number;
+        taxType: string;
+        base: number;
+        taxAmount: number;
+    }>;
+    lineTaxes: Array<{
+        menuItemId?: Types.ObjectId;
+        name?: string;
+        quantity: number;
+        grossAmount: number;
+        gstRate: number;
+        vatRate: number;
+        taxableBase: number;
+        cgstAmount: number;
+        sgstAmount: number;
+        gstAmount: number;
+        vatAmount: number;
+        taxAmount: number;
+        lineTotal: number;
+    }>;
+    taxSnapshotAt?: Date;
     couponId?: Types.ObjectId;
     couponCode?: string;
     discountAmount: number;
@@ -289,6 +322,84 @@ export declare const OrderSchema: MongooseSchema<Order, import("mongoose").Model
         id: string;
     }>;
     liquorSubtotal?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    gstBase?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    vatBase?: import("mongoose").SchemaDefinitionProperty<number, Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    vatBreakdown?: import("mongoose").SchemaDefinitionProperty<{
+        rate: number;
+        taxType: string;
+        base: number;
+        taxAmount: number;
+    }[], Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    gstBreakdown?: import("mongoose").SchemaDefinitionProperty<{
+        rate: number;
+        taxType: string;
+        base: number;
+        taxAmount: number;
+    }[], Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    lineTaxes?: import("mongoose").SchemaDefinitionProperty<{
+        menuItemId?: Types.ObjectId;
+        name?: string;
+        quantity: number;
+        grossAmount: number;
+        gstRate: number;
+        vatRate: number;
+        taxableBase: number;
+        cgstAmount: number;
+        sgstAmount: number;
+        gstAmount: number;
+        vatAmount: number;
+        taxAmount: number;
+        lineTotal: number;
+    }[], Order, Document<unknown, {}, Order, {
+        id: string;
+    }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }>;
+    taxSnapshotAt?: import("mongoose").SchemaDefinitionProperty<Date, Order, Document<unknown, {}, Order, {
         id: string;
     }, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & Omit<Order & {
         _id: Types.ObjectId;

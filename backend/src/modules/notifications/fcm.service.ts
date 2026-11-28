@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import * as admin from 'firebase-admin';
+import { cert, getApp, getApps, initializeApp, ServiceAccount } from 'firebase-admin/app';
+import { getMessaging, Messaging } from 'firebase-admin/messaging';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Model, Types } from 'mongoose';
@@ -28,7 +29,7 @@ const MULTICAST_BATCH_SIZE = 500;
 @Injectable()
 export class FcmService implements OnModuleInit {
   private readonly logger = new Logger(FcmService.name);
-  private messaging: admin.messaging.Messaging | null = null;
+  private messaging: Messaging | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -123,11 +124,11 @@ export class FcmService implements OnModuleInit {
     }
   }
 
-  private initializeMessaging(): admin.messaging.Messaging | null {
+  private initializeMessaging(): Messaging | null {
     const inlineJson = this.configService.get<string>('firebase.serviceAccountJson');
     const filePath = this.configService.get<string>('firebase.serviceAccountPath');
 
-    let credentials: admin.ServiceAccount | null = null;
+    let credentials: ServiceAccount | null = null;
     try {
       if (inlineJson) {
         credentials = JSON.parse(inlineJson);
@@ -146,9 +147,9 @@ export class FcmService implements OnModuleInit {
       return null;
     }
 
-    const app = admin.apps.length
-      ? admin.app()
-      : admin.initializeApp({ credential: admin.credential.cert(credentials) });
-    return app.messaging();
+    const app = getApps().length
+      ? getApp()
+      : initializeApp({ credential: cert(credentials) });
+    return getMessaging(app);
   }
 }

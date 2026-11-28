@@ -142,6 +142,22 @@ __decorate([
     __metadata("design:type", String)
 ], CreateMenuItemDto.prototype, "itemType", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 5, description: 'Per-item GST rate (%). 0 means no GST' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], CreateMenuItemDto.prototype, "gstRate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 15, description: 'Per-item VAT rate (%). 0 means no VAT' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], CreateMenuItemDto.prototype, "vatRate", void 0);
+__decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: MenuItemCustomizationDto }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.ValidateNested)(),

@@ -25,6 +25,7 @@ export declare class UsersService implements OnModuleInit {
         restaurantId: Types.ObjectId;
         isActive: boolean;
         notificationsEnabled: boolean;
+        fcmTokens: string[];
         _id: Types.ObjectId;
         $locals: Record<string, unknown>;
         $op: "save" | "validate" | "remove" | null;

@@ -75,6 +75,7 @@ export declare class OrdersService {
     }>;
     private calculateManualDiscount;
     private computeTotalsForItems;
+    private resolveItemTaxRates;
     cancelOrderItem(id: string, dto: CancelOrderItemDto, userId: string): Promise<import("mongoose").Document<unknown, {}, OrderDocument, {}, import("mongoose").DefaultSchemaOptions> & Order & import("mongoose").Document<Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: Types.ObjectId;
     }> & {
@@ -175,8 +176,9 @@ export declare class OrdersService {
     getStats(restaurantId?: string | Types.ObjectId, dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
-        totalServedOrders: number;
-        totalServedSales: number;
+        averageOrderValue: number;
+        totalCompletedOrders: number;
+        totalCompletedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;
@@ -205,8 +207,9 @@ export declare class OrdersService {
     getStatsByAll(dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
-        totalServedOrders: number;
-        totalServedSales: number;
+        averageOrderValue: number;
+        totalCompletedOrders: number;
+        totalCompletedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;
@@ -235,8 +238,9 @@ export declare class OrdersService {
     getStatsByOrganization(organizationId: string | Types.ObjectId, dateQuery?: Pick<PaginationQueryDto, 'datePreset' | 'fromDate' | 'toDate'>): Promise<{
         totalOrders: any;
         totalSales: any;
-        totalServedOrders: number;
-        totalServedSales: number;
+        averageOrderValue: number;
+        totalCompletedOrders: number;
+        totalCompletedSales: number;
         mostSoldItems: {
             name: any;
             quantity: any;

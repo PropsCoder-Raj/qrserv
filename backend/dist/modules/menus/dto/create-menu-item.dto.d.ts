@@ -22,5 +22,7 @@ export declare class CreateMenuItemDto {
     isVeg?: boolean;
     preparationTime?: number;
     itemType?: ItemType;
+    gstRate?: number;
+    vatRate?: number;
     customization?: MenuItemCustomizationDto;
 }
